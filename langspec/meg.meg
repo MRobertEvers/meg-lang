@@ -1,0 +1,25 @@
+
+
+
+
+
+// Normal function
+fn main(arg1: u8, arg2: u8): u8 {
+    return 5;
+}
+
+// first Iter<YieldType, CalledWithNextType>
+// so iter.next(l: CalledWithNextType)
+iter fn my_iter(arg1: u32): Iter<@FrameSize(my_iter), u8, u32> {
+    let inserted = yield value;
+}
+
+
+
+// Impl in terms of iterator like rust. Type is rather cumbersome...
+async fn my_async(): Async<@FrameSize(my_async), void> {
+
+    await another_async_call();
+
+    return 3;
+}

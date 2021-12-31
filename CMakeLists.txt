@@ -32,7 +32,6 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 # Now build our tools
 add_executable(MegLang 
     src/main.cpp
-    src/KaleidoscopeJIT.h
 )
 
 set_property(TARGET MegLang PROPERTY CXX_STANDARD 14)
@@ -40,7 +39,7 @@ set_property(TARGET MegLang PROPERTY CXX_STANDARD 14)
 # Find the libraries that correspond to the LLVM components
 # that we wish to use
 # Following the Kaleidoscope example, had to add orcjit native in Ch 4.
-llvm_map_components_to_libnames(llvm_libs support core irreader orcjit native)
+llvm_map_components_to_libnames(llvm_libs support core irreader object orcjit native)
 
 # Link against LLVM libraries
 target_link_libraries(MegLang ${llvm_libs})
