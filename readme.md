@@ -1,46 +1,18 @@
 # Meg Lang
 
-# Exploration
+In this branch, we are officially compiling input source code.
 
-Create make files with `cmake` (expects LLVM is available in usr/lib)
-
-```
-mkdir build
-cd build
-cmake ..
-```
-
-Now you can build the src with `make` which will produce a `MegLang` file.
-
-Run `MegLang`, this will produce an `output.o` which is some test LLVM output. The `output.o` file contains a function definition for `extern "C" double floater()`, which can be called from a C function.
-
-Compile `test.cpp` to call the LLVM generated code from C.
+Module expects single top level `fn` definition. Functions can have a single return statement.
 
 ```
-clang++ test.cpp output.o -o test
-```
-
-Then run the `test` file and see the output.
-
-```
-Value: 10.4
+fn func(): i8 { 
+    return 9*8; 
+}
 ```
 
 
-Putting it all together, it looks like
+# Resources
 
-```
-mkdir build
-cd build
-cmake ..
+The Rust Parser entry point is in `compiler/rustc_parse/src/parser/item.rs` with function `parse_mod`.
 
-make
-
-./MegLang
-
-clang++ test.cpp output.o -o test
-
-./test
-
->>> Value: 10.4
-```
+`parse_item_kind` function appears close to the top of the parse and appears to parse all top level structures of a module.
