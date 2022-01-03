@@ -5,9 +5,25 @@ In this branch, we are officially compiling input source code.
 Module expects single top level `fn` definition. Functions can have a single return statement.
 
 ```
-fn func(): i8 { 
+fn func(): i8 
+{ 
     return 9*8; 
 }
+```
+
+# Notes on Code Generation
+
+LLVM has the following mental model. A module contains functions and variables among other things. Functions contains blocks.
+
+For generating an AST for code gen.
+
+```
+statements do not return a value from codegen;
+expressions do return a value from codegen;
+
+a block contains a list of statements
+e.g. a return statement, for loop, if statement. 
+(Rust does this in their AST too)
 ```
 
 

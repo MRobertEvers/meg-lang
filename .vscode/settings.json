@@ -76,7 +76,8 @@
         "set": "cpp",
         "shared_mutex": "cpp",
         "stack": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "iomanip": "cpp"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
