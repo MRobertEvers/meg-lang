@@ -14,7 +14,81 @@ e.g. a return statement, for loop, if statement.
 (Rust does this in their AST too)
 ```
 
+# Function Termination
 
+Functions compiled in rust have a terminator. This terminator handles drop calls or just returns depending.
+Examine the following code. The `if` statement diverges, but jumps to the end of `square` anyway where the terminator is.
+
+```rust
+struct Me {
+    x: i8
+}
+
+impl Drop for Me {
+    fn drop(&mut self) {
+        print!("Dropped");
+    }
+}
+
+
+
+pub fn square(num: i32) -> i32 {
+    let me = Me {x: 4};
+
+    if num < 4 {
+        return me.x.into(); // jumps to hidden Drop Call
+    } else {
+        return 46; // jumps to hidden Drop call
+    }
+
+// hidden Drop Call
+}
+```
+
+
+C++ does the same
+
+```cpp
+// Type your code here, or load an example.
+#include <iostream>
+class Me {
+public:
+    int x;
+    Me(int x): x(x){};
+    ~Me() {
+        std::cout << "Dropped" << std::endl;
+    }
+};
+
+int square(int num) {
+    Me me{4};
+
+    if( num < 4 ) {
+        return me.x; // jumps to hidden Destructor Call
+    } else {
+        return 46; // jumps to hidden Destructor call
+    }
+// hidden Destructor Call
+}
+```
+
+That's why the codegen in rust can be so simple; note this says `codegen_block` but it is only used for top level blocks.
+
+```rust
+    pub fn codegen_block(&mut self, bb: mir::BasicBlock) {
+        let mut bx = self.build_block(bb);
+        let mir = self.mir;
+        let data = &mir[bb];
+
+        debug!("codegen_block({:?}={:?})", bb, data);
+
+        for statement in &data.statements {
+            bx = self.codegen_statement(bx, statement);
+        }
+
+        self.codegen_terminator(bx, bb, data.terminator());
+    }
+```
 
 
 # Resources
