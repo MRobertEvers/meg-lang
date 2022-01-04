@@ -7,16 +7,18 @@ using namespace llvm;
 using namespace nodes;
 
 void
-Prototype::codegen()
+Prototype::codegen(CodegenContext& codegen)
 {
 	// Make the function type:  double(double,double) etc.
-	std::vector<Type*> Doubles(Args.size(), Type::getDoubleTy(*TheContext));
-	FunctionType* FT = FunctionType::get(Type::getDoubleTy(*TheContext), Doubles, false);
+	std::vector<Type*> Doubles(Args.size(), Type::getDoubleTy(*codegen.Context));
+	FunctionType* FT = FunctionType::get(Type::getDoubleTy(*codegen.Context), Doubles, false);
 
-	Function* F = Function::Create(FT, Function::ExternalLinkage, Name, TheModule.get());
+	Function* F = Function::Create(FT, Function::ExternalLinkage, Name, codegen.Module.get());
 
 	// Set names for all arguments.
 	unsigned Idx = 0;
 	for( auto& Arg : F->args() )
 		Arg.setName(Args[Idx++]);
+
+	codegen.Functions.insert(std::make_pair(Name, F));
 }

@@ -5,25 +5,25 @@ using namespace nodes;
 
 /// BinaryExprAST - Expression class for a binary operator.
 Value*
-BinaryOperation::codegen()
+BinaryOperation::codegen(CodegenContext& codegen)
 {
-	Value* L = LHS->codegen();
-	Value* R = RHS->codegen();
+	Value* L = LHS->codegen(codegen);
+	Value* R = RHS->codegen(codegen);
 	if( !L || !R )
 		return nullptr;
 
 	switch( Op )
 	{
 	case '+':
-		return Builder->CreateAdd(L, R, "addtmp");
+		return codegen.Builder->CreateAdd(L, R, "addtmp");
 	case '-':
-		return Builder->CreateSub(L, R, "subtmp");
+		return codegen.Builder->CreateSub(L, R, "subtmp");
 	case '*':
-		return Builder->CreateMul(L, R, "multmp");
+		return codegen.Builder->CreateMul(L, R, "multmp");
 	case '/':
-		return Builder->CreateSDiv(L, R, "divtmp");
+		return codegen.Builder->CreateSDiv(L, R, "divtmp");
 	case '<':
-		L = Builder->CreateICmpULT(L, R, "cmptmp");
+		L = codegen.Builder->CreateICmpULT(L, R, "cmptmp");
 		// Convert bool 0/1 to double 0.0 or 1.0
 		return L;
 	default:

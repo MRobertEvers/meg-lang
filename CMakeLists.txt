@@ -37,6 +37,18 @@ add_executable(MegLang
     src/lexer/keywords.cpp
     src/lexer/keywords.h
     src/lexer/token.h
+    src/parser/nodes/expressions/BinOp.h
+    src/parser/nodes/expressions/BinOp.cpp
+    src/parser/nodes/expressions/Number.h
+    src/parser/nodes/expressions/Number.cpp
+    src/parser/nodes/statements/Block.h
+    src/parser/nodes/statements/Block.cpp
+    src/parser/nodes/statements/Function.h
+    src/parser/nodes/statements/Function.cpp
+    src/parser/nodes/statements/Prototype.h
+    src/parser/nodes/statements/Prototype.cpp
+    src/parser/nodes/statements/Return.h
+    src/parser/nodes/statements/Return.cpp
 )
 
 set_property(TARGET MegLang PROPERTY CXX_STANDARD 14)

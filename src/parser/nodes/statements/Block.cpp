@@ -4,11 +4,11 @@ using namespace llvm;
 using namespace nodes;
 
 void
-Block::codegen()
+Block::codegen(CodegenContext& codegen)
 {
 	for( auto& stmt : statements )
 	{
-		stmt->codegen();
+		stmt->codegen(codegen);
 	}
 
 	return;

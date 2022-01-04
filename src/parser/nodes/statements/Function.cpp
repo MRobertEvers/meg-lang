@@ -7,17 +7,20 @@ using namespace llvm;
 using namespace nodes;
 
 void
-Function::codegen()
+nodes::Function::codegen(CodegenContext& codegen)
 {
 	// Transfer ownership of the prototype to the FunctionProtos map, but keep a
 	// reference to it for use below.
-	llvm::Function* TheFunction = Proto->codegen();
-	if( !TheFunction )
-		return nullptr;
+	Proto->codegen(codegen);
+
+	auto TheFunctionIter = codegen.Functions.find(Proto->getName());
+
+	if( TheFunctionIter == codegen.Functions.end() )
+		return;
 
 	// Create a new basic block to start insertion into.
-	BasicBlock* BB = BasicBlock::Create(*TheContext, "entry", TheFunction);
-	Builder->SetInsertPoint(BB);
+	BasicBlock* BB = BasicBlock::Create(*codegen.Context, "entry", TheFunctionIter->second.get());
+	codegen.Builder->SetInsertPoint(BB);
 
-	Body->codegen();
+	Body->codegen(codegen);
 }

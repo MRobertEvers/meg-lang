@@ -16,6 +16,6 @@ public:
 		: statements(std::move(stmts))
 	{}
 
-	void codegen() override;
+	void codegen(CodegenContext& codegen) override;
 };
 } // namespace nodes

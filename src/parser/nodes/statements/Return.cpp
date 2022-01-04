@@ -3,13 +3,10 @@
 using namespace llvm;
 using namespace nodes;
 
-Value*
-Return::codegen()
+void
+Return::codegen(CodegenContext& codegen)
 {
-	for( auto& stmt : statements )
-	{
-		stmt->codegen();
-	}
-
-	return nullptr;
+	auto RetVal = ReturnExpr->codegen(codegen);
+	// Finish off the function.
+	codegen.Builder->CreateRet(RetVal);
 }

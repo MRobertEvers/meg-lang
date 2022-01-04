@@ -12,7 +12,7 @@ public:
 		: Val(Val)
 	{}
 
-	llvm::Value* codegen() override;
+	llvm::Value* codegen(CodegenContext& codegen) override;
 };
 
 } // namespace nodes

@@ -35,9 +35,6 @@
 using namespace nodes;
 using namespace llvm;
 static std::map<char, int> BinopPrecedence;
-static std::unique_ptr<LLVMContext> TheContext;
-static std::unique_ptr<Module> TheModule;
-static std::unique_ptr<IRBuilder<>> Builder;
 
 class TokenCursor
 {
@@ -200,7 +197,7 @@ parse_expression_value(TokenCursor& cursor)
 	auto sz = std::string{tok.start, tok.size};
 	int val = std::stoi(sz);
 	cursor.adv();
-	return std::make_unique<IExpressionNode>(val);
+	return std::make_unique<Number>(val);
 }
 
 std::unique_ptr<IExpressionNode>
@@ -217,7 +214,7 @@ parse_expression(TokenCursor& cursor)
 	return OP;
 }
 
-std::unique_ptr<IStatementNode>
+std::unique_ptr<Prototype>
 parse_function_proto(TokenCursor& cursor)
 {
 	Token tok_fn_name = cursor.peek();
@@ -288,26 +285,24 @@ parse_function(TokenCursor& cursor)
 }
 
 void
-codegen(std::vector<Token> const& tokens)
+codegen(CodegenContext& codegen, std::vector<Token> const& tokens)
 {
 	std::vector<IExpressionNode*> asts;
 	asts.reserve(30);
+
 	TokenCursor cursor{tokens};
 	auto mod = parse_module(cursor);
 	if( !mod )
 	{
 		return;
 	}
-	mod->codegen();
+	mod->codegen(codegen);
 }
 
 int
 main()
 {
-	TheContext = std::make_unique<LLVMContext>();
-	TheModule = std::make_unique<Module>("this_module", *TheContext);
-	// Create a new builder for the module.
-	Builder = std::make_unique<IRBuilder<>>(*TheContext);
+	CodegenContext cg;
 
 	BinopPrecedence['<'] = 10;
 	BinopPrecedence['+'] = 20;
@@ -321,12 +316,12 @@ main()
 
 	Lexer::print_tokens(tokens);
 
-	codegen(tokens);
+	codegen(cg, tokens);
 
 	std::string Str;
 	raw_string_ostream OS(Str);
 
-	TheModule->print(OS, nullptr);
+	cg.Module->print(OS, nullptr);
 
 	std::cout << Str;
 

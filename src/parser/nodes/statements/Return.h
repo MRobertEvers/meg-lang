@@ -16,6 +16,6 @@ public:
 		: ReturnExpr(std::move(ReturnExpr))
 	{}
 
-	void codegen() override;
+	void codegen(CodegenContext& codegen) override;
 };
 } // namespace nodes

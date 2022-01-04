@@ -22,7 +22,7 @@ public:
 		, Args(std::move(Args))
 	{}
 
-	void codegen() override;
+	void codegen(CodegenContext& codegen) override;
 	const std::string& getName() const { return Name; }
 };
 } // namespace nodes

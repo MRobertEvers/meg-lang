@@ -19,6 +19,6 @@ public:
 		, RHS(std::move(RHS))
 	{}
 
-	llvm::Value* codegen() override;
+	llvm::Value* codegen(CodegenContext& codegen) override;
 };
 } // namespace nodes

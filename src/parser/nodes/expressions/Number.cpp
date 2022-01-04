@@ -6,7 +6,7 @@ using namespace llvm;
 using namespace nodes;
 
 Value*
-Number::codegen()
+Number::codegen(CodegenContext& codegen)
 {
-	return ConstantInt::get(*TheContext, APInt(32, Val, true));
+	return ConstantInt::get(*codegen.Context, APInt(32, Val, true));
 }
