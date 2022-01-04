@@ -32,11 +32,15 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 # Now build our tools
 add_executable(MegLang 
     src/main.cpp
-    src/lexer/lexer.cpp
-    src/lexer/lexer.h
+    src/lexer/Lexer.cpp
+    src/lexer/Lexer.h
     src/lexer/keywords.cpp
     src/lexer/keywords.h
     src/lexer/token.h
+    src/lexer/TokenCursor.h
+    src/lexer/TokenCursor.cpp
+    src/parser/parsers/Parser.h
+    src/parser/parsers/Parser.cpp
     src/parser/nodes/expressions/BinOp.h
     src/parser/nodes/expressions/BinOp.cpp
     src/parser/nodes/expressions/Number.h
