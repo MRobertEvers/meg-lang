@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace nodes
+namespace ast
 {
 
 /// FunctionAST - This class represents a function definition itself.
@@ -22,4 +22,4 @@ public:
 
 	void codegen(CodegenContext& codegen) override;
 };
-} // namespace nodes
+} // namespace ast

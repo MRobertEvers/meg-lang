@@ -1,7 +1,7 @@
 #include "BinOp.h"
 
 using namespace llvm;
-using namespace nodes;
+using namespace ast;
 
 /// BinaryExprAST - Expression class for a binary operator.
 Value*

@@ -4,7 +4,7 @@
 #include <llvm/IR/Function.h>
 
 using namespace llvm;
-using namespace nodes;
+using namespace ast;
 
 void
 Prototype::codegen(CodegenContext& codegen)

@@ -4,10 +4,10 @@
 #include <llvm/IR/Function.h>
 
 using namespace llvm;
-using namespace nodes;
+using namespace ast;
 
 void
-nodes::Function::codegen(CodegenContext& codegen)
+ast::Function::codegen(CodegenContext& codegen)
 {
 	// Transfer ownership of the prototype to the FunctionProtos map, but keep a
 	// reference to it for use below.

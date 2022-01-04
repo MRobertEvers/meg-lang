@@ -227,5 +227,5 @@ Parser::parse_function(TokenCursor& cursor)
 		return nullptr;
 	}
 
-	return std::make_unique<nodes::Function>(std::move(proto), std::move(definition));
+	return std::make_unique<ast::Function>(std::move(proto), std::move(definition));
 }

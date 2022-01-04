@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace nodes
+namespace ast
 {
 class Return : public IStatementNode
 {
@@ -18,4 +18,4 @@ public:
 
 	void codegen(CodegenContext& codegen) override;
 };
-} // namespace nodes
+} // namespace ast

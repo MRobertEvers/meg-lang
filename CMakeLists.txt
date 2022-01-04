@@ -41,18 +41,18 @@ add_executable(MegLang
     src/lexer/TokenCursor.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
-    src/parser/nodes/expressions/BinOp.h
-    src/parser/nodes/expressions/BinOp.cpp
-    src/parser/nodes/expressions/Number.h
-    src/parser/nodes/expressions/Number.cpp
-    src/parser/nodes/statements/Block.h
-    src/parser/nodes/statements/Block.cpp
-    src/parser/nodes/statements/Function.h
-    src/parser/nodes/statements/Function.cpp
-    src/parser/nodes/statements/Prototype.h
-    src/parser/nodes/statements/Prototype.cpp
-    src/parser/nodes/statements/Return.h
-    src/parser/nodes/statements/Return.cpp
+    src/parser/ast/expressions/BinOp.h
+    src/parser/ast/expressions/BinOp.cpp
+    src/parser/ast/expressions/Number.h
+    src/parser/ast/expressions/Number.cpp
+    src/parser/ast/statements/Block.h
+    src/parser/ast/statements/Block.cpp
+    src/parser/ast/statements/Function.h
+    src/parser/ast/statements/Function.cpp
+    src/parser/ast/statements/Prototype.h
+    src/parser/ast/statements/Prototype.cpp
+    src/parser/ast/statements/Return.h
+    src/parser/ast/statements/Return.cpp
 )
 
 set_property(TARGET MegLang PROPERTY CXX_STANDARD 14)

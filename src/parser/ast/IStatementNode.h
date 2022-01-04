@@ -4,7 +4,7 @@
 #include "../CodegenContext.h"
 #include <llvm/IR/Value.h>
 
-namespace nodes
+namespace ast
 {
 class IStatementNode
 {
@@ -13,6 +13,6 @@ public:
 
 	virtual void codegen(CodegenContext& codegen) = 0;
 };
-} // namespace nodes
+} // namespace ast
 
 #endif

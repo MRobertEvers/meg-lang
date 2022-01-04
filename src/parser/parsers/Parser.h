@@ -1,13 +1,11 @@
 #pragma once
 
 #include "../../lexer/TokenCursor.h"
-#include "../nodes/IExpressionNode.h"
-#include "../nodes/IStatementNode.h"
-#include "../nodes/statements/Prototype.h"
+#include "../parser.h"
 
 #include <memory>
 
-using namespace nodes;
+using namespace ast;
 
 class Parser
 {

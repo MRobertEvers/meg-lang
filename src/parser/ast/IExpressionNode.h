@@ -4,7 +4,7 @@
 #include "../CodegenContext.h"
 #include <llvm/IR/Value.h>
 
-namespace nodes
+namespace ast
 {
 class IExpressionNode
 {
@@ -13,6 +13,6 @@ public:
 
 	virtual llvm::Value* codegen(CodegenContext& codegen) = 0;
 };
-} // namespace nodes
+} // namespace ast
 
 #endif

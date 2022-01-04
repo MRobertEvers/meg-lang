@@ -3,7 +3,7 @@
 #include <llvm/IR/Constants.h>
 
 using namespace llvm;
-using namespace nodes;
+using namespace ast;
 
 Value*
 Number::codegen(CodegenContext& codegen)

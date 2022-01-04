@@ -3,7 +3,7 @@
 
 #include <memory>
 
-namespace nodes
+namespace ast
 {
 /// BinaryExprAST - Expression class for a binary operator.
 class BinaryOperation : public IExpressionNode
@@ -21,4 +21,4 @@ public:
 
 	llvm::Value* codegen(CodegenContext& codegen) override;
 };
-} // namespace nodes
+} // namespace ast

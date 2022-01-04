@@ -1,7 +1,7 @@
 #pragma once
 #include "../IExpressionNode.h"
 
-namespace nodes
+namespace ast
 {
 class Number : public IExpressionNode
 {
@@ -15,4 +15,4 @@ public:
 	llvm::Value* codegen(CodegenContext& codegen) override;
 };
 
-} // namespace nodes
+} // namespace ast

@@ -6,10 +6,7 @@
 #include <iostream>
 #include <vector>
 
-/// BinopPrecedence - This holds the precedence for each binary operator that is
-/// defined.
-
-using namespace nodes;
+using namespace ast;
 using namespace llvm;
 
 void

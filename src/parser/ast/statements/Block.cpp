@@ -1,7 +1,7 @@
 #include "Block.h"
 
 using namespace llvm;
-using namespace nodes;
+using namespace ast;
 
 void
 Block::codegen(CodegenContext& codegen)

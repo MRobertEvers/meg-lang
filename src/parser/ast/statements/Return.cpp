@@ -1,7 +1,7 @@
 #include "Return.h"
 
 using namespace llvm;
-using namespace nodes;
+using namespace ast;
 
 void
 Return::codegen(CodegenContext& codegen)

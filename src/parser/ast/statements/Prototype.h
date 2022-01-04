@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace nodes
+namespace ast
 {
 
 /// PrototypeAST - This class represents the "prototype" for a function,
@@ -25,4 +25,4 @@ public:
 	void codegen(CodegenContext& codegen) override;
 	const std::string& getName() const { return Name; }
 };
-} // namespace nodes
+} // namespace ast

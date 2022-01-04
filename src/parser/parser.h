@@ -1,10 +1,10 @@
 #pragma once
 
-#include "nodes/IExpressionNode.h"
-#include "nodes/IStatementNode.h"
-#include "nodes/expressions/BinOp.h"
-#include "nodes/expressions/Number.h"
-#include "nodes/statements/Block.h"
-#include "nodes/statements/Function.h"
-#include "nodes/statements/Prototype.h"
-#include "nodes/statements/Return.h"
+#include "ast/IExpressionNode.h"
+#include "ast/IStatementNode.h"
+#include "ast/expressions/BinOp.h"
+#include "ast/expressions/Number.h"
+#include "ast/statements/Block.h"
+#include "ast/statements/Function.h"
+#include "ast/statements/Prototype.h"
+#include "ast/statements/Return.h"
