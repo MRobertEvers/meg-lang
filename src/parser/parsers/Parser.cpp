@@ -1,7 +1,5 @@
 #include "Parser.h"
 
-#include "../parser.h"
-
 #include <iostream>
 
 // TODO: Dont do this

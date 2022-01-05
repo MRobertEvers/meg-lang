@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../../ast/ast.h"
 #include "../../lexer/TokenCursor.h"
-#include "../parser.h"
 
 #include <memory>
 

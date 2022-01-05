@@ -354,6 +354,21 @@ During parsing a block, it iterates over each statement in a block (which may be
     }
 ```
 
+Clang does this in a similar way, clang/lib/Parse/ParseStmt.cpp
+
+```cpp
+
+  while (!tryParseMisplacedModuleImport() && Tok.isNot(tok::r_brace) &&
+         Tok.isNot(tok::eof)) {
+    if (Tok.is(tok::annot_pragma_unused)) {
+      HandlePragmaUnused();
+      continue;
+    }
+
+    if (ConsumeNullStmt(Stmts))
+      continue;
+```
+
 ## Call Stack When Debugging Compiler
 
 I ran the rust compiler in debug mode on the following file

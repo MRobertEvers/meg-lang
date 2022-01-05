@@ -1,7 +1,7 @@
 #ifndef ISTATEMENT_NODE_H_
 #define ISTATEMENT_NODE_H_
 
-#include "../CodegenContext.h"
+#include "../parser/CodegenContext.h"
 #include <llvm/IR/Value.h>
 
 namespace ast

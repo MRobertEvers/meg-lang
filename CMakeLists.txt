@@ -1,7 +1,7 @@
 # https://llvm.org/docs/CMake.html#embedding-llvm-in-your-project
 cmake_minimum_required(VERSION 3.10)
 
-project(MegLang)
+project(Sushi)
 find_package(LLVM REQUIRED CONFIG)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -30,7 +30,7 @@ separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
 # Now build our tools
-add_executable(MegLang 
+add_executable(sushi 
     src/main.cpp
     src/lexer/Lexer.cpp
     src/lexer/Lexer.h
@@ -41,21 +41,21 @@ add_executable(MegLang
     src/lexer/TokenCursor.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
-    src/parser/ast/expressions/BinOp.h
-    src/parser/ast/expressions/BinOp.cpp
-    src/parser/ast/expressions/Number.h
-    src/parser/ast/expressions/Number.cpp
-    src/parser/ast/statements/Block.h
-    src/parser/ast/statements/Block.cpp
-    src/parser/ast/statements/Function.h
-    src/parser/ast/statements/Function.cpp
-    src/parser/ast/statements/Prototype.h
-    src/parser/ast/statements/Prototype.cpp
-    src/parser/ast/statements/Return.h
-    src/parser/ast/statements/Return.cpp
+    src/ast/expressions/BinOp.h
+    src/ast/expressions/BinOp.cpp
+    src/ast/expressions/Number.h
+    src/ast/expressions/Number.cpp
+    src/ast/statements/Block.h
+    src/ast/statements/Block.cpp
+    src/ast/statements/Function.h
+    src/ast/statements/Function.cpp
+    src/ast/statements/Prototype.h
+    src/ast/statements/Prototype.cpp
+    src/ast/statements/Return.h
+    src/ast/statements/Return.cpp
 )
 
-set_property(TARGET MegLang PROPERTY CXX_STANDARD 14)
+set_property(TARGET sushi PROPERTY CXX_STANDARD 14)
 
 # Find the libraries that correspond to the LLVM components
 # that we wish to use
@@ -63,4 +63,4 @@ set_property(TARGET MegLang PROPERTY CXX_STANDARD 14)
 llvm_map_components_to_libnames(llvm_libs support core irreader object orcjit native)
 
 # Link against LLVM libraries
-target_link_libraries(MegLang ${llvm_libs})
+target_link_libraries(sushi ${llvm_libs})

@@ -1,7 +1,7 @@
 #ifndef IEXPRESSION_NODE_H_
 #define IEXPRESSION_NODE_H_
 
-#include "../CodegenContext.h"
+#include "../parser/CodegenContext.h"
 #include <llvm/IR/Value.h>
 
 namespace ast
