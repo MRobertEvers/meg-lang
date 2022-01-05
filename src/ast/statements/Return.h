@@ -9,13 +9,14 @@ namespace ast
 {
 class Return : public IStatementNode
 {
-	std::unique_ptr<IExpressionNode> ReturnExpr;
-
 public:
+	std::unique_ptr<IExpressionNode> ReturnExpr;
 	Return(std::unique_ptr<IExpressionNode> ReturnExpr)
 		: ReturnExpr(std::move(ReturnExpr))
 	{}
 
-	void codegen(CodegenContext& codegen) override;
+	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
+
+	// AstNodeType get_type() const override { return AstNodeType::return_node; }
 };
 } // namespace ast

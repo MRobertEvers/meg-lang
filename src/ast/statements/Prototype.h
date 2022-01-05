@@ -22,7 +22,10 @@ public:
 		, Args(std::move(Args))
 	{}
 
-	void codegen(CodegenContext& codegen) override;
-	const std::string& getName() const { return Name; }
+	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
+
+	// AstNodeType get_type() const override { return AstNodeType::prototype; }
+	const std::string& get_name() const { return Name; }
+	const std::vector<std::string>& get_args() const { return Args; }
 };
 } // namespace ast

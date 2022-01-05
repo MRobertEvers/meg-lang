@@ -26,7 +26,8 @@ enum class TokenType
 	fn,
 	return_keyword,
 
-	bad
+	eof,
+	bad,
 };
 
 enum class LiteralType
@@ -44,6 +45,10 @@ struct Token
 	LiteralType literal_type = LiteralType::none;
 	char const* start = nullptr;
 	unsigned int size = 0;
+
+	Token(){};
+	Token(TokenType type)
+		: type(type){};
 };
 
 #endif

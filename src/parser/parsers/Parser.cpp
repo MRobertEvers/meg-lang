@@ -41,13 +41,24 @@ Parser::parse_module_top_level_item(TokenCursor& cursor)
 	return nullptr;
 }
 
-std::unique_ptr<IStatementNode>
+std::unique_ptr<ast::Module>
 Parser::parse_module(TokenCursor& cursor)
 {
-	return Parser::parse_module_top_level_item(cursor);
+	std::vector<std::unique_ptr<IStatementNode>> nodes;
+
+	while( cursor.has_tokens() )
+	{
+		auto item = Parser::parse_module_top_level_item(cursor);
+		if( item == nullptr )
+		{
+			break;
+		}
+		nodes.emplace_back(std::move(item));
+	}
+	return std::make_unique<ast::Module>(std::move(nodes));
 }
 
-std::unique_ptr<IStatementNode>
+std::unique_ptr<Block>
 Parser::parse_block(TokenCursor& cursor)
 {
 	std::vector<std::unique_ptr<IStatementNode>> stmts;
@@ -85,6 +96,7 @@ Parser::parse_block(TokenCursor& cursor)
 		cursor.adv();
 		tok = cursor.peek();
 	}
+	cursor.adv();
 
 	return std::make_unique<Block>(std::move(stmts));
 }
@@ -158,8 +170,8 @@ Parser::parse_expression(TokenCursor& cursor)
 	return OP;
 }
 
-std::unique_ptr<Prototype>
-Parser::parse_function_proto(TokenCursor& cursor)
+static std::unique_ptr<Prototype>
+parse_function_proto(TokenCursor& cursor)
 {
 	Token tok_fn_name = cursor.peek();
 	if( tok_fn_name.type != TokenType::identifier )
@@ -203,7 +215,7 @@ Parser::parse_function_proto(TokenCursor& cursor)
 		std::string{tok_fn_name.start, tok_fn_name.size}, std::vector<std::string>{});
 }
 
-std::unique_ptr<IStatementNode>
+std::unique_ptr<Block>
 Parser::parse_function_body(TokenCursor& cursor)
 {
 	return Parser::parse_block(cursor);
@@ -212,7 +224,7 @@ Parser::parse_function_body(TokenCursor& cursor)
 std::unique_ptr<IStatementNode>
 Parser::parse_function(TokenCursor& cursor)
 {
-	auto proto = Parser::parse_function_proto(cursor);
+	auto proto = parse_function_proto(cursor);
 	if( !proto )
 	{
 		return nullptr;

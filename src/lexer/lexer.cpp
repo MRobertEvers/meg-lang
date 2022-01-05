@@ -139,6 +139,8 @@ Lexer::lex()
 		}
 	}
 
+	result.emplace_back(TokenType::eof);
+
 	return result;
 }
 

@@ -4,7 +4,7 @@
 #include "../../lexer/TokenCursor.h"
 
 #include <memory>
-
+#include <vector>
 using namespace ast;
 
 class Parser
@@ -14,9 +14,9 @@ public:
 
 	std::unique_ptr<IStatementNode> parse_module_top_level_item(TokenCursor& cursor);
 
-	std::unique_ptr<IStatementNode> parse_module(TokenCursor& cursor);
+	std::unique_ptr<ast::Module> parse_module(TokenCursor& cursor);
 
-	std::unique_ptr<IStatementNode> parse_block(TokenCursor& cursor);
+	std::unique_ptr<Block> parse_block(TokenCursor& cursor);
 
 	std::unique_ptr<IExpressionNode>
 	parse_bin_op(TokenCursor& cursor, int ExprPrec, std::unique_ptr<IExpressionNode> LHS);
@@ -25,8 +25,6 @@ public:
 
 	std::unique_ptr<IExpressionNode> parse_expression(TokenCursor& cursor);
 
-	std::unique_ptr<Prototype> parse_function_proto(TokenCursor& cursor);
-
-	std::unique_ptr<IStatementNode> parse_function_body(TokenCursor& cursor);
+	std::unique_ptr<Block> parse_function_body(TokenCursor& cursor);
 	std::unique_ptr<IStatementNode> parse_function(TokenCursor& cursor);
 };

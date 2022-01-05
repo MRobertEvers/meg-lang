@@ -1,4 +1,5 @@
 #include "ast/ast.h"
+#include "format/Format.h"
 #include "lexer/Lexer.h"
 #include "lexer/TokenCursor.h"
 #include "parser/parsers/Parser.h"
@@ -13,16 +14,12 @@ void
 codegen(CodegenContext& codegen, std::vector<Token> const& tokens)
 {
 	Parser parse;
-	std::vector<IExpressionNode*> asts;
-	asts.reserve(30);
 
 	TokenCursor cursor{tokens};
 	auto mod = parse.parse_module(cursor);
-	if( !mod )
-	{
-		return;
-	}
-	mod->codegen(codegen);
+
+	Format fm;
+	mod->visit(&fm);
 }
 
 int
@@ -30,7 +27,7 @@ main()
 {
 	CodegenContext cg;
 
-	char const buf[] = "fn func(): i8 { return 9*8; }";
+	char const buf[] = "fn func(): i8 { return 9*8; } fn main(): i8 { return 12*1*3+4; }";
 	Lexer lex{buf};
 
 	auto tokens = lex.lex();

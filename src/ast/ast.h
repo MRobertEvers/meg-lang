@@ -2,6 +2,7 @@
 
 #include "IExpressionNode.h"
 #include "IStatementNode.h"
+#include "Module.h"
 #include "expressions/BinOp.h"
 #include "expressions/Number.h"
 #include "statements/Block.h"

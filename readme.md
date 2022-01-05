@@ -2,15 +2,22 @@
 
 Sushi is my cat.
 
-In this branch, we are officially compiling input source code.
+In this branch, we are sidestepping a bit. The previous implementation had a pretty tight coupling between the AST and codegen. This branch, we explore some refactoring. We can traverse the tree with `IAstVisitor` to 'pretty' print as a proof of concept.
 
-Module expects single top level `fn` definition. Functions can have a single return statement.
+For example, the following input:
+```
+fn func(): i8 { return 9*8; } fn main(): i8 { return 12*1*3+4; }
+```
 
-This differs from `exploration_2` in that the code has been factored slightly (i.e. not one big file)
+produces this output here.
 
 ```
-fn func(): i8 
-{ 
-    return 9*8; 
+fn func()
+{
+return 9*8;
+}
+fn main()
+{
+return 12*1*3+4;
 }
 ```
