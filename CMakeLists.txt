@@ -45,6 +45,7 @@ add_executable(sushi
     src/parser/parsers/Parser.cpp
     src/ast/expressions/BinOp.h
     src/ast/expressions/BinOp.cpp
+    src/ast/Identifier.h
     src/ast/expressions/Number.h
     src/ast/expressions/Number.cpp
     src/ast/statements/Block.h

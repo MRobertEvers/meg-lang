@@ -9,6 +9,7 @@ class BinaryOperation;
 class Number;
 class Return;
 class Prototype;
+class Identifier;
 } // namespace ast
 
 class IAstVisitor
@@ -21,4 +22,5 @@ public:
 	virtual void visit(ast::Number const*) = 0;
 	virtual void visit(ast::Return const*) = 0;
 	virtual void visit(ast::Prototype const*) = 0;
+	virtual void visit(ast::Identifier const*) = 0;
 };

@@ -27,7 +27,8 @@ main()
 {
 	CodegenContext cg;
 
-	char const buf[] = "fn func(): i8 { return 9*8; } fn main(): i8 { return 12*1*3+4; }";
+	char const buf[] =
+		"fn func(a: i32, b: i32): i8 { return 9*8; } fn main(): i8 { return 12*1*3+4; }";
 	Lexer lex{buf};
 
 	auto tokens = lex.lex();

@@ -60,18 +60,33 @@ Format::visit(ast::Return const* node)
 void
 Format::visit(ast::Prototype const* node)
 {
-	std::cout << "fn " << node->get_name() << "(";
+	std::cout << "fn ";
+	node->Name.visit(this);
+	std::cout << "(";
 
-	auto args = node->get_args();
+	auto& args = node->get_args();
 	for( int i = 0; i < args.size(); i++ )
 	{
 		auto& arg = args[i];
-		std::cout << arg;
+		arg->visit(this);
 
-		if( i != args.size() )
+		if( i != args.size() - 1 )
 		{
-			std::cout << ",";
+			if( i % 2 == 0 )
+			{
+				std::cout << ": ";
+			}
+			else
+			{
+				std::cout << ", ";
+			}
 		}
 	}
 	std::cout << ")" << std::endl;
+}
+
+void
+Format::visit(ast::Identifier const* node)
+{
+	std::cout << node->name;
 }

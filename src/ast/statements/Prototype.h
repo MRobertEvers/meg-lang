@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../IStatementNode.h"
+#include "../Identifier.h"
 
 #include <string>
 #include <vector>
@@ -13,19 +14,17 @@ namespace ast
 /// of arguments the function takes).
 class Prototype : public IStatementNode
 {
-	std::string Name;
-	std::vector<std::string> Args;
-
 public:
-	Prototype(const std::string& Name, std::vector<std::string> Args)
+	std::vector<std::unique_ptr<Identifier>> ArgsAndTypes;
+
+	Identifier Name;
+	Prototype(const Identifier& Name, std::vector<std::unique_ptr<Identifier>>& Args)
 		: Name(Name)
-		, Args(std::move(Args))
+		, ArgsAndTypes(std::move(Args))
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 
-	// AstNodeType get_type() const override { return AstNodeType::prototype; }
-	const std::string& get_name() const { return Name; }
-	const std::vector<std::string>& get_args() const { return Args; }
+	const std::vector<std::unique_ptr<Identifier>>& get_args() const { return ArgsAndTypes; }
 };
 } // namespace ast

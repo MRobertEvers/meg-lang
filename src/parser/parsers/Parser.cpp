@@ -170,6 +170,55 @@ Parser::parse_expression(TokenCursor& cursor)
 	return OP;
 }
 
+static std::vector<std::unique_ptr<Identifier>>
+parse_function_parameter_list(TokenCursor& cursor)
+{
+	std::vector<std::unique_ptr<Identifier>> result;
+
+	Token curr_tok = cursor.peek();
+
+	while( curr_tok.type != TokenType::close_paren )
+	{
+		if( curr_tok.type != TokenType::identifier )
+		{
+			// TODO: Error type.
+			return result;
+		}
+
+		result.emplace_back(new Identifier{std::string{curr_tok.start, curr_tok.size}});
+
+		cursor.adv();
+		curr_tok = cursor.peek();
+		if( curr_tok.type != TokenType::colon )
+		{
+			// TODO: Error type.
+			return result;
+		}
+
+		cursor.adv();
+		curr_tok = cursor.peek();
+		if( curr_tok.type != TokenType::identifier )
+		{
+			// TODO: Error type.
+			return result;
+		}
+
+		result.emplace_back(new Identifier{std::string{curr_tok.start, curr_tok.size}});
+
+		cursor.adv();
+		curr_tok = cursor.peek();
+
+		// Also catches trailing comma.
+		if( curr_tok.type == TokenType::comma )
+		{
+			cursor.adv();
+			curr_tok = cursor.peek();
+		}
+	}
+
+	return result;
+}
+
 static std::unique_ptr<Prototype>
 parse_function_proto(TokenCursor& cursor)
 {
@@ -187,8 +236,9 @@ parse_function_proto(TokenCursor& cursor)
 		return nullptr;
 	}
 
-	// TODO: Identifiers for args
 	cursor.adv();
+	std::vector<std::unique_ptr<Identifier>> params = parse_function_parameter_list(cursor);
+
 	if( cursor.peek().type != TokenType::close_paren )
 	{
 		std::cout << "Expected ')'" << std::endl;
@@ -211,8 +261,8 @@ parse_function_proto(TokenCursor& cursor)
 	}
 
 	cursor.adv();
-	return std::make_unique<Prototype>(
-		std::string{tok_fn_name.start, tok_fn_name.size}, std::vector<std::string>{});
+	return std::unique_ptr<Prototype>{
+		new Prototype{Identifier{std::string{tok_fn_name.start, tok_fn_name.size}}, params}};
 }
 
 std::unique_ptr<Block>
