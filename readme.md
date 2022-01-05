@@ -1,4 +1,6 @@
-# Meg Lang
+# Sushi Lang
+
+Sushi is my cat.
 
 In this branch, we are officially compiling input source code.
 
