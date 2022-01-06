@@ -5,6 +5,12 @@
 namespace ast
 {
 
+/**
+ * @brief
+ * An empty identifier is used for anonymous types and when an optional type specifier is not
+ * preset.
+ *
+ */
 class Identifier : public IExpressionNode
 {
 public:

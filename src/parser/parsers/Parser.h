@@ -24,8 +24,8 @@ public:
 
 	std::unique_ptr<IExpressionNode> parse_literal(TokenCursor& cursor);
 
-	std::unique_ptr<IExpressionNode> parse_expression_value(TokenCursor& cursor);
-	std::unique_ptr<IExpressionNode> parse_expression(TokenCursor& cursor);
+	std::unique_ptr<IExpressionNode> parse_simple_expr(TokenCursor& cursor);
+	std::unique_ptr<IExpressionNode> parse_expr(TokenCursor& cursor);
 
 	std::unique_ptr<Block> parse_function_body(TokenCursor& cursor);
 	std::unique_ptr<IStatementNode> parse_function(TokenCursor& cursor);

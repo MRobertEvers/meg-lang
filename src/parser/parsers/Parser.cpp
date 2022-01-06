@@ -1,7 +1,9 @@
 #include "Parser.h"
 
 #include <iostream>
+#include <map>
 #include <memory>
+
 // TODO: Dont do this
 static std::map<char, int> BinopPrecedence;
 
@@ -107,7 +109,7 @@ Parser::parse_let(TokenCursor& cursor)
 	}
 	cursor.adv();
 
-	auto expr = parse_expression(cursor);
+	auto expr = parse_expr(cursor);
 
 	return std::make_unique<Let>(
 		Identifier{std::string{id_tok.start, id_tok.size}}, type, std::move(expr));
@@ -135,7 +137,7 @@ Parser::parse_block(TokenCursor& cursor)
 		case TokenType::return_keyword:
 			cursor.adv();
 			stmts.push_back(
-				std::move(std::make_unique<Return>(std::move(Parser::parse_expression(cursor)))));
+				std::move(std::make_unique<Return>(std::move(Parser::parse_expr(cursor)))));
 			break;
 		case TokenType::let:
 			stmts.emplace_back(parse_let(cursor));
@@ -180,7 +182,7 @@ Parser::parse_bin_op(TokenCursor& cursor, int ExprPrec, std::unique_ptr<IExpress
 		cursor.adv();
 
 		// Parse the primary expression after the binary operator.
-		auto RHS = Parser::parse_expression_value(cursor);
+		auto RHS = Parser::parse_simple_expr(cursor);
 		if( !RHS )
 			return nullptr;
 
@@ -229,7 +231,7 @@ Parser::parse_literal(TokenCursor& cursor)
 }
 
 std::unique_ptr<IExpressionNode>
-Parser::parse_expression_value(TokenCursor& cursor)
+Parser::parse_simple_expr(TokenCursor& cursor)
 {
 	auto tok = cursor.peek();
 	switch( tok.type )
@@ -254,9 +256,9 @@ Parser::parse_expression_value(TokenCursor& cursor)
 }
 
 std::unique_ptr<IExpressionNode>
-Parser::parse_expression(TokenCursor& cursor)
+Parser::parse_expr(TokenCursor& cursor)
 {
-	auto LHS = parse_expression_value(cursor);
+	auto LHS = parse_simple_expr(cursor);
 	if( !LHS )
 	{
 		return nullptr;
