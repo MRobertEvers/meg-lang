@@ -22,10 +22,12 @@ enum class TokenType
 	comma,
 	semicolon,
 	colon,
+	equal,
 
 	// Keyword
 	fn,
 	return_keyword,
+	let,
 
 	eof,
 	bad,

@@ -131,6 +131,7 @@ Lexer::lex()
 		case ';':
 		case ':':
 		case ',':
+		case '=':
 			result.push_back(lex_consume_single());
 			break;
 
@@ -215,6 +216,9 @@ Lexer::lex_consume_single()
 		break;
 	case ',':
 		token.type = TokenType::comma;
+		break;
+	case '=':
+		token.type = TokenType::equal;
 		break;
 	default:
 		token.type = TokenType::bad;

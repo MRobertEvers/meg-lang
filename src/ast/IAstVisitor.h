@@ -10,6 +10,7 @@ class Number;
 class Return;
 class Prototype;
 class Identifier;
+class Let;
 } // namespace ast
 
 class IAstVisitor
@@ -23,4 +24,5 @@ public:
 	virtual void visit(ast::Return const*) = 0;
 	virtual void visit(ast::Prototype const*) = 0;
 	virtual void visit(ast::Identifier const*) = 0;
+	virtual void visit(ast::Let const*) = 0;
 };

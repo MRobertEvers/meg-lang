@@ -41,11 +41,15 @@ add_executable(sushi
     src/lexer/TokenCursor.cpp
     src/format/Format.h
     src/format/Format.cpp
+    src/codegen/Codegen.h
+    src/codegen/Codegen.cpp
+    src/parser/parsers/Parser.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
     src/ast/expressions/BinOp.h
     src/ast/expressions/BinOp.cpp
     src/ast/Identifier.h
+    src/ast/statements/Let.h
     src/ast/expressions/Number.h
     src/ast/expressions/Number.cpp
     src/ast/statements/Block.h

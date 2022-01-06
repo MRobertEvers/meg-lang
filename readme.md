@@ -21,3 +21,21 @@ fn main()
 return 12*1*3+4;
 }
 ```
+
+# Building
+
+Build uses cmake. 
+
+```
+mkdir build
+cd build
+cmake ..
+```
+
+Once cmake has generated the build make files.
+
+```
+make
+```
+
+The output is `sushi`.

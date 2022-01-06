@@ -13,7 +13,8 @@ KeywordIdentifierTuple keywords[] =
 {
 	// clang-format on
 	{"fn", TokenType::fn},
-	{"return", TokenType::return_keyword}
+	{"return", TokenType::return_keyword},
+	{"let", TokenType::let}
 	// clang-format off
 };
 // clang-format on
@@ -51,8 +52,12 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::close_curly, "close_curly"},
 	{TokenType::semicolon, "semicolon"},
 	{TokenType::colon, "colon"},
+	{TokenType::comma, "comma"},
 	{TokenType::fn, "fn"},
 	{TokenType::return_keyword, "return_keyword"},
+	{TokenType::let, "let"},
+	{TokenType::equal, "equal"},
+	{TokenType::eof, "<EOF>"},
 	{TokenType::bad, "bad"},
 };
 

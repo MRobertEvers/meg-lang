@@ -1,7 +1,7 @@
 #include "Parser.h"
 
 #include <iostream>
-
+#include <memory>
 // TODO: Dont do this
 static std::map<char, int> BinopPrecedence;
 
@@ -58,6 +58,61 @@ Parser::parse_module(TokenCursor& cursor)
 	return std::make_unique<ast::Module>(std::move(nodes));
 }
 
+std::unique_ptr<Let>
+Parser::parse_let(TokenCursor& cursor)
+{
+	auto tok = cursor.peek();
+	if( tok.type != TokenType::let )
+	{
+		std::cout << "Expected 'let'" << std::endl;
+		return nullptr;
+	}
+	cursor.adv();
+
+	auto id_tok = cursor.peek();
+	if( id_tok.type != TokenType::identifier )
+	{
+		std::cout << "Expected identifier" << std::endl;
+		return nullptr;
+	}
+	cursor.adv();
+
+	tok = cursor.peek();
+	if( tok.type != TokenType::colon && tok.type != TokenType::equal )
+	{
+		std::cout << "Expected type identifier or '='";
+		return nullptr;
+	}
+
+	Identifier type = Identifier::Empty();
+	if( tok.type == TokenType::colon )
+	{
+		cursor.adv();
+		tok = cursor.peek();
+		if( tok.type != TokenType::identifier )
+		{
+			std::cout << "Expected type identifier";
+			return nullptr;
+		}
+
+		type = Identifier{std::string{tok.start, tok.size}};
+		cursor.adv();
+		tok = cursor.peek();
+	}
+
+	if( tok.type != TokenType::equal )
+	{
+		std::cout << "Expected assignment '='";
+		return nullptr;
+	}
+	cursor.adv();
+
+	auto expr = parse_expression(cursor);
+
+	return std::make_unique<Let>(
+		Identifier{std::string{id_tok.start, id_tok.size}}, type, std::move(expr));
+}
+
 std::unique_ptr<Block>
 Parser::parse_block(TokenCursor& cursor)
 {
@@ -74,12 +129,16 @@ Parser::parse_block(TokenCursor& cursor)
 	tok = cursor.peek();
 	while( tok.type != TokenType::close_curly )
 	{
+		// TODO: parse statement (i.e. this consumes the semicolon)
 		switch( tok.type )
 		{
 		case TokenType::return_keyword:
 			cursor.adv();
 			stmts.push_back(
 				std::move(std::make_unique<Return>(std::move(Parser::parse_expression(cursor)))));
+			break;
+		case TokenType::let:
+			stmts.emplace_back(parse_let(cursor));
 			break;
 		default:
 			std::cout << "Expected expression or return statement" << std::endl;
@@ -121,7 +180,7 @@ Parser::parse_bin_op(TokenCursor& cursor, int ExprPrec, std::unique_ptr<IExpress
 		cursor.adv();
 
 		// Parse the primary expression after the binary operator.
-		auto RHS = Parser::parse_expression(cursor);
+		auto RHS = Parser::parse_expression_value(cursor);
 		if( !RHS )
 			return nullptr;
 
@@ -141,7 +200,7 @@ Parser::parse_bin_op(TokenCursor& cursor, int ExprPrec, std::unique_ptr<IExpress
 }
 
 std::unique_ptr<IExpressionNode>
-Parser::parse_expression_value(TokenCursor& cursor)
+Parser::parse_literal(TokenCursor& cursor)
 {
 	auto tok = cursor.peek();
 	if( tok.type != TokenType::literal )
@@ -150,16 +209,54 @@ Parser::parse_expression_value(TokenCursor& cursor)
 		return nullptr;
 	}
 
-	auto sz = std::string{tok.start, tok.size};
-	int val = std::stoi(sz);
 	cursor.adv();
-	return std::make_unique<Number>(val);
+
+	switch( tok.literal_type )
+	{
+	case LiteralType::integer:
+	{
+		auto sz = std::string{tok.start, tok.size};
+		int val = std::stoi(sz);
+		return std::make_unique<Number>(val);
+	}
+	break;
+
+	default:
+		std::cout << "Unsupported literal type" << std::endl;
+		return nullptr;
+		break;
+	}
+}
+
+std::unique_ptr<IExpressionNode>
+Parser::parse_expression_value(TokenCursor& cursor)
+{
+	auto tok = cursor.peek();
+	switch( tok.type )
+	{
+	case TokenType::literal:
+		return parse_literal(cursor);
+
+	case TokenType::identifier:
+
+	{
+		auto id = std::make_unique<Identifier>(std::string{tok.start, tok.size});
+		cursor.adv();
+		return id;
+	}
+	break;
+
+	default:
+		std::cout << "Unexpected token while parsing expression" << std::endl;
+		break;
+	}
+	return nullptr;
 }
 
 std::unique_ptr<IExpressionNode>
 Parser::parse_expression(TokenCursor& cursor)
 {
-	auto LHS = Parser::parse_expression_value(cursor);
+	auto LHS = parse_expression_value(cursor);
 	if( !LHS )
 	{
 		return nullptr;
@@ -170,10 +267,10 @@ Parser::parse_expression(TokenCursor& cursor)
 	return OP;
 }
 
-static std::vector<std::unique_ptr<Identifier>>
+static std::vector<std::unique_ptr<std::pair<Identifier, Identifier>>>
 parse_function_parameter_list(TokenCursor& cursor)
 {
-	std::vector<std::unique_ptr<Identifier>> result;
+	std::vector<std::unique_ptr<std::pair<Identifier, Identifier>>> result;
 
 	Token curr_tok = cursor.peek();
 
@@ -185,7 +282,7 @@ parse_function_parameter_list(TokenCursor& cursor)
 			return result;
 		}
 
-		result.emplace_back(new Identifier{std::string{curr_tok.start, curr_tok.size}});
+		auto name_tok = curr_tok;
 
 		cursor.adv();
 		curr_tok = cursor.peek();
@@ -203,7 +300,10 @@ parse_function_parameter_list(TokenCursor& cursor)
 			return result;
 		}
 
-		result.emplace_back(new Identifier{std::string{curr_tok.start, curr_tok.size}});
+		auto type_tok = curr_tok;
+		result.push_back(std::move(std::make_unique<std::pair<Identifier, Identifier>>(
+			Identifier{std::string{name_tok.start, name_tok.size}},
+			Identifier{std::string{type_tok.start, type_tok.size}})));
 
 		cursor.adv();
 		curr_tok = cursor.peek();
@@ -237,7 +337,8 @@ parse_function_proto(TokenCursor& cursor)
 	}
 
 	cursor.adv();
-	std::vector<std::unique_ptr<Identifier>> params = parse_function_parameter_list(cursor);
+	std::vector<std::unique_ptr<std::pair<Identifier, Identifier>>> params =
+		parse_function_parameter_list(cursor);
 
 	if( cursor.peek().type != TokenType::close_paren )
 	{
@@ -261,8 +362,10 @@ parse_function_proto(TokenCursor& cursor)
 	}
 
 	cursor.adv();
-	return std::unique_ptr<Prototype>{
-		new Prototype{Identifier{std::string{tok_fn_name.start, tok_fn_name.size}}, params}};
+	return std::unique_ptr<Prototype>{new Prototype{
+		Identifier{std::string{tok_fn_name.start, tok_fn_name.size}},
+		Identifier{std::string{tok_fn_return_type.start, tok_fn_return_type.size}},
+		params}};
 }
 
 std::unique_ptr<Block>
