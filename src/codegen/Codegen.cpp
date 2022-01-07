@@ -293,6 +293,11 @@ Codegen::visit(ast::Prototype const* node)
 	std::vector<Type*> IRArguments;
 	for( auto& arg : Args )
 	{
+		/**
+		 * We do a special hack here. Since llvm can't pass structures by value,
+		 * we just pass an array of
+		 *
+		 */
 		auto ty = get_type(arg->Type->get_fqn());
 		if( ty == nullptr )
 		{

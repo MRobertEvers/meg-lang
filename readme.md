@@ -104,7 +104,7 @@ no.cpp:24:11: error: 'Wow' does not refer to a value
 
 I looked at passing structs by value, but it appears that llvm doesn't have native support for that. I looked at how clang passes structs by value. Basically, it instead just passes an array of integers that is big enough to fit the struct and then performs some llvm type casting.
 
-The following c code produces the llvm ir below.
+The following c code produces the llvm ir below. You can use clang to emit llvm ir, `clang -S -emit-llvm test_c.c`.
 
 ```c
 struct my_struct
