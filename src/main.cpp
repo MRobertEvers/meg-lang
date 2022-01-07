@@ -13,7 +13,9 @@
 #include "llvm/Target/TargetOptions.h"
 #include "parser/parsers/Parser.h"
 
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 using namespace ast;
@@ -34,14 +36,32 @@ gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 }
 
 int
-main()
+main(int argc, char* argv[])
 {
+	if( argc == 1 )
+	{
+		std::cout << "Please specify a file" << std::endl;
+		return -1;
+	}
+
+	auto filepath = argv[argc - 1];
+
+	std::ifstream file{filepath};
+	if( !file.good() )
+	{
+		std::cout << "Could not open file " << filepath << std::endl;
+		return -1;
+	}
+
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	std::string filedata = buffer.str();
+
+	std::cout << filedata << std::endl;
+
 	codegen::Codegen cg;
 
-	char const buf[] =
-		"fn func(a: i32, b: i32): i8 { let x: i32 = 4; return a*8+x+b; } fn f72(): i8 { "
-		"return 12*1*3+4; }";
-	Lexer lex{buf};
+	Lexer lex{filedata.c_str()};
 
 	auto tokens = lex.lex();
 

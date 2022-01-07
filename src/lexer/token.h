@@ -20,6 +20,7 @@ enum class TokenType
 	close_curly,
 
 	comma,
+	dot,
 	semicolon,
 	colon,
 	equal,
@@ -28,6 +29,7 @@ enum class TokenType
 	fn,
 	return_keyword,
 	let,
+	struct_keyword,
 
 	eof,
 	bad,

@@ -12,7 +12,7 @@ void
 Scope::add_named_value(TypedIdentifier id)
 {
 	// TODO: Check existing names
-	names.insert(std::make_pair(id.name->name, id));
+	names.insert(std::make_pair(id.name->get_fqn(), id));
 }
 
 TypedIdentifier*
@@ -77,7 +77,7 @@ Codegen::visit(ast::Function const* node)
 	// reference to it for use below.
 	node->Proto->visit(this);
 
-	auto TheFunctionIter = Functions.find(node->Proto->Name.name);
+	auto TheFunctionIter = Functions.find(node->Proto->Name->get_fqn());
 	if( TheFunctionIter == Functions.end() )
 		return;
 
@@ -98,8 +98,8 @@ Codegen::visit(ast::Function const* node)
 		Builder->CreateStore(&Arg, Alloca);
 
 		// Add arguments to variable symbol table.
-		auto id = &node->Proto->ArgsAndTypes[idx]->first;
-		auto ty = &node->Proto->ArgsAndTypes[idx]->second;
+		auto id = node->Proto->Parameters[idx]->Name.get();
+		auto ty = node->Proto->Parameters[idx]->Type.get();
 		current_scope->add_named_value(TypedIdentifier{id, ty, Alloca});
 		idx++;
 	}
@@ -234,13 +234,13 @@ Codegen::get_builtin_type(std::string const& name)
 void
 Codegen::visit(ast::Prototype const* node)
 {
-	auto Name = node->Name.name;
-	auto& Args = node->ArgsAndTypes;
+	auto Name = node->Name->get_fqn();
+	auto& Args = node->Parameters;
 
 	std::vector<Type*> IRArguments;
 	for( auto& arg : Args )
 	{
-		auto ty = get_builtin_type(arg->second.name);
+		auto ty = get_builtin_type(arg->Type->get_fqn());
 		if( ty == nullptr )
 		{
 			std::cout << "Unknown type" << std::endl;
@@ -250,7 +250,7 @@ Codegen::visit(ast::Prototype const* node)
 		IRArguments.push_back(ty);
 	}
 
-	auto ret_ty = get_builtin_type(node->ReturnType.name);
+	auto ret_ty = get_builtin_type(node->ReturnType->get_fqn());
 	if( ret_ty == nullptr )
 	{
 		std::cout << "Unknown type" << std::endl;
@@ -265,20 +265,32 @@ Codegen::visit(ast::Prototype const* node)
 	// Set names for all arguments.
 	unsigned Idx = 0;
 	for( auto& Arg : F->args() )
-		Arg.setName(node->ArgsAndTypes[Idx++]->first.name);
+		Arg.setName(node->Parameters[Idx++]->Name->get_fqn());
 
 	Functions.insert(std::make_pair(Name, F));
 }
 
 void
-Codegen::visit(ast::Identifier const* node)
+Codegen::visit(ast::TypeIdentifier const* node)
 {
-	auto Var = current_scope->get_named_value(node->name);
+	auto Var = current_scope->get_named_value(node->get_fqn());
 	if( !Var )
 	{
-		std::cout << "Unrecognized identifier: " << node->name << std::endl;
+		std::cout << "Unrecognized type identifier: " << node->get_fqn() << std::endl;
 	}
-	last_expr = Builder->CreateLoad(Var->Value->getAllocatedType(), Var->Value, Var->name->name);
+	return;
+}
+
+void
+Codegen::visit(ast::ValueIdentifier const* node)
+{
+	auto Var = current_scope->get_named_value(node->get_fqn());
+	if( !Var )
+	{
+		std::cout << "Unrecognized value identifier: " << node->get_fqn() << std::endl;
+	}
+	last_expr =
+		Builder->CreateLoad(Var->Value->getAllocatedType(), Var->Value, Var->name->get_fqn());
 	return;
 }
 
@@ -286,16 +298,16 @@ void
 Codegen::visit(ast::Let const* node)
 {
 	// Create an alloca for this variable.
-	auto builtin_ty = get_builtin_type(node->type.name);
+	auto builtin_ty = get_builtin_type(node->Type->get_fqn());
 	if( builtin_ty == nullptr )
 	{
-		std::cout << "Error type node found: " << node->type.name << std::endl;
+		std::cout << "Error type node found: " << node->Type->get_fqn() << std::endl;
 		return;
 	}
 
-	AllocaInst* Alloca = Builder->CreateAlloca(builtin_ty, nullptr, node->identifier.name);
+	AllocaInst* Alloca = Builder->CreateAlloca(builtin_ty, nullptr, node->Name->get_fqn());
 
-	node->rhs->visit(this);
+	node->RHS->visit(this);
 
 	// Get the last expression value somehow?
 	if( last_expr == nullptr )
@@ -305,11 +317,15 @@ Codegen::visit(ast::Let const* node)
 	}
 
 	// Add the value to the named scope AFTER the expression is genned.
-	current_scope->add_named_value(TypedIdentifier{&node->identifier, &node->type, Alloca});
+	current_scope->add_named_value(TypedIdentifier{node->Name.get(), node->Type.get(), Alloca});
 
 	Builder->CreateStore(last_expr, Alloca);
 	last_expr = nullptr;
 }
+
+void
+Codegen::visit(ast::Struct const*)
+{}
 
 void
 Codegen::pop_scope()

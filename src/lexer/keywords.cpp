@@ -14,7 +14,8 @@ KeywordIdentifierTuple keywords[] =
 	// clang-format on
 	{"fn", TokenType::fn},
 	{"return", TokenType::return_keyword},
-	{"let", TokenType::let}
+	{"let", TokenType::let},
+	{"struct", TokenType::struct_keyword}
 	// clang-format off
 };
 // clang-format on
@@ -24,7 +25,7 @@ get_identifier_or_keyword_type(Token const& token)
 {
 	for( auto& keyword : keywords )
 	{
-		if( strncmp(keyword.keyword, token.start, token.size) == 0 )
+		if( strncmp(keyword.keyword, token.start, strlen(keyword.keyword)) == 0 )
 		{
 			return keyword.type;
 		}
@@ -57,6 +58,8 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::return_keyword, "return_keyword"},
 	{TokenType::let, "let"},
 	{TokenType::equal, "equal"},
+	{TokenType::struct_keyword, "struct"},
+	{TokenType::dot, "dot"},
 	{TokenType::eof, "<EOF>"},
 	{TokenType::bad, "bad"},
 };

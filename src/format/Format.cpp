@@ -61,19 +61,19 @@ void
 Format::visit(ast::Prototype const* node)
 {
 	std::cout << "fn ";
-	node->Name.visit(this);
+	node->Name->visit(this);
 	std::cout << "(";
 
-	auto& args = node->get_args();
+	auto& args = node->get_parameters();
 	for( int i = 0; i < args.size(); i++ )
 	{
 		auto& arg = args[i];
 
-		arg->first.visit(this);
+		arg->Name->visit(this);
 
 		std::cout << ": ";
 
-		arg->second.visit(this);
+		arg->Type->visit(this);
 
 		if( i != args.size() - 1 )
 		{
@@ -84,22 +84,47 @@ Format::visit(ast::Prototype const* node)
 }
 
 void
-Format::visit(ast::Identifier const* node)
+Format::visit(ast::ValueIdentifier const* node)
 {
-	std::cout << node->name;
+	std::cout << node->get_fqn();
+}
+
+void
+Format::visit(ast::TypeIdentifier const* node)
+{
+	std::cout << node->get_fqn();
 }
 
 void
 Format::visit(ast::Let const* node)
 {
 	std::cout << "let ";
-	node->identifier.visit(this);
-	if( !node->type.is_empty )
+	node->Name->visit(this);
+	if( !node->Type->is_empty )
 	{
 		std::cout << ": ";
-		node->type.visit(this);
+		node->Type->visit(this);
 	}
 	std::cout << " = ";
-	node->rhs->visit(this);
+	node->RHS->visit(this);
 	std::cout << ";" << std::endl;
+}
+
+void
+Format::visit(ast::Struct const* node)
+{
+	std::cout << "struct ";
+	node->TypeName->visit(this);
+	std::cout << " {" << std::endl;
+	for( auto& m : node->MemberVariables )
+	{
+		m->Name->visit(this);
+
+		std::cout << ": ";
+
+		m->Type->visit(this);
+
+		std::cout << ";" << std::endl;
+	}
+	std::cout << "}" << std::endl;
 }

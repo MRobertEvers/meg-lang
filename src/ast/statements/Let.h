@@ -7,14 +7,16 @@ namespace ast
 class Let : public IStatementNode
 {
 public:
-	Identifier identifier;
-	Identifier type;
-	std::unique_ptr<IExpressionNode> rhs;
+	std::unique_ptr<TypeIdentifier> Type;
+	std::unique_ptr<ValueIdentifier> Name;
+	std::unique_ptr<IExpressionNode> RHS;
 
-	Let(Identifier identifier, Identifier type, std::unique_ptr<IExpressionNode> rhs)
-		: identifier(identifier)
-		, type(type)
-		, rhs(std::move(rhs)){};
+	Let(std::unique_ptr<ValueIdentifier> identifier,
+		std::unique_ptr<TypeIdentifier> type,
+		std::unique_ptr<IExpressionNode> rhs)
+		: Name(std::move(identifier))
+		, Type(std::move(type))
+		, RHS(std::move(rhs)){};
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 };

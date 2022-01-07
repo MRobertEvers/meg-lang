@@ -9,8 +9,8 @@
             "request": "launch",
             "name": "Launch",
             "program": "${workspaceFolder}/build/sushi",
-
-            "args": [],
+            "cwd": "${workspaceFolder}/build",
+            "args": ["main.sushi"],
         },
         
     ]

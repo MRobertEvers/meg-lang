@@ -28,15 +28,17 @@ Parser::Parser()
 std::unique_ptr<IStatementNode>
 Parser::parse_module_top_level_item(TokenCursor& cursor)
 {
-	switch( cursor.peek().type )
+	auto tok = cursor.peek();
+	switch( tok.type )
 	{
 	case TokenType::fn:
 	{
-		cursor.adv();
 		return Parser::parse_function(cursor);
 	}
+	case TokenType::struct_keyword:
+		return Parser::parse_struct(cursor);
 	default:
-		std::cout << "Expected function definition" << std::endl;
+		std::cout << "Expected item" << std::endl;
 		break;
 	}
 
@@ -86,7 +88,7 @@ Parser::parse_let(TokenCursor& cursor)
 		return nullptr;
 	}
 
-	Identifier type = Identifier::Empty();
+	TypeIdentifier type = TypeIdentifier::Empty();
 	if( tok.type == TokenType::colon )
 	{
 		cursor.adv();
@@ -97,7 +99,7 @@ Parser::parse_let(TokenCursor& cursor)
 			return nullptr;
 		}
 
-		type = Identifier{std::string{tok.start, tok.size}};
+		type = TypeIdentifier{std::string{tok.start, tok.size}};
 		cursor.adv();
 		tok = cursor.peek();
 	}
@@ -112,7 +114,9 @@ Parser::parse_let(TokenCursor& cursor)
 	auto expr = parse_expr(cursor);
 
 	return std::make_unique<Let>(
-		Identifier{std::string{id_tok.start, id_tok.size}}, type, std::move(expr));
+		std::make_unique<ValueIdentifier>(std::string{id_tok.start, id_tok.size}),
+		std::make_unique<TypeIdentifier>(type),
+		std::move(expr));
 }
 
 std::unique_ptr<Block>
@@ -160,6 +164,84 @@ Parser::parse_block(TokenCursor& cursor)
 	cursor.adv();
 
 	return std::make_unique<Block>(std::move(stmts));
+}
+
+std::unique_ptr<IStatementNode>
+Parser::parse_struct(TokenCursor& cursor)
+{
+	std::vector<std::unique_ptr<ast::MemberVariableDeclaration>> member_variables;
+
+	auto tok = cursor.peek();
+	if( tok.type != TokenType::struct_keyword )
+	{
+		std::cout << "Expected 'struct'" << std::endl;
+		return nullptr;
+	}
+	cursor.adv();
+
+	auto struct_name_tok = cursor.peek();
+	if( struct_name_tok.type != TokenType::identifier )
+	{
+		std::cout << "Expected struct identifier" << std::endl;
+		return nullptr;
+	}
+	cursor.adv();
+
+	tok = cursor.peek();
+	if( tok.type != TokenType::open_curly )
+	{
+		std::cout << "Expected '{'" << std::endl;
+		return nullptr;
+	}
+	cursor.adv();
+
+	tok = cursor.peek();
+	while( tok.type != TokenType::close_curly )
+	{
+		// TODO: Parse value: type pair
+		auto id_tok = cursor.peek();
+		if( id_tok.type != TokenType::identifier )
+		{
+			std::cout << "Expected member identifier" << std::endl;
+			return nullptr;
+		}
+		cursor.adv();
+
+		tok = cursor.peek();
+		if( tok.type != TokenType::colon )
+		{
+			std::cout << "Expected ':'" << std::endl;
+			return nullptr;
+		}
+		cursor.adv();
+
+		auto type_tok = cursor.peek();
+		if( type_tok.type != TokenType::identifier )
+		{
+			std::cout << "Expected type identifier" << std::endl;
+			return nullptr;
+		}
+		cursor.adv();
+
+		tok = cursor.peek();
+		if( tok.type != TokenType::semicolon )
+		{
+			std::cout << "Expected ';'" << std::endl;
+			return nullptr;
+		}
+		cursor.adv();
+
+		member_variables.emplace_back(new MemberVariableDeclaration{
+			std::make_unique<ValueIdentifier>(std::string{id_tok.start, id_tok.size}),
+			std::make_unique<TypeIdentifier>(std::string{type_tok.start, type_tok.size})});
+
+		tok = cursor.peek();
+	}
+	cursor.adv();
+
+	return std::make_unique<Struct>(
+		std::make_unique<TypeIdentifier>(std::string{struct_name_tok.start, struct_name_tok.size}),
+		std::move(member_variables));
 }
 
 std::unique_ptr<IExpressionNode>
@@ -230,6 +312,44 @@ Parser::parse_literal(TokenCursor& cursor)
 	}
 }
 
+std::unique_ptr<Identifier>
+Parser::parse_identifier(TokenCursor& cursor)
+{
+	std::vector<Token> toks;
+
+	auto tok = cursor.peek();
+	if( tok.type != TokenType::identifier )
+	{
+		std::cout << "Expected identifier" << std::endl;
+		return nullptr;
+	}
+	cursor.adv();
+
+	toks.push_back(tok);
+	tok = cursor.peek();
+	while( tok.type == TokenType::dot )
+	{
+		cursor.adv();
+		tok = cursor.peek();
+
+		if( tok.type != TokenType::identifier )
+		{
+			std::cout << "Expected identifier" << std::endl;
+			return nullptr;
+		}
+		toks.push_back(tok);
+		cursor.adv();
+	}
+
+	std::vector<std::string> path;
+	for( auto& t : toks )
+	{
+		path.emplace_back(t.start, t.size);
+	}
+
+	return std::make_unique<ValueIdentifier>(path);
+}
+
 std::unique_ptr<IExpressionNode>
 Parser::parse_simple_expr(TokenCursor& cursor)
 {
@@ -240,13 +360,7 @@ Parser::parse_simple_expr(TokenCursor& cursor)
 		return parse_literal(cursor);
 
 	case TokenType::identifier:
-
-	{
-		auto id = std::make_unique<Identifier>(std::string{tok.start, tok.size});
-		cursor.adv();
-		return id;
-	}
-	break;
+		return Parser::parse_identifier(cursor);
 
 	default:
 		std::cout << "Unexpected token while parsing expression" << std::endl;
@@ -269,10 +383,10 @@ Parser::parse_expr(TokenCursor& cursor)
 	return OP;
 }
 
-static std::vector<std::unique_ptr<std::pair<Identifier, Identifier>>>
+static std::vector<std::unique_ptr<ParameterDeclaration>>
 parse_function_parameter_list(TokenCursor& cursor)
 {
-	std::vector<std::unique_ptr<std::pair<Identifier, Identifier>>> result;
+	std::vector<std::unique_ptr<ParameterDeclaration>> result;
 
 	Token curr_tok = cursor.peek();
 
@@ -303,9 +417,9 @@ parse_function_parameter_list(TokenCursor& cursor)
 		}
 
 		auto type_tok = curr_tok;
-		result.push_back(std::move(std::make_unique<std::pair<Identifier, Identifier>>(
-			Identifier{std::string{name_tok.start, name_tok.size}},
-			Identifier{std::string{type_tok.start, type_tok.size}})));
+		result.emplace_back(new ParameterDeclaration{
+			std::make_unique<ValueIdentifier>(std::string{name_tok.start, name_tok.size}),
+			std::make_unique<TypeIdentifier>(std::string{type_tok.start, type_tok.size})});
 
 		cursor.adv();
 		curr_tok = cursor.peek();
@@ -337,9 +451,9 @@ parse_function_proto(TokenCursor& cursor)
 		std::cout << "Expected '('" << std::endl;
 		return nullptr;
 	}
-
 	cursor.adv();
-	std::vector<std::unique_ptr<std::pair<Identifier, Identifier>>> params =
+
+	std::vector<std::unique_ptr<ParameterDeclaration>> params =
 		parse_function_parameter_list(cursor);
 
 	if( cursor.peek().type != TokenType::close_paren )
@@ -365,8 +479,9 @@ parse_function_proto(TokenCursor& cursor)
 
 	cursor.adv();
 	return std::unique_ptr<Prototype>{new Prototype{
-		Identifier{std::string{tok_fn_name.start, tok_fn_name.size}},
-		Identifier{std::string{tok_fn_return_type.start, tok_fn_return_type.size}},
+		std::make_unique<ValueIdentifier>(std::string{tok_fn_name.start, tok_fn_name.size}),
+		std::make_unique<TypeIdentifier>(
+			std::string{tok_fn_return_type.start, tok_fn_return_type.size}),
 		params}};
 }
 
@@ -379,6 +494,14 @@ Parser::parse_function_body(TokenCursor& cursor)
 std::unique_ptr<IStatementNode>
 Parser::parse_function(TokenCursor& cursor)
 {
+	auto curr_tok = cursor.peek();
+	if( curr_tok.type != TokenType::fn )
+	{
+		std::cout << "Parse function expects 'fn'" << std::endl;
+		return nullptr;
+	}
+	cursor.adv();
+
 	auto proto = parse_function_proto(cursor);
 	if( !proto )
 	{

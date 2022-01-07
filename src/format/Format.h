@@ -11,6 +11,8 @@ public:
 	virtual void visit(ast::Number const*) override;
 	virtual void visit(ast::Return const*) override;
 	virtual void visit(ast::Prototype const*) override;
-	virtual void visit(ast::Identifier const*) override;
+	virtual void visit(ast::TypeIdentifier const*) override;
+	virtual void visit(ast::ValueIdentifier const*) override;
 	virtual void visit(ast::Let const*) override;
+	virtual void visit(ast::Struct const*) override;
 };
