@@ -34,7 +34,5 @@ public:
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
-
-	// AstNodeType get_type() const override { return AstNodeType::return_node; }
 };
 } // namespace ast

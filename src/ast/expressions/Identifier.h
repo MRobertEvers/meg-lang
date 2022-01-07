@@ -42,6 +42,18 @@ public:
 		return sz;
 	}
 
+	std::string get_element_name() const
+	{
+		if( path.size() == 0 )
+		{
+			return "";
+		}
+		else
+		{
+			return *path.rbegin();
+		}
+	}
+
 protected:
 	Identifier(bool is_empty)
 		: is_empty(true)

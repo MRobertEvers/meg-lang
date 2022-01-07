@@ -8,11 +8,42 @@ using namespace llvm;
 
 using namespace codegen;
 
+static int
+get_element_index_in_struct(ast::Struct const* st, std::string const& name)
+{
+	unsigned int idx = 0;
+	for( auto& mem : st->MemberVariables )
+	{
+		if( mem->Name->get_fqn() == name )
+		{
+			return idx;
+		}
+		idx++;
+	}
+
+	return -1;
+}
+
+ast::MemberVariableDeclaration*
+get_member_of_struct(ast::Struct const* st, std::string const& name)
+{
+	for( auto& mem : st->MemberVariables )
+	{
+		if( mem->Name->get_fqn() == name )
+		{
+			return mem.get();
+		}
+	}
+
+	return nullptr;
+}
+
 void
 Scope::add_named_value(TypedIdentifier id)
 {
 	// TODO: Check existing names
-	names.insert(std::make_pair(id.name->get_fqn(), id));
+	auto name_str = id.name->get_fqn();
+	names.insert(std::make_pair(name_str, id));
 }
 
 TypedIdentifier*
@@ -53,12 +84,34 @@ Scope::get_function()
 	return Fn;
 }
 
+llvm::Type*
+Codegen::get_type(std::string const& name)
+{
+	auto Ty = get_builtin_type(name);
+	if( Ty )
+	{
+		return Ty;
+	}
+
+	auto ty_id = current_scope->get_named_value(name);
+	if( !ty_id || !ty_id->is_type_name )
+	{
+		std::cout << "Expected type name but got value name" << std::endl;
+		return nullptr;
+	}
+
+	return ty_id->TypeTy;
+}
+
 Codegen::Codegen()
 {
 	Context = std::make_unique<llvm::LLVMContext>();
 	Module = std::make_unique<llvm::Module>("this_module", *Context);
 	// Create a new builder for the module.
 	Builder = std::make_unique<llvm::IRBuilder<>>(*Context);
+
+	// Module global scope.
+	current_scope = new Scope();
 }
 
 void
@@ -240,7 +293,7 @@ Codegen::visit(ast::Prototype const* node)
 	std::vector<Type*> IRArguments;
 	for( auto& arg : Args )
 	{
-		auto ty = get_builtin_type(arg->Type->get_fqn());
+		auto ty = get_type(arg->Type->get_fqn());
 		if( ty == nullptr )
 		{
 			std::cout << "Unknown type" << std::endl;
@@ -250,7 +303,7 @@ Codegen::visit(ast::Prototype const* node)
 		IRArguments.push_back(ty);
 	}
 
-	auto ret_ty = get_builtin_type(node->ReturnType->get_fqn());
+	auto ret_ty = get_type(node->ReturnType->get_fqn());
 	if( ret_ty == nullptr )
 	{
 		std::cout << "Unknown type" << std::endl;
@@ -281,17 +334,90 @@ Codegen::visit(ast::TypeIdentifier const* node)
 	return;
 }
 
+// Could be a.b.c
 void
 Codegen::visit(ast::ValueIdentifier const* node)
 {
-	auto Var = current_scope->get_named_value(node->get_fqn());
-	if( !Var )
+	if( node->path.size() == 1 )
 	{
-		std::cout << "Unrecognized value identifier: " << node->get_fqn() << std::endl;
+		auto Var = current_scope->get_named_value(node->get_fqn());
+		if( !Var )
+		{
+			std::cout << "Unrecognized value identifier: " << node->get_fqn() << std::endl;
+			return;
+		}
+
+		last_expr =
+			Builder->CreateLoad(Var->Value->getAllocatedType(), Var->Value, Var->name->get_fqn());
 	}
-	last_expr =
-		Builder->CreateLoad(Var->Value->getAllocatedType(), Var->Value, Var->name->get_fqn());
-	return;
+	else
+	{
+		// a.my.nested
+		// Look up 'a'
+		// 'a' must be a lvalue
+		auto iter = node->path.cbegin();
+		auto nm = *iter;
+		auto st_val = current_scope->get_named_value(nm);
+		if( !st_val || st_val->is_type_name )
+		{
+			std::cout << "Unrecognized identifier " << nm << std::endl;
+			return;
+		}
+
+		// Get the type of the variable... this should succeed if it's  struct. If its not,
+		// then this will fail.
+		auto st_type = current_scope->get_named_value(st_val->type->get_fqn());
+		if( !st_type )
+		{
+			std::cout << nm << " must be a struct to use '.'" << std::endl;
+			return;
+		}
+
+		if( !st_type || !st_type->is_type_name || !st_type->TypeTy->isStructTy() )
+		{
+			std::cout << "Not a type name or not a struct. How did we get here?" << std::endl;
+			return;
+		}
+
+		iter++;
+
+		// Prime the iteration
+		auto curr_st_type = st_type;
+		llvm::Value* curr_st_value = st_val->Value;
+		for( ; iter != node->path.cend(); iter++ )
+		{
+			nm = *iter;
+			if( !curr_st_type )
+			{
+				break;
+			}
+
+			// a.my.nested
+			auto idx = get_element_index_in_struct(curr_st_type->type_struct, nm);
+			auto member = get_member_of_struct(curr_st_type->type_struct, nm);
+			auto member_ty = get_type(member->Type->get_fqn());
+			if( idx == -1 || !member || !member_ty )
+			{
+				std::cout << "Unrecognized member variable " << nm << std::endl;
+				return;
+			}
+
+			auto MemberPtr = Builder->CreateStructGEP(
+				curr_st_type->TypeTy, curr_st_value, idx, st_type->name->get_fqn() + "." + nm);
+
+			last_expr = Builder->CreateLoad(member_ty, MemberPtr, "");
+
+			// If we have more steps to go, last_expr value must be a value type.
+			curr_st_type = current_scope->get_named_value(member->Type->get_fqn());
+			curr_st_value = last_expr;
+		}
+
+		if( iter != node->path.cend() )
+		{
+			std::cout << "Failed to deref struct" << std::endl;
+			last_expr = nullptr;
+		}
+	}
 }
 
 void
@@ -323,9 +449,29 @@ Codegen::visit(ast::Let const* node)
 	last_expr = nullptr;
 }
 
+// https://lists.llvm.org/pipermail/llvm-dev/2013-February/058880.html
 void
-Codegen::visit(ast::Struct const*)
-{}
+Codegen::visit(ast::Struct const* node)
+{
+	std::vector<llvm::Type*> members;
+	for( auto& mem : node->MemberVariables )
+	{
+		auto ty = get_type(mem->Type->get_fqn());
+		if( !ty )
+		{
+			std::cout << "Type name unknown" << std::endl;
+			return;
+		}
+
+		members.push_back(ty);
+	}
+
+	llvm::StructType* StructTy =
+		llvm::StructType::create(*Context, members, node->TypeName->get_fqn());
+
+	current_scope->add_named_value(
+		TypedIdentifier{node->TypeName.get(), node->TypeName.get(), StructTy, node});
+}
 
 void
 Codegen::pop_scope()

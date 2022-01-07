@@ -22,13 +22,33 @@ public:
 	ast::Identifier const* type;
 
 	// TODO: Separate this out...
-	llvm::AllocaInst* Value;
+	bool is_type_name = false;
+	union
+	{
+		llvm::AllocaInst* Value;
+		llvm::Type* TypeTy;
+	};
+
+	// Accompanys TypeTy;
+	ast::Struct const* type_struct;
 
 	TypedIdentifier(
 		ast::Identifier const* name, ast::Identifier const* type, llvm::AllocaInst* value)
 		: name(name)
 		, type(type)
-		, Value(value){};
+		, Value(value)
+		, is_type_name(false){};
+	TypedIdentifier(
+		ast::Identifier const* name,
+		ast::Identifier const* type,
+		llvm::Type* Type,
+		ast::Struct const* st)
+		: name(name)
+		, type(type)
+		, TypeTy(Type)
+		, type_struct(st)
+
+		, is_type_name(true){};
 };
 
 class Scope
@@ -82,5 +102,7 @@ private:
 	void new_scope(llvm::Function* Fn = nullptr);
 
 	llvm::Type* get_builtin_type(std::string const& name);
+
+	llvm::Type* get_type(std::string const& name);
 };
 } // namespace codegen
