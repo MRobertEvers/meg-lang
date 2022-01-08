@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -29,7 +30,7 @@ public:
 		, is_empty(false)
 	{}
 
-	std::string get_fqn() const
+	virtual std::string get_fqn() const
 	{
 		std::string sz;
 		unsigned int idx = 0;
@@ -41,6 +42,8 @@ public:
 		}
 		return sz;
 	}
+
+	virtual bool is_pointer_type() const { return false; }
 
 	std::string get_element_name() const
 	{
@@ -62,13 +65,36 @@ protected:
 
 class TypeIdentifier : public Identifier
 {
+	std::unique_ptr<TypeIdentifier> base = nullptr;
+
 public:
 	TypeIdentifier(const std::string& name)
 		: Identifier(name)
 	{}
+
 	TypeIdentifier(std::vector<std::string>& path)
 		: Identifier(path)
 	{}
+
+	TypeIdentifier(std::unique_ptr<TypeIdentifier> base)
+		: Identifier(std::string{"*"})
+		, base(std::move(base))
+	{}
+
+	bool is_pointer_type() const override { return base.get() != nullptr; }
+
+	std::string get_fqn() const override
+	{
+		// return Identifier::get_fqn() + (base.get() == nullptr ? "" : "*");
+		if( is_pointer_type() )
+		{
+			return base->get_fqn();
+		}
+		else
+		{
+			return Identifier::get_fqn();
+		}
+	}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 
@@ -79,6 +105,10 @@ private:
 
 public:
 	static TypeIdentifier Empty() { return TypeIdentifier(); }
+	static TypeIdentifier PointerToTy(std::unique_ptr<TypeIdentifier> base)
+	{
+		return TypeIdentifier(std::move(base));
+	}
 };
 
 /// Ripped off from llvm

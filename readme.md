@@ -23,7 +23,7 @@ complex_expr :=
 
 So, in our parse code, we have functions to parse a complex expression, and a simple expression. 
 
-
+For the most part, this is just exploring how to pass structures, pointers, etc and how to access fields on them.
 
 # Building
 
@@ -189,3 +189,89 @@ attributes #1 = { argmemonly nofree nosync nounwind willreturn }
 !7 = !{!"Apple clang version 13.0.0 (clang-1300.0.29.3)"}
 ```
 
+## Notes - Calling with structs
+
+Passing structs by pointers is straight forward, llvm ir that clang produces looks like this;
+
+```c
+struct my_struct
+{
+	int a;
+	int b;
+	int c;
+};
+
+int
+func(struct my_struct* s)
+{
+	return s->b;
+}
+
+int
+call_func()
+{
+	struct my_struct s;
+	s.a = 0;
+	s.b = 3;
+	s.c = 6;
+	return func(&s);
+}
+```
+
+```llvm-ir
+; Function Attrs: noinline nounwind optnone ssp uwtable
+define i32 @func(%struct.my_struct* %0) #0 {
+  %2 = alloca %struct.my_struct*, align 8
+  store %struct.my_struct* %0, %struct.my_struct** %2, align 8
+  %3 = load %struct.my_struct*, %struct.my_struct** %2, align 8
+  %4 = getelementptr inbounds %struct.my_struct, %struct.my_struct* %3, i32 0, i32 1
+  %5 = load i32, i32* %4, align 4
+  ret i32 %5
+}
+
+; Function Attrs: noinline nounwind optnone ssp uwtable
+define i32 @call_func() #0 {
+  %1 = alloca %struct.my_struct, align 4
+  %2 = getelementptr inbounds %struct.my_struct, %struct.my_struct* %1, i32 0, i32 0
+  store i32 0, i32* %2, align 4
+  %3 = getelementptr inbounds %struct.my_struct, %struct.my_struct* %1, i32 0, i32 1
+  store i32 3, i32* %3, align 4
+  %4 = getelementptr inbounds %struct.my_struct, %struct.my_struct* %1, i32 0, i32 2
+  store i32 6, i32* %4, align 4
+  %5 = call i32 @func(%struct.my_struct* %1)
+  ret i32 %5
+}
+```
+
+The llvm ir that is produced by the current sushi lang program is
+
+```
+struct my_struct {
+    a: i32;
+    b: i32;
+}
+
+fn func(s: my_struct*): i32 {
+    let x: i32 = s.a; 
+    return s.b; 
+}
+```
+
+```
+%my_struct = type { i32, i32 }
+
+define i32 @func(%my_struct* %s) {
+entry:
+  %s1 = alloca %my_struct*, align 8
+  store %my_struct* %s, %my_struct** %s1, align 8
+  %x = alloca i32, align 4
+  %Deref = load %my_struct*, %my_struct** %s1, align 8
+  %my_struct.a = getelementptr inbounds %my_struct, %my_struct* %Deref, i32 0, i32 0
+  %0 = load i32, i32* %my_struct.a, align 4
+  store i32 %0, i32* %x, align 4
+  %Deref2 = load %my_struct*, %my_struct** %s1, align 8
+  %my_struct.b = getelementptr inbounds %my_struct, %my_struct* %Deref2, i32 0, i32 1
+  %1 = load i32, i32* %my_struct.b, align 4
+  ret i32 %1
+}
+```

@@ -305,7 +305,16 @@ Codegen::visit(ast::Prototype const* node)
 			// TODO: Error;
 			return;
 		}
-		IRArguments.push_back(ty);
+
+		// This only supports single pointer types.
+		if( arg->Type->is_pointer_type() )
+		{
+			IRArguments.push_back(ty->getPointerTo());
+		}
+		else
+		{
+			IRArguments.push_back(ty);
+		}
 	}
 
 	auto ret_ty = get_type(node->ReturnType->get_fqn());
@@ -384,11 +393,18 @@ Codegen::visit(ast::ValueIdentifier const* node)
 			return;
 		}
 
+		if( !st_val->type->is_pointer_type() )
+		{
+			std::cout << "Must use '.' for pointer to struct types" << std::endl;
+		}
+
 		iter++;
 
 		// Prime the iteration
 		auto curr_st_type = st_type;
-		llvm::Value* curr_st_value = st_val->Value;
+		// llvm::Value* curr_st_value = st_val->Value;
+		llvm::Value* curr_st_value =
+			Builder->CreateLoad(st_type->TypeTy->getPointerTo(), st_val->Value, "Deref");
 		for( ; iter != node->path.cend(); iter++ )
 		{
 			nm = *iter;

@@ -88,7 +88,7 @@ Parser::parse_let(TokenCursor& cursor)
 		return nullptr;
 	}
 
-	TypeIdentifier type = TypeIdentifier::Empty();
+	auto type = std::make_unique<TypeIdentifier>(TypeIdentifier::Empty());
 	if( tok.type == TokenType::colon )
 	{
 		cursor.adv();
@@ -99,9 +99,15 @@ Parser::parse_let(TokenCursor& cursor)
 			return nullptr;
 		}
 
-		type = TypeIdentifier{std::string{tok.start, tok.size}};
+		type = std::make_unique<TypeIdentifier>(std::string{tok.start, tok.size});
 		cursor.adv();
 		tok = cursor.peek();
+		while( tok.type == TokenType::star )
+		{
+			type = std::make_unique<TypeIdentifier>(std::move(type));
+			cursor.adv();
+			tok = cursor.peek();
+		}
 	}
 
 	if( tok.type != TokenType::equal )
@@ -115,7 +121,7 @@ Parser::parse_let(TokenCursor& cursor)
 
 	return std::make_unique<Let>(
 		std::make_unique<ValueIdentifier>(std::string{id_tok.start, id_tok.size}),
-		std::make_unique<TypeIdentifier>(type),
+		std::make_unique<TypeIdentifier>(std::move(type)),
 		std::move(expr));
 }
 
@@ -221,7 +227,17 @@ Parser::parse_struct(TokenCursor& cursor)
 			std::cout << "Expected type identifier" << std::endl;
 			return nullptr;
 		}
+
+		auto type = std::make_unique<TypeIdentifier>(std::string{type_tok.start, type_tok.size});
+
 		cursor.adv();
+		tok = cursor.peek();
+		while( tok.type == TokenType::star )
+		{
+			type = std::make_unique<TypeIdentifier>(std::move(type));
+			cursor.adv();
+			tok = cursor.peek();
+		}
 
 		tok = cursor.peek();
 		if( tok.type != TokenType::semicolon )
@@ -233,7 +249,7 @@ Parser::parse_struct(TokenCursor& cursor)
 
 		member_variables.emplace_back(new MemberVariableDeclaration{
 			std::make_unique<ValueIdentifier>(std::string{id_tok.start, id_tok.size}),
-			std::make_unique<TypeIdentifier>(std::string{type_tok.start, type_tok.size})});
+			std::move(type)});
 
 		tok = cursor.peek();
 	}
@@ -416,12 +432,21 @@ parse_function_parameter_list(TokenCursor& cursor)
 			return result;
 		}
 
-		auto type_tok = curr_tok;
-		result.emplace_back(new ParameterDeclaration{
-			std::make_unique<ValueIdentifier>(std::string{name_tok.start, name_tok.size}),
-			std::make_unique<TypeIdentifier>(std::string{type_tok.start, type_tok.size})});
+		auto type = std::make_unique<TypeIdentifier>(std::string{curr_tok.start, curr_tok.size});
 
 		cursor.adv();
+		curr_tok = cursor.peek();
+		while( curr_tok.type == TokenType::star )
+		{
+			type = std::make_unique<TypeIdentifier>(std::move(type));
+			cursor.adv();
+			curr_tok = cursor.peek();
+		}
+
+		result.emplace_back(new ParameterDeclaration{
+			std::make_unique<ValueIdentifier>(std::string{name_tok.start, name_tok.size}),
+			std::move(type)});
+
 		curr_tok = cursor.peek();
 
 		// Also catches trailing comma.
