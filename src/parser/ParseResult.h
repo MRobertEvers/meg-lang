@@ -10,11 +10,18 @@ class ParseError
 {
 public:
 	String error;
+	Token token;
 
 	ParseError(char const* str)
 		: error(str){};
 	ParseError(String& str)
 		: error(std::move(str)){};
+	ParseError(char const* str, Token token)
+		: error(str)
+		, token(token){};
+	ParseError(String& str, Token token)
+		: error(str)
+		, token(token){};
 };
 
 template<typename T>
@@ -49,6 +56,8 @@ public:
 	/**
 	 * @brief For passing errors.
 	 *
+	 * TODO: Do I want this?
+	 *
 	 * @tparam TOtherParseResult
 	 * @param other
 	 */
@@ -57,7 +66,14 @@ public:
 		typename = std::enable_if_t<!std::is_base_of<T, TOther>::value>,
 		typename = void>
 	ParseResult<T>(ParseResult<TOther>& other)
-		: error(std::move(other.get_error())){};
+		: error(std::move(other.get_error()))
+	{
+		assert(
+			other.unwrap().is_null() &&
+			"Attempted to pass non-error result through non-polymorphic ParseResult. "
+			"Did you try returning a Statement from something expecting an Expression or "
+			"vice-versa?");
+	};
 
 	OwnPtr<T> unwrap() { return std::move(result); }
 	OwnPtr<ParseError>& get_error() { return error; }

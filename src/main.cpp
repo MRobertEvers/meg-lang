@@ -62,11 +62,6 @@ main(int argc, char* argv[])
 		return -1;
 	}
 
-	ParseResult<A> pra{ParseError("What if")}; // Error constr
-	ParseResult<B> prb{pra};				   // Error Constr
-	ParseResult<A> pra2{prb};				   // Valid constr
-	ParseResult<C> prc{pra};				   // Error constr
-
 	auto filepath = argv[argc - 1];
 
 	std::ifstream file{filepath};

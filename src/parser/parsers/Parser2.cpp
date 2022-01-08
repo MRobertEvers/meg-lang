@@ -1,6 +1,7 @@
 #include "Parser2.h"
 
 #include "common/Vec.h"
+#include "common/unreachable.h"
 
 ParseResult<ast::Module>
 Parser2::parse_module()
@@ -40,6 +41,74 @@ Parser2::parse_module_top_level_item()
 ParseResult<Let>
 Parser2::parse_let()
 {
+	auto tok = cursor.consume(TokenType::let);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'let'", tok.as());
+	}
+
+	tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier", tok.as());
+	}
+
+	tok = cursor.consume(TokenType::colon, TokenType::equal);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier or '='", tok.as());
+	}
+
+	switch( tok.unwrap().type )
+	{
+	case TokenType::colon:
+		/* code */
+		break;
+
+	case TokenType::equal:
+		/* code */
+		break;
+
+	default:
+		unreachable();
+		break;
+	}
+
+	auto type = std::make_unique<TypeIdentifier>(TypeIdentifier::Empty());
+	if( tok.type == TokenType::colon )
+	{
+		cursor.adv();
+		tok = cursor.peek();
+		if( tok.type != TokenType::identifier )
+		{
+			std::cout << "Expected type identifier";
+			return nullptr;
+		}
+
+		type = std::make_unique<TypeIdentifier>(std::string{tok.start, tok.size});
+		cursor.adv();
+		tok = cursor.peek();
+		while( tok.type == TokenType::star )
+		{
+			type = std::make_unique<TypeIdentifier>(std::move(type));
+			cursor.adv();
+			tok = cursor.peek();
+		}
+	}
+
+	if( tok.type != TokenType::equal )
+	{
+		std::cout << "Expected assignment '='";
+		return nullptr;
+	}
+	cursor.adv();
+
+	auto expr = parse_expr(cursor);
+
+	return std::make_unique<Let>(
+		std::make_unique<ValueIdentifier>(std::string{id_tok.start, id_tok.size}),
+		std::make_unique<TypeIdentifier>(std::move(type)),
+		std::move(expr));
 	return ParseError("Not implemented.");
 }
 
