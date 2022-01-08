@@ -1,18 +1,17 @@
 #pragma once
 
 #include "IStatementNode.h"
-
-#include <memory>
-#include <vector>
+#include "common/OwnPtr.h"
+#include "common/Vec.h"
 
 namespace ast
 {
 class Module : public IAstNode
 {
 public:
-	std::vector<std::unique_ptr<IStatementNode>> statements;
+	Vec<OwnPtr<IStatementNode>> statements;
 
-	Module(std::vector<std::unique_ptr<IStatementNode>> statements)
+	Module(Vec<OwnPtr<IStatementNode>> statements)
 		: statements(std::move(statements)){};
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };

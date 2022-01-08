@@ -2,6 +2,7 @@
 
 #include "../IExpressionNode.h"
 #include "../IStatementNode.h"
+#include "common/OwnPtr.h"
 
 #include <memory>
 
@@ -10,8 +11,8 @@ namespace ast
 class Return : public IStatementNode
 {
 public:
-	std::unique_ptr<IExpressionNode> ReturnExpr;
-	Return(std::unique_ptr<IExpressionNode> ReturnExpr)
+	OwnPtr<IExpressionNode> ReturnExpr;
+	Return(OwnPtr<IExpressionNode> ReturnExpr)
 		: ReturnExpr(std::move(ReturnExpr))
 	{}
 

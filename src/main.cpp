@@ -1,5 +1,6 @@
 #include "ast/ast.h"
 #include "codegen/Codegen.h"
+#include "common/OwnPtr.h"
 #include "format/Format.h"
 #include "lexer/Lexer.h"
 #include "lexer/TokenCursor.h"
@@ -11,6 +12,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "parser/ParseResult.h"
 #include "parser/parsers/Parser.h"
 
 #include <fstream>
@@ -35,6 +37,22 @@ gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 	mod->visit(&cg);
 }
 
+struct A
+{
+	int i;
+}
+
+;
+struct B : public A
+{
+	int b;
+};
+
+struct C
+{
+	int c;
+};
+
 int
 main(int argc, char* argv[])
 {
@@ -43,6 +61,11 @@ main(int argc, char* argv[])
 		std::cout << "Please specify a file" << std::endl;
 		return -1;
 	}
+
+	ParseResult<A> pra{ParseError("What if")}; // Error constr
+	ParseResult<B> prb{pra};				   // Error Constr
+	ParseResult<A> pra2{prb};				   // Valid constr
+	ParseResult<C> prc{pra};				   // Error constr
 
 	auto filepath = argv[argc - 1];
 

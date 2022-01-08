@@ -29,6 +29,8 @@ include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
+include_directories(src)
+
 # Now build our tools
 add_executable(sushi 
     src/main.cpp
@@ -41,9 +43,14 @@ add_executable(sushi
     src/lexer/TokenCursor.cpp
     src/format/Format.h
     src/format/Format.cpp
+    src/common/OwnPtr.h
+    src/common/Vec.h
+    src/common/String.h
     src/codegen/Codegen.h
     src/codegen/Codegen.cpp
-    src/parser/parsers/Parser.cpp
+    src/parser/ParseResult.h
+    src/parser/parsers/Parser2.h
+    src/parser/parsers/Parser2.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
     src/ast/expressions/BinOp.h

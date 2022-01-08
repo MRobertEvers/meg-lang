@@ -48,7 +48,7 @@ Parser::parse_module_top_level_item(TokenCursor& cursor)
 std::unique_ptr<ast::Module>
 Parser::parse_module(TokenCursor& cursor)
 {
-	std::vector<std::unique_ptr<IStatementNode>> nodes;
+	Vec<OwnPtr<IStatementNode>> nodes;
 
 	while( cursor.has_tokens() )
 	{
@@ -57,7 +57,7 @@ Parser::parse_module(TokenCursor& cursor)
 		{
 			break;
 		}
-		nodes.emplace_back(std::move(item));
+		nodes.emplace_back(std::move(item).get());
 	}
 	return std::make_unique<ast::Module>(std::move(nodes));
 }
@@ -146,8 +146,9 @@ Parser::parse_block(TokenCursor& cursor)
 		{
 		case TokenType::return_keyword:
 			cursor.adv();
-			stmts.push_back(
-				std::move(std::make_unique<Return>(std::move(Parser::parse_expr(cursor)))));
+			stmts.emplace_back(std::move(OwnPtr<Return>::of(std::move(OwnPtr<IExpressionNode>::of(
+											 parse_expr(cursor).get()))))
+								   .get());
 			break;
 		case TokenType::let:
 			stmts.emplace_back(parse_let(cursor));

@@ -2,28 +2,8 @@
 
 Sushi is my cat.
 
-In this branch we use our `IAstVisitor` to implement the code generation. Currently, any required type checking (i.e. required by llvm) is done during codegen, which is not what we want in the long term.
+The last several branches were an exploration of how to appropriately generate llvm-ir. What I'm realizing is that it might be best to specify some language features a bit better so I can organize the code and data in a way that makes more sense.
 
-I made a few realizations. First I realize now why the Kaleidoscope example has a `parse_primary` function.
-
-C++ has a similar notion, https://docs.microsoft.com/en-us/cpp/cpp/types-of-expressions?view=msvc-170. Basically, we need to specially parse infix, and postfix expressions. So here I think I will device the term for Sushi Lang, __simple expression__. A simply expression is any expression that can be parsed from left to right without knowing where other expressions fall in the AST.
-
-A __complex expression__ is one where it can't be simply parsed from left to right. I.e. Expressions that come later in the parse might affect the position of expressions earlier in the parse. Right now, this only results from infix expressions, i.e. Binary Operations.
-
-```
-simple_expr := 
-    variable_expr | 
-    literal_expr | 
-    '(' complex_expr ')'
-
-complex_expr :=
-    simple_expr | 
-    simple_expr unary_op complex_expr
-```
-
-So, in our parse code, we have functions to parse a complex expression, and a simple expression. 
-
-For the most part, this is just exploring how to pass structures, pointers, etc and how to access fields on them.
 
 # Building
 
@@ -69,6 +49,32 @@ clang++ test.cpp output.o -o test
 >>> Value: 20
 >>> Value: 28
 ```
+
+# Exploration 6
+
+
+In this branch we use our `IAstVisitor` to implement the code generation. Currently, any required type checking (i.e. required by llvm) is done during codegen, which is not what we want in the long term.
+
+I made a few realizations. First I realize now why the Kaleidoscope example has a `parse_primary` function.
+
+C++ has a similar notion, https://docs.microsoft.com/en-us/cpp/cpp/types-of-expressions?view=msvc-170. Basically, we need to specially parse infix, and postfix expressions. So here I think I will device the term for Sushi Lang, __simple expression__. A simply expression is any expression that can be parsed from left to right without knowing where other expressions fall in the AST.
+
+A __complex expression__ is one where it can't be simply parsed from left to right. I.e. Expressions that come later in the parse might affect the position of expressions earlier in the parse. Right now, this only results from infix expressions, i.e. Binary Operations.
+
+```
+simple_expr := 
+    variable_expr | 
+    literal_expr | 
+    '(' complex_expr ')'
+
+complex_expr :=
+    simple_expr | 
+    simple_expr unary_op complex_expr
+```
+
+So, in our parse code, we have functions to parse a complex expression, and a simple expression. 
+
+For the most part, this is just exploring how to pass structures, pointers, etc and how to access fields on them.
 
 
 # Notes
@@ -189,7 +195,7 @@ attributes #1 = { argmemonly nofree nosync nounwind willreturn }
 !7 = !{!"Apple clang version 13.0.0 (clang-1300.0.29.3)"}
 ```
 
-## Notes - Calling with structs
+## Notes - Calling with structs (pointers)
 
 Passing structs by pointers is straight forward, llvm ir that clang produces looks like this;
 
@@ -273,5 +279,59 @@ entry:
   %my_struct.b = getelementptr inbounds %my_struct, %my_struct* %Deref2, i32 0, i32 1
   %1 = load i32, i32* %my_struct.b, align 4
   ret i32 %1
+}
+```
+
+# Notes - Pass by Reference
+
+Calling by reference is identical to call by pointer
+
+```
+struct my_struct
+{
+	int a;
+	int b;
+	int c;
+};
+
+int
+func(struct my_struct& s)
+{
+	return s.b;
+}
+
+int
+call_func()
+{
+	struct my_struct s;
+	s.a = 0;
+	s.b = 3;
+	s.c = 6;
+	return func(s);
+}
+```
+
+```
+; Function Attrs: noinline nounwind optnone ssp uwtable
+define i32 @_Z4funcR9my_struct(%struct.my_struct* nonnull align 4 dereferenceable(12) %0) #0 {
+  %2 = alloca %struct.my_struct*, align 8
+  store %struct.my_struct* %0, %struct.my_struct** %2, align 8
+  %3 = load %struct.my_struct*, %struct.my_struct** %2, align 8
+  %4 = getelementptr inbounds %struct.my_struct, %struct.my_struct* %3, i32 0, i32 1
+  %5 = load i32, i32* %4, align 4
+  ret i32 %5
+}
+
+; Function Attrs: noinline nounwind optnone ssp uwtable
+define i32 @_Z9call_funcv() #0 {
+  %1 = alloca %struct.my_struct, align 4
+  %2 = getelementptr inbounds %struct.my_struct, %struct.my_struct* %1, i32 0, i32 0
+  store i32 0, i32* %2, align 4
+  %3 = getelementptr inbounds %struct.my_struct, %struct.my_struct* %1, i32 0, i32 1
+  store i32 3, i32* %3, align 4
+  %4 = getelementptr inbounds %struct.my_struct, %struct.my_struct* %1, i32 0, i32 2
+  store i32 6, i32* %4, align 4
+  %5 = call i32 @_Z4funcR9my_struct(%struct.my_struct* nonnull align 4 dereferenceable(12) %1)
+  ret i32 %5
 }
 ```
