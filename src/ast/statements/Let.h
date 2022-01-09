@@ -7,13 +7,13 @@ namespace ast
 class Let : public IStatementNode
 {
 public:
-	std::unique_ptr<TypeIdentifier> Type;
-	std::unique_ptr<ValueIdentifier> Name;
-	std::unique_ptr<IExpressionNode> RHS;
+	OwnPtr<TypeIdentifier> Type;
+	OwnPtr<ValueIdentifier> Name;
+	OwnPtr<IExpressionNode> RHS;
 
-	Let(std::unique_ptr<ValueIdentifier> identifier,
-		std::unique_ptr<TypeIdentifier> type,
-		std::unique_ptr<IExpressionNode> rhs)
+	Let(OwnPtr<ValueIdentifier> identifier,
+		OwnPtr<TypeIdentifier> type,
+		OwnPtr<IExpressionNode> rhs)
 		: Name(std::move(identifier))
 		, Type(std::move(type))
 		, RHS(std::move(rhs)){};

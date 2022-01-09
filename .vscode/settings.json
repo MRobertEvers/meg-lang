@@ -83,5 +83,6 @@
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
-    "lldb.dereferencePointers": true
+    "lldb.dereferencePointers": true,
+    "C_Cpp.errorSquiggles": "Disabled"
 }

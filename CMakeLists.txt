@@ -41,16 +41,17 @@ add_executable(sushi
     src/lexer/token.h
     src/lexer/TokenCursor.h
     src/lexer/TokenCursor.cpp
-    src/format/Format.h
-    src/format/Format.cpp
+    # src/format/Format.h
+    # src/format/Format.cpp
     src/common/OwnPtr.h
     src/common/Vec.h
     src/common/String.h
-    src/codegen/Codegen.h
-    src/codegen/Codegen.cpp
+    # src/codegen/Codegen.h
+    # src/codegen/Codegen.cpp
     src/parser/ParseResult.h
-    src/parser/parsers/Parser2.h
-    src/parser/parsers/Parser2.cpp
+    src/parser/ParseResult.cpp
+    src/parser/parsers/Parser.h
+    src/parser/parsers/Parser.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
     src/ast/expressions/BinOp.h
@@ -69,7 +70,7 @@ add_executable(sushi
     src/ast/statements/Return.cpp
 )
 
-set_property(TARGET sushi PROPERTY CXX_STANDARD 14)
+set_property(TARGET sushi PROPERTY CXX_STANDARD 17)
 
 # Find the libraries that correspond to the LLVM components
 # that we wish to use

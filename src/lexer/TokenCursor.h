@@ -10,7 +10,7 @@ class ConsumeResult
 	Token const* tok = nullptr;
 
 	ConsumeResult(Token const* tok, bool success)
-		: success(false)
+		: success(success)
 		, tok(tok)
 	{}
 
@@ -42,11 +42,10 @@ public:
 		: _tokens(toks)
 		, _index(0){};
 
-	Token peek();
+	bool has_tokens() const;
+	Token peek() const;
 
-	void adv();
-
-	bool has_tokens();
+	ConsumeResult consume_if_expected(TokenType expected);
 
 	ConsumeResult consume(TokenType expected);
 

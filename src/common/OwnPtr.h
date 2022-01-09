@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <memory>
 
 template<typename T>
@@ -12,14 +13,33 @@ private:
 
 public:
 	OwnPtr(T* p)
-		: internal_(p){};
-	OwnPtr(T r)
-		: internal_(new T(r)){};
+		: internal_(p){
+			  // std::cout << "OwnPtr(T*) " << std::hex << p << std::endl;
+		  };
 
+	OwnPtr(T& r)
+		: internal_(new T(std::move(r))){
+			  // std::cout << "OwnPtr(T&) " << std::hex << internal_.get() << std::endl;
+		  };
+	OwnPtr(T&& r)
+		: internal_(new T(std::move(r))){
+			  // std::cout << "OwnPtr(T&&) " << std::hex << internal_.get() << std::endl;
+		  };
+
+	template<typename TPolymorphic>
+	OwnPtr(OwnPtr<TPolymorphic>&& other)
+		: internal_(other.get())
+	{
+		other.release();
+	};
+
+	// ~OwnPtr() { std::cout << "~OwnPtr(T&&) " << std::hex << internal_.get() << std::endl; }
+
+	void release() { internal_.release(); }
 	T* operator->() const { return internal_.get(); }
 	T& operator*() const { return *internal_.get(); }
 
-	T* get() { return internal_.get(); }
+	T* get() const { return internal_.get(); }
 	bool is_null() const { return internal_.get() == nullptr; }
 
 	template<typename... TAny>

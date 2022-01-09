@@ -1,34 +1,35 @@
 #pragma once
-
 #include "../../ast/ast.h"
 #include "../../lexer/TokenCursor.h"
+#include "../ParseResult.h"
+#include "common/OwnPtr.h"
 
-#include <memory>
-#include <vector>
 using namespace ast;
 
 class Parser
 {
+	TokenCursor& cursor;
+
 public:
-	Parser();
+	Parser(TokenCursor& cursor);
 
-	std::unique_ptr<IStatementNode> parse_module_top_level_item(TokenCursor& cursor);
+	ParseResult<ast::Module> parse_module();
 
-	std::unique_ptr<ast::Module> parse_module(TokenCursor& cursor);
+private:
+	ParseResult<IStatementNode> parse_module_top_level_item();
 
-	std::unique_ptr<Let> parse_let(TokenCursor& cursor);
-	std::unique_ptr<Block> parse_block(TokenCursor& cursor);
-	std::unique_ptr<IStatementNode> parse_struct(TokenCursor& cursor);
+	ParseResult<Let> parse_let();
+	ParseResult<Block> parse_block();
+	ParseResult<Struct> parse_struct();
+	ParseResult<TypeIdentifier> parse_type_decl(bool allow_empty);
+	ParseResult<IExpressionNode> parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS);
 
-	std::unique_ptr<IExpressionNode>
-	parse_bin_op(TokenCursor& cursor, int ExprPrec, std::unique_ptr<IExpressionNode> LHS);
+	ParseResult<IExpressionNode> parse_literal();
+	ParseResult<Identifier> parse_identifier();
 
-	std::unique_ptr<IExpressionNode> parse_literal(TokenCursor& cursor);
-	std::unique_ptr<Identifier> parse_identifier(TokenCursor& cursor);
+	ParseResult<IExpressionNode> parse_simple_expr();
+	ParseResult<IExpressionNode> parse_expr();
 
-	std::unique_ptr<IExpressionNode> parse_simple_expr(TokenCursor& cursor);
-	std::unique_ptr<IExpressionNode> parse_expr(TokenCursor& cursor);
-
-	std::unique_ptr<Block> parse_function_body(TokenCursor& cursor);
-	std::unique_ptr<IStatementNode> parse_function(TokenCursor& cursor);
+	ParseResult<Function> parse_function();
+	ParseResult<Block> parse_function_body();
 };

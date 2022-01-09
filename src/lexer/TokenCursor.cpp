@@ -2,6 +2,18 @@
 
 #include <string>
 
+bool
+TokenCursor::has_tokens() const
+{
+	return _index <= _tokens.size();
+}
+
+Token
+TokenCursor::peek() const
+{
+	return _tokens[_index];
+}
+
 ConsumeResult
 TokenCursor::consume(TokenType expected)
 {
@@ -42,28 +54,16 @@ TokenCursor::next_token() const
 	return &_tokens[_index];
 }
 
-Token
-TokenCursor::peek()
+ConsumeResult
+TokenCursor::consume_if_expected(TokenType expected)
 {
-	if( _index >= _tokens.size() )
+	if( auto tok = next_token(); tok->type == expected )
 	{
-		throw new std::string{"oops"};
+		_index += 1;
+		return ConsumeResult{tok};
 	}
-	return _tokens[_index];
-}
-
-void
-TokenCursor::adv()
-{
-	_index += 1;
-	if( _index > _tokens.size() )
+	else
 	{
-		throw new std::string{"What?"};
+		return ConsumeResult::fail(tok);
 	}
-}
-
-bool
-TokenCursor::has_tokens()
-{
-	return _index < _tokens.size();
 }

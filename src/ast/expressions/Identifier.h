@@ -1,98 +1,119 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
+#include "common/OwnPtr.h"
+#include "common/String.h"
+#include "common/Vec.h"
 
 namespace ast
 {
+
+// Used to store scoped type information about a type
+// e.g.
+// let x: MyStruct::NestedStruct, etc.
+class Path
+{
+	Vec<String> path;
+
+public:
+	Path(){};
+	Path(String& path)
+		: path({std::move(path)})
+	{}
+	Path(Vec<String>& path)
+		: path(std::move(path))
+	{}
+	Path(Path& path)
+		: path(std::move(path.path))
+	{}
+
+	String get_fqn() const
+	{
+		String sz;
+		unsigned int idx = 0;
+		for( auto& s : path )
+		{
+			if( idx++ != 0 )
+				sz += "::";
+			sz += s;
+		}
+
+		return sz;
+	}
+};
 
 /**
  * @brief
  * An empty identifier is used for anonymous types and when an optional type specifier is not
  * preset.
- *
  */
 class Identifier : public IExpressionNode
 {
-public:
-	bool is_empty = true;
-	// Path shit only works for value types right now.
-	std::vector<std::string> path;
-	Identifier(const std::string& name)
-		: is_empty(false)
-	{
-		path.emplace_back(name);
-	}
+	Path path;
+	bool is_empty_ = true;
 
-	Identifier(std::vector<std::string>& path)
-		: path(path)
-		, is_empty(false)
+public:
+	Identifier(String& name)
+		: path(name)
+		, is_empty_(false)
+	{}
+	Identifier(String&& name)
+		: path(name)
+		, is_empty_(false)
 	{}
 
-	virtual std::string get_fqn() const
-	{
-		std::string sz;
-		unsigned int idx = 0;
-		for( auto& s : path )
-		{
-			if( idx++ != 0 )
-				sz += ".";
-			sz += s;
-		}
-		return sz;
-	}
+	Identifier(Path& path)
+		: path(path)
+		, is_empty_(false)
+	{}
+
+	virtual String get_fqn() const { return path.get_fqn(); }
 
 	virtual bool is_pointer_type() const { return false; }
 
-	std::string get_element_name() const
-	{
-		if( path.size() == 0 )
-		{
-			return "";
-		}
-		else
-		{
-			return *path.rbegin();
-		}
-	}
-
 protected:
 	Identifier(bool is_empty)
-		: is_empty(true)
+		: is_empty_(true)
 	{}
 };
 
 class TypeIdentifier : public Identifier
 {
-	std::unique_ptr<TypeIdentifier> base = nullptr;
+	OwnPtr<TypeIdentifier> base = nullptr;
 
 public:
-	TypeIdentifier(const std::string& name)
-		: Identifier(name)
+	TypeIdentifier(TypeIdentifier&& other)
+		: Identifier("")
+		, base(std::move(other.base))
+	{}
+	TypeIdentifier(TypeIdentifier& other)
+		: Identifier("")
+		, base(std::move(other.base))
 	{}
 
-	TypeIdentifier(std::vector<std::string>& path)
-		: Identifier(path)
-	{}
-
-	TypeIdentifier(std::unique_ptr<TypeIdentifier> base)
-		: Identifier(std::string{"*"})
+	TypeIdentifier(OwnPtr<TypeIdentifier> base)
+		: Identifier("")
 		, base(std::move(base))
 	{}
 
-	bool is_pointer_type() const override { return base.get() != nullptr; }
+	TypeIdentifier(String name)
+		: Identifier(name)
+	{}
 
-	std::string get_fqn() const override
+	TypeIdentifier(Path path)
+		: Identifier(path)
+	{}
+
+	bool is_pointer_type() const override { return !base.is_null(); }
+
+	String get_fqn() const override
 	{
-		// return Identifier::get_fqn() + (base.get() == nullptr ? "" : "*");
-		if( is_pointer_type() )
+		if( base.is_null() )
 		{
-			return base->get_fqn();
+			return Identifier::get_fqn();
 		}
 		else
 		{
-			return Identifier::get_fqn();
+			return base->get_fqn();
 		}
 	}
 
@@ -104,10 +125,10 @@ private:
 	{}
 
 public:
-	static TypeIdentifier Empty() { return TypeIdentifier(); }
-	static TypeIdentifier PointerToTy(std::unique_ptr<TypeIdentifier> base)
+	static OwnPtr<TypeIdentifier> Empty() { return new TypeIdentifier(); }
+	static OwnPtr<TypeIdentifier> PointerToTy(OwnPtr<TypeIdentifier> base)
 	{
-		return TypeIdentifier(std::move(base));
+		return OwnPtr<TypeIdentifier>::of(std::move(base));
 	}
 };
 
@@ -115,25 +136,37 @@ public:
 /// Represent the declaration of a variable (in which case it is
 /// an lvalue) a function (in which case it is a function designator) or
 /// an enum constant.
+/// This is only ever a single identifier, e.g.
+/// let name = 5;
 class ValueIdentifier : public Identifier
 {
-public:
-	ValueIdentifier(const std::string& name)
-		: Identifier(name)
-	{}
-	ValueIdentifier(std::vector<std::string>& path)
-		: Identifier(path)
-	{}
-
-	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
-
 private:
 	ValueIdentifier()
 		: Identifier(true)
 	{}
 
 public:
-	static ValueIdentifier Empty() { return ValueIdentifier(); }
+	ValueIdentifier(ValueIdentifier& val)
+		: Identifier(val.get_fqn())
+	{}
+	ValueIdentifier(ValueIdentifier&& val)
+		: Identifier(val.get_fqn())
+	{}
+
+	ValueIdentifier(String& name)
+		: Identifier(name)
+	{}
+	ValueIdentifier(String&& name)
+		: Identifier(name)
+	{}
+	ValueIdentifier(Path& path)
+		: Identifier(path)
+	{}
+
+	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
+
+public:
+	static OwnPtr<ValueIdentifier> Empty() { return new ValueIdentifier(); }
 };
 
 }; // namespace ast

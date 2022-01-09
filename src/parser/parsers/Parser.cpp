@@ -1,8 +1,9 @@
 #include "Parser.h"
 
-#include <iostream>
+#include "common/Vec.h"
+#include "common/unreachable.h"
+
 #include <map>
-#include <memory>
 
 // TODO: Dont do this
 static std::map<char, int> BinopPrecedence;
@@ -17,7 +18,8 @@ get_token_precedence(Token const& token)
 	return TokPrec;
 }
 
-Parser::Parser()
+Parser::Parser(TokenCursor& cursor)
+	: cursor(cursor)
 {
 	BinopPrecedence['<'] = 10;
 	BinopPrecedence['+'] = 20;
@@ -25,244 +27,193 @@ Parser::Parser()
 	BinopPrecedence['*'] = 40; // highest.
 }
 
-std::unique_ptr<IStatementNode>
-Parser::parse_module_top_level_item(TokenCursor& cursor)
+ParseResult<ast::Module>
+Parser::parse_module()
+{
+	Vec<OwnPtr<IStatementNode>> nodes;
+
+	while( cursor.has_tokens() )
+	{
+		auto item = parse_module_top_level_item();
+		if( !item.ok() )
+		{
+			return item;
+		}
+		nodes.emplace_back(item.unwrap());
+	}
+
+	return OwnPtr<ast::Module>::of(std::move(nodes));
+}
+
+ParseResult<IStatementNode>
+Parser::parse_module_top_level_item()
 {
 	auto tok = cursor.peek();
 	switch( tok.type )
 	{
 	case TokenType::fn:
 	{
-		return Parser::parse_function(cursor);
+		return parse_function();
 	}
 	case TokenType::struct_keyword:
-		return Parser::parse_struct(cursor);
+		return parse_struct();
 	default:
-		std::cout << "Expected item" << std::endl;
-		break;
+		return ParseError("Expected top level 'fn' or 'struct' declaration.");
 	}
-
-	return nullptr;
 }
 
-std::unique_ptr<ast::Module>
-Parser::parse_module(TokenCursor& cursor)
+static ValueIdentifier
+to_value_identifier(ConsumeResult const& tok_res)
 {
-	Vec<OwnPtr<IStatementNode>> nodes;
+	auto tok = tok_res.unwrap();
 
-	while( cursor.has_tokens() )
+	return ValueIdentifier{String{tok.start, tok.size}};
+}
+
+ParseResult<Let>
+Parser::parse_let()
+{
+	auto tok = cursor.consume(TokenType::let);
+	if( !tok.ok() )
 	{
-		auto item = Parser::parse_module_top_level_item(cursor);
-		if( item == nullptr )
-		{
-			break;
-		}
-		nodes.emplace_back(std::move(item).get());
+		return ParseError("Expected 'let'", tok.as());
 	}
-	return std::make_unique<ast::Module>(std::move(nodes));
+
+	tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier", tok.as());
+	}
+	auto name = OwnPtr<ValueIdentifier>::of(to_value_identifier(tok));
+
+	tok = cursor.consume(TokenType::colon, TokenType::equal);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier or '='", tok.as());
+	}
+
+	auto type = parse_type_decl(true);
+	if( !type.ok() )
+	{
+		return type;
+	}
+
+	cursor.consume_if_expected(TokenType::equal);
+	auto expr = parse_expr();
+	if( !expr.ok() )
+	{
+		return expr;
+	}
+
+	return ast::Let{std::move(name), type.unwrap(), expr.unwrap()};
 }
 
-std::unique_ptr<Let>
-Parser::parse_let(TokenCursor& cursor)
+ParseResult<Block>
+Parser::parse_block()
 {
+	return ParseError("Not implemented.");
+}
+
+static TypeIdentifier
+to_type_identifier(ConsumeResult const& tok_res)
+{
+	auto tok = tok_res.unwrap();
+
+	return TypeIdentifier{String{tok.start, tok.size}};
+}
+
+ParseResult<TypeIdentifier>
+Parser::parse_type_decl(bool allow_empty)
+{
+	auto tok = cursor.consume_if_expected(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		if( allow_empty )
+		{
+			return TypeIdentifier::Empty();
+		}
+		else
+		{
+			return ParseError("Unexpected token while parsing type.", tok.as());
+		}
+	}
+
+	auto type = OwnPtr<TypeIdentifier>::of(to_type_identifier(tok));
+
+	auto star_tok = cursor.consume_if_expected(TokenType::star);
+	while( star_tok.ok() )
+	{
+		type = TypeIdentifier::PointerToTy(std::move(type));
+		star_tok = cursor.consume_if_expected(TokenType::star);
+	}
+
+	return std::move(type);
+}
+
+ParseResult<Struct>
+Parser::parse_struct()
+{
+	Vec<OwnPtr<ast::MemberVariableDeclaration>> members;
+
+	auto consume_tok = cursor.consume(TokenType::struct_keyword);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected 'struct'", consume_tok.as());
+	}
+
+	consume_tok = cursor.consume(TokenType::identifier);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected struct identifier.", consume_tok.as());
+	}
+
+	auto struct_name = OwnPtr<TypeIdentifier>::of(to_type_identifier(consume_tok));
+
+	consume_tok = cursor.consume(TokenType::open_curly);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected block, '{'.", consume_tok.as());
+	}
+
 	auto tok = cursor.peek();
-	if( tok.type != TokenType::let )
-	{
-		std::cout << "Expected 'let'" << std::endl;
-		return nullptr;
-	}
-	cursor.adv();
-
-	auto id_tok = cursor.peek();
-	if( id_tok.type != TokenType::identifier )
-	{
-		std::cout << "Expected identifier" << std::endl;
-		return nullptr;
-	}
-	cursor.adv();
-
-	tok = cursor.peek();
-	if( tok.type != TokenType::colon && tok.type != TokenType::equal )
-	{
-		std::cout << "Expected type identifier or '='";
-		return nullptr;
-	}
-
-	auto type = std::make_unique<TypeIdentifier>(TypeIdentifier::Empty());
-	if( tok.type == TokenType::colon )
-	{
-		cursor.adv();
-		tok = cursor.peek();
-		if( tok.type != TokenType::identifier )
-		{
-			std::cout << "Expected type identifier";
-			return nullptr;
-		}
-
-		type = std::make_unique<TypeIdentifier>(std::string{tok.start, tok.size});
-		cursor.adv();
-		tok = cursor.peek();
-		while( tok.type == TokenType::star )
-		{
-			type = std::make_unique<TypeIdentifier>(std::move(type));
-			cursor.adv();
-			tok = cursor.peek();
-		}
-	}
-
-	if( tok.type != TokenType::equal )
-	{
-		std::cout << "Expected assignment '='";
-		return nullptr;
-	}
-	cursor.adv();
-
-	auto expr = parse_expr(cursor);
-
-	return std::make_unique<Let>(
-		std::make_unique<ValueIdentifier>(std::string{id_tok.start, id_tok.size}),
-		std::make_unique<TypeIdentifier>(std::move(type)),
-		std::move(expr));
-}
-
-std::unique_ptr<Block>
-Parser::parse_block(TokenCursor& cursor)
-{
-	std::vector<std::unique_ptr<IStatementNode>> stmts;
-
-	auto tok = cursor.peek();
-	if( tok.type != TokenType::open_curly )
-	{
-		std::cout << "Expected '{'" << std::endl;
-		return nullptr;
-	}
-
-	cursor.adv();
-	tok = cursor.peek();
 	while( tok.type != TokenType::close_curly )
 	{
-		// TODO: parse statement (i.e. this consumes the semicolon)
-		switch( tok.type )
+		consume_tok = cursor.consume(TokenType::identifier);
+		if( !consume_tok.ok() )
 		{
-		case TokenType::return_keyword:
-			cursor.adv();
-			stmts.emplace_back(std::move(OwnPtr<Return>::of(std::move(OwnPtr<IExpressionNode>::of(
-											 parse_expr(cursor).get()))))
-								   .get());
-			break;
-		case TokenType::let:
-			stmts.emplace_back(parse_let(cursor));
-			break;
-		default:
-			std::cout << "Expected expression or return statement" << std::endl;
-			break;
+			return ParseError("Expected member declaration.", consume_tok.as());
 		}
 
-		tok = cursor.peek();
-		if( tok.type != TokenType::semicolon )
+		auto name = OwnPtr<ValueIdentifier>::of(to_value_identifier(consume_tok));
+
+		consume_tok = cursor.consume(TokenType::colon);
+		if( !consume_tok.ok() )
 		{
-			std::cout << "Expected ';'" << std::endl;
-			return nullptr;
+			return ParseError("Expected ':'.", consume_tok.as());
 		}
 
-		cursor.adv();
+		auto decl = parse_type_decl(false);
+		if( !decl.ok() )
+		{
+			return decl;
+		}
+
+		consume_tok = cursor.consume(TokenType::semicolon);
+		if( !consume_tok.ok() )
+		{
+			return ParseError("Expected ';'.", consume_tok.as());
+		}
+
+		members.emplace_back(new ast::MemberVariableDeclaration{std::move(name), decl.unwrap()});
+
 		tok = cursor.peek();
 	}
-	cursor.adv();
 
-	return std::make_unique<Block>(std::move(stmts));
+	return Struct{std::move(struct_name), std::move(members)};
 }
 
-std::unique_ptr<IStatementNode>
-Parser::parse_struct(TokenCursor& cursor)
-{
-	std::vector<std::unique_ptr<ast::MemberVariableDeclaration>> member_variables;
-
-	auto tok = cursor.peek();
-	if( tok.type != TokenType::struct_keyword )
-	{
-		std::cout << "Expected 'struct'" << std::endl;
-		return nullptr;
-	}
-	cursor.adv();
-
-	auto struct_name_tok = cursor.peek();
-	if( struct_name_tok.type != TokenType::identifier )
-	{
-		std::cout << "Expected struct identifier" << std::endl;
-		return nullptr;
-	}
-	cursor.adv();
-
-	tok = cursor.peek();
-	if( tok.type != TokenType::open_curly )
-	{
-		std::cout << "Expected '{'" << std::endl;
-		return nullptr;
-	}
-	cursor.adv();
-
-	tok = cursor.peek();
-	while( tok.type != TokenType::close_curly )
-	{
-		// TODO: Parse value: type pair
-		auto id_tok = cursor.peek();
-		if( id_tok.type != TokenType::identifier )
-		{
-			std::cout << "Expected member identifier" << std::endl;
-			return nullptr;
-		}
-		cursor.adv();
-
-		tok = cursor.peek();
-		if( tok.type != TokenType::colon )
-		{
-			std::cout << "Expected ':'" << std::endl;
-			return nullptr;
-		}
-		cursor.adv();
-
-		auto type_tok = cursor.peek();
-		if( type_tok.type != TokenType::identifier )
-		{
-			std::cout << "Expected type identifier" << std::endl;
-			return nullptr;
-		}
-
-		auto type = std::make_unique<TypeIdentifier>(std::string{type_tok.start, type_tok.size});
-
-		cursor.adv();
-		tok = cursor.peek();
-		while( tok.type == TokenType::star )
-		{
-			type = std::make_unique<TypeIdentifier>(std::move(type));
-			cursor.adv();
-			tok = cursor.peek();
-		}
-
-		tok = cursor.peek();
-		if( tok.type != TokenType::semicolon )
-		{
-			std::cout << "Expected ';'" << std::endl;
-			return nullptr;
-		}
-		cursor.adv();
-
-		member_variables.emplace_back(new MemberVariableDeclaration{
-			std::make_unique<ValueIdentifier>(std::string{id_tok.start, id_tok.size}),
-			std::move(type)});
-
-		tok = cursor.peek();
-	}
-	cursor.adv();
-
-	return std::make_unique<Struct>(
-		std::make_unique<TypeIdentifier>(std::string{struct_name_tok.start, struct_name_tok.size}),
-		std::move(member_variables));
-}
-
-std::unique_ptr<IExpressionNode>
-Parser::parse_bin_op(TokenCursor& cursor, int ExprPrec, std::unique_ptr<IExpressionNode> LHS)
+ParseResult<IExpressionNode>
+Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 {
 	// If this is a binop, find its precedence.
 	while( true )
@@ -273,273 +224,113 @@ Parser::parse_bin_op(TokenCursor& cursor, int ExprPrec, std::unique_ptr<IExpress
 		// If this is a binop that binds at least as tightly as the current binop,
 		// consume it, otherwise we are done.
 		if( TokPrec < ExprPrec )
-			return LHS;
+			return std::move(LHS);
 
 		// This is a binary operation because TokPrec would be less than ExprPrec if
 		// the next token was not a bin op (e.g. if statement or so.)
-		char Op = *cursor.peek().start;
-		cursor.adv();
+		char Op = *cur.start;
+
+		// TODO: Consume bin op
+		cursor.consume(TokenType::struct_keyword);
 
 		// Parse the primary expression after the binary operator.
-		auto RHS = Parser::parse_simple_expr(cursor);
-		if( !RHS )
-			return nullptr;
+		auto RHS = parse_simple_expr();
+		if( !RHS.ok() )
+			return RHS;
 
 		// If BinOp binds less tightly with RHS than the operator after RHS, let
 		// the pending operator take RHS as its LHS.
-		int NextPrec = get_token_precedence(cursor.peek());
+		cur = cursor.peek();
+		int NextPrec = get_token_precedence(cur);
 		if( TokPrec < NextPrec )
 		{
-			RHS = Parser::parse_bin_op(cursor, TokPrec + 1, std::move(RHS));
-			if( !RHS )
-				return nullptr;
+			RHS = parse_bin_op(TokPrec + 1, RHS.unwrap());
+			if( !RHS.ok() )
+				return RHS;
 		}
 
 		// Merge LHS/RHS.
-		LHS = std::make_unique<BinaryOperation>(Op, std::move(LHS), std::move(RHS));
+		LHS = OwnPtr<IExpressionNode>(new BinaryOperation{Op, std::move(LHS), RHS.unwrap()});
 	}
 }
 
-std::unique_ptr<IExpressionNode>
-Parser::parse_literal(TokenCursor& cursor)
+ParseResult<IExpressionNode>
+Parser::parse_literal()
 {
-	auto tok = cursor.peek();
-	if( tok.type != TokenType::literal )
-	{
-		std::cout << "Expected literal" << std::endl;
-		return nullptr;
-	}
-
-	cursor.adv();
-
-	switch( tok.literal_type )
-	{
-	case LiteralType::integer:
-	{
-		auto sz = std::string{tok.start, tok.size};
-		int val = std::stoi(sz);
-		return std::make_unique<Number>(val);
-	}
-	break;
-
-	default:
-		std::cout << "Unsupported literal type" << std::endl;
-		return nullptr;
-		break;
-	}
+	return ParseError("Not implemented.");
 }
 
-std::unique_ptr<Identifier>
-Parser::parse_identifier(TokenCursor& cursor)
+ParseResult<Identifier>
+Parser::parse_identifier()
 {
-	std::vector<Token> toks;
+	// std::vector<Token> toks;
 
-	auto tok = cursor.peek();
-	if( tok.type != TokenType::identifier )
-	{
-		std::cout << "Expected identifier" << std::endl;
-		return nullptr;
-	}
-	cursor.adv();
+	// auto tok = cursor.peek();
+	// if( tok.type != TokenType::identifier )
+	// {
+	// 	std::cout << "Expected identifier" << std::endl;
+	// 	return nullptr;
+	// }
+	// cursor.adv();
 
-	toks.push_back(tok);
-	tok = cursor.peek();
-	while( tok.type == TokenType::dot )
-	{
-		cursor.adv();
-		tok = cursor.peek();
+	// toks.push_back(tok);
+	// tok = cursor.peek();
+	// while( tok.type == TokenType::dot )
+	// {
+	// 	cursor.adv();
+	// 	tok = cursor.peek();
 
-		if( tok.type != TokenType::identifier )
-		{
-			std::cout << "Expected identifier" << std::endl;
-			return nullptr;
-		}
-		toks.push_back(tok);
-		cursor.adv();
-	}
+	// 	if( tok.type != TokenType::identifier )
+	// 	{
+	// 		std::cout << "Expected identifier" << std::endl;
+	// 		return nullptr;
+	// 	}
+	// 	toks.push_back(tok);
+	// 	cursor.adv();
+	// }
 
-	std::vector<std::string> path;
-	for( auto& t : toks )
-	{
-		path.emplace_back(t.start, t.size);
-	}
+	// std::vector<std::string> path;
+	// for( auto& t : toks )
+	// {
+	// 	path.emplace_back(t.start, t.size);
+	// }
 
-	return std::make_unique<ValueIdentifier>(path);
+	// return std::make_unique<ValueIdentifier>(path);
+	return ParseError("Not implemented.");
 }
 
-std::unique_ptr<IExpressionNode>
-Parser::parse_simple_expr(TokenCursor& cursor)
+ParseResult<IExpressionNode>
+Parser::parse_simple_expr()
 {
 	auto tok = cursor.peek();
 	switch( tok.type )
 	{
 	case TokenType::literal:
-		return parse_literal(cursor);
+		return parse_literal();
 
 	case TokenType::identifier:
-		return Parser::parse_identifier(cursor);
+		return parse_identifier();
 
 	default:
-		std::cout << "Unexpected token while parsing expression" << std::endl;
-		break;
+		return ParseError("Expected simple expression.");
 	}
-	return nullptr;
 }
 
-std::unique_ptr<IExpressionNode>
-Parser::parse_expr(TokenCursor& cursor)
+ParseResult<IExpressionNode>
+Parser::parse_expr()
 {
-	auto LHS = parse_simple_expr(cursor);
-	if( !LHS )
-	{
-		return nullptr;
-	}
-
-	auto OP = Parser::parse_bin_op(cursor, 0, std::move(LHS));
-
-	return OP;
+	return ParseError("Not implemented.");
 }
 
-static std::vector<std::unique_ptr<ParameterDeclaration>>
-parse_function_parameter_list(TokenCursor& cursor)
+ParseResult<Function>
+Parser::parse_function()
 {
-	std::vector<std::unique_ptr<ParameterDeclaration>> result;
-
-	Token curr_tok = cursor.peek();
-
-	while( curr_tok.type != TokenType::close_paren )
-	{
-		if( curr_tok.type != TokenType::identifier )
-		{
-			// TODO: Error type.
-			return result;
-		}
-
-		auto name_tok = curr_tok;
-
-		cursor.adv();
-		curr_tok = cursor.peek();
-		if( curr_tok.type != TokenType::colon )
-		{
-			// TODO: Error type.
-			return result;
-		}
-
-		cursor.adv();
-		curr_tok = cursor.peek();
-		if( curr_tok.type != TokenType::identifier )
-		{
-			// TODO: Error type.
-			return result;
-		}
-
-		auto type = std::make_unique<TypeIdentifier>(std::string{curr_tok.start, curr_tok.size});
-
-		cursor.adv();
-		curr_tok = cursor.peek();
-		while( curr_tok.type == TokenType::star )
-		{
-			type = std::make_unique<TypeIdentifier>(std::move(type));
-			cursor.adv();
-			curr_tok = cursor.peek();
-		}
-
-		result.emplace_back(new ParameterDeclaration{
-			std::make_unique<ValueIdentifier>(std::string{name_tok.start, name_tok.size}),
-			std::move(type)});
-
-		curr_tok = cursor.peek();
-
-		// Also catches trailing comma.
-		if( curr_tok.type == TokenType::comma )
-		{
-			cursor.adv();
-			curr_tok = cursor.peek();
-		}
-	}
-
-	return result;
+	return ParseError("Not implemented.");
 }
 
-static std::unique_ptr<Prototype>
-parse_function_proto(TokenCursor& cursor)
+ParseResult<Block>
+Parser::parse_function_body()
 {
-	Token tok_fn_name = cursor.peek();
-	if( tok_fn_name.type != TokenType::identifier )
-	{
-		std::cout << "Expected function name identifier" << std::endl;
-		return nullptr;
-	}
-
-	cursor.adv();
-	if( cursor.peek().type != TokenType::open_paren )
-	{
-		std::cout << "Expected '('" << std::endl;
-		return nullptr;
-	}
-	cursor.adv();
-
-	std::vector<std::unique_ptr<ParameterDeclaration>> params =
-		parse_function_parameter_list(cursor);
-
-	if( cursor.peek().type != TokenType::close_paren )
-	{
-		std::cout << "Expected ')'" << std::endl;
-		return nullptr;
-	}
-
-	cursor.adv();
-	if( cursor.peek().type != TokenType::colon )
-	{
-		std::cout << "Expected ':'" << std::endl;
-		return nullptr;
-	}
-
-	cursor.adv();
-	Token tok_fn_return_type = cursor.peek();
-	if( tok_fn_return_type.type != TokenType::identifier )
-	{
-		std::cout << "Expected return type" << std::endl;
-		return nullptr;
-	}
-
-	cursor.adv();
-	return std::unique_ptr<Prototype>{new Prototype{
-		std::make_unique<ValueIdentifier>(std::string{tok_fn_name.start, tok_fn_name.size}),
-		std::make_unique<TypeIdentifier>(
-			std::string{tok_fn_return_type.start, tok_fn_return_type.size}),
-		params}};
-}
-
-std::unique_ptr<Block>
-Parser::parse_function_body(TokenCursor& cursor)
-{
-	return Parser::parse_block(cursor);
-}
-
-std::unique_ptr<IStatementNode>
-Parser::parse_function(TokenCursor& cursor)
-{
-	auto curr_tok = cursor.peek();
-	if( curr_tok.type != TokenType::fn )
-	{
-		std::cout << "Parse function expects 'fn'" << std::endl;
-		return nullptr;
-	}
-	cursor.adv();
-
-	auto proto = parse_function_proto(cursor);
-	if( !proto )
-	{
-		return nullptr;
-	}
-
-	// TODO: Pass in proto to check return type
-	auto definition = Parser::parse_function_body(cursor);
-	if( !definition )
-	{
-		return nullptr;
-	}
-
-	return std::make_unique<ast::Function>(std::move(proto), std::move(definition));
+	auto p = ParseResult<Block>{ParseError("Not implemented.")};
+	return p;
 }

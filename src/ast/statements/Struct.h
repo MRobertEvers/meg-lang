@@ -2,20 +2,18 @@
 
 #include "../IExpressionNode.h"
 #include "../IStatementNode.h"
-
-#include <memory>
-#include <vector>
+#include "common/OwnPtr.h"
+#include "common/Vec.h"
 
 namespace ast
 {
 class MemberVariableDeclaration
 {
 public:
-	std::unique_ptr<TypeIdentifier> Type;
-	std::unique_ptr<ValueIdentifier> Name;
+	OwnPtr<TypeIdentifier> Type;
+	OwnPtr<ValueIdentifier> Name;
 
-	MemberVariableDeclaration(
-		std::unique_ptr<ValueIdentifier> Name, std::unique_ptr<TypeIdentifier> Type)
+	MemberVariableDeclaration(OwnPtr<ValueIdentifier> Name, OwnPtr<TypeIdentifier> Type)
 		: Name(std::move(Name))
 		, Type(std::move(Type)){};
 };
@@ -23,12 +21,10 @@ public:
 class Struct : public IStatementNode
 {
 public:
-	std::vector<std::unique_ptr<MemberVariableDeclaration>> MemberVariables;
-	std::unique_ptr<TypeIdentifier> TypeName;
+	Vec<OwnPtr<MemberVariableDeclaration>> MemberVariables;
+	OwnPtr<TypeIdentifier> TypeName;
 
-	Struct(
-		std::unique_ptr<TypeIdentifier> TypeName,
-		std::vector<std::unique_ptr<MemberVariableDeclaration>> MemberVariables)
+	Struct(OwnPtr<TypeIdentifier> TypeName, Vec<OwnPtr<MemberVariableDeclaration>> MemberVariables)
 		: MemberVariables(std::move(MemberVariables))
 		, TypeName(std::move(TypeName))
 	{}
