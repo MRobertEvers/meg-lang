@@ -3,13 +3,56 @@
 #include "common/String.h"
 
 #include <iostream>
+#include <string.h>
+
+String
+get_line(char const* line)
+{
+	auto offset = strstr(line, "\n");
+	if( offset == nullptr )
+	{
+		return "";
+	}
+	unsigned int size = offset - line;
+	return String(line, size);
+}
 
 void
 ParseError::print() const
 {
 	std::cout << "Parse Error:\n";
 	std::cout << "\t" << error << "\n";
-	std::cout << "while parsing\n" << String{token.start, token.size} << "\n";
-	std::cout << String(token.size, '-') << "\n|\n"
-			  << "here" << std::endl;
+
+	int line_start = token.neighborhood.line_num - 1;
+	if( line_start < 0 )
+	{
+		line_start = 0;
+	}
+	if( token.neighborhood.lines->num_lines == 0 )
+		return;
+
+	int line_end = token.neighborhood.line_num + 1;
+	if( line_end >= token.neighborhood.lines->num_lines )
+	{
+		line_end = token.neighborhood.lines->num_lines - 1;
+	}
+
+	for( int i = line_start; i < line_end; i++ )
+	{
+		auto line = get_line(token.neighborhood.lines->lines[i]);
+
+		std::cout << i << " | " << line << "\n";
+
+		if( i == token.neighborhood.line_num )
+		{
+			auto sz = String{token.start, token.size};
+			char const* offset = strstr(line.c_str(), sz.c_str());
+			assert(offset != nullptr);
+			unsigned int diff = offset - line.c_str();
+
+			std::cout << " "
+					  << " | " << String(diff, ' ') << String(token.size, '^') << "here"
+					  << std::endl;
+		}
+	}
 }

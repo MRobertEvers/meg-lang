@@ -44,8 +44,21 @@ enum class LiteralType
 	none
 };
 
+struct LineMarkers
+{
+	char const** lines;
+	unsigned int num_lines;
+};
+
+struct TokenNeighborhood
+{
+	LineMarkers* lines;
+	int line_num;
+};
+
 struct Token
 {
+	TokenNeighborhood neighborhood;
 	TokenType type = TokenType::bad;
 	LiteralType literal_type = LiteralType::none;
 	char const* start = nullptr;

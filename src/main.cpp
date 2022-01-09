@@ -86,11 +86,11 @@ main(int argc, char* argv[])
 
 	Lexer lex{filedata.c_str()};
 
-	auto tokens = lex.lex();
+	auto lex_result = lex.lex();
 
-	Lexer::print_tokens(tokens);
+	Lexer::print_tokens(lex_result.tokens);
 
-	gen_code(tokens);
+	gen_code(lex_result.tokens);
 
 	// std::string Str;
 	// raw_string_ostream OS(Str);

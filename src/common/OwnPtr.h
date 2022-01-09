@@ -26,6 +26,8 @@ public:
 			  // std::cout << "OwnPtr(T&&) " << std::hex << internal_.get() << std::endl;
 		  };
 
+	// This is so we can do things like
+	// OwnPtr<IExpr> = Number{};
 	template<
 		typename TPolymorphic,
 		typename = std::enable_if_t<std::is_base_of<T, TPolymorphic>::value>>

@@ -42,7 +42,11 @@ public:
 	ParseResult<T>(ParseError err)
 		: error(err){};
 
-	ParseResult(OwnPtr<T> ptr)
+	// ParseResult(OwnPtr<T> ptr)
+	// 	: result(std::move(ptr)){};
+	ParseResult(OwnPtr<T>& ptr)
+		: result(std::move(ptr)){};
+	ParseResult(OwnPtr<T>&& ptr)
 		: result(std::move(ptr)){};
 
 	// ~ParseResult() { std::cout << "~ParseResult: " << std::hex << result.get() << std::endl; }

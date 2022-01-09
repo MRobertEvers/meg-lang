@@ -34,7 +34,7 @@ public:
 	Prototype(
 		OwnPtr<ValueIdentifier> Name,
 		OwnPtr<TypeIdentifier> ReturnType,
-		Vec<OwnPtr<ParameterDeclaration>> Parms)
+		Vec<OwnPtr<ParameterDeclaration>>& Parms)
 		: Name(std::move(Name))
 		, Parameters(std::move(Parms))
 		, ReturnType(std::move(ReturnType)){};

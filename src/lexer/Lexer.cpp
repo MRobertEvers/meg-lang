@@ -85,6 +85,13 @@
 
 // clang-format on
 
+LexResult::LexResult(unsigned int num_lines, char const** lines, std::vector<Token> tokens)
+	: tokens(std::move(tokens))
+{
+	markers.lines = lines;
+	markers.num_lines = num_lines;
+}
+
 void
 Lexer::print_tokens(std::vector<Token> const& tokens)
 {
@@ -95,11 +102,11 @@ Lexer::print_tokens(std::vector<Token> const& tokens)
 	}
 }
 
-std::vector<Token>
+LexResult
 Lexer::lex()
 {
-	std::vector<Token> result{};
-	result.reserve(30);
+	std::vector<Token> tokens{};
+	tokens.reserve(30);
 	cursor_ = 0;
 
 	for( ; cursor_ < input_len_; cursor_++ )
@@ -109,15 +116,20 @@ Lexer::lex()
 		switch( c )
 		{
 		case CHAR_WHITESPACE_CASES:
-
-			break;
-
+		{
+			if( c == '\n' )
+			{
+				lines_.push_back(&input_[cursor_]);
+				curr_line_++;
+			}
+		}
+		break;
 		case CHAR_IDENTIFIER_START_CASES:
-			result.push_back(lex_consume_identifier());
+			tokens.push_back(lex_consume_identifier());
 			break;
 
 		case CHAR_DIGIT_CASES:
-			result.push_back(lex_consume_number());
+			tokens.push_back(lex_consume_number());
 			break;
 
 		case '*':
@@ -133,7 +145,7 @@ Lexer::lex()
 		case ',':
 		case '.':
 		case '=':
-			result.push_back(lex_consume_single());
+			tokens.push_back(lex_consume_single());
 			break;
 
 		default:
@@ -142,7 +154,13 @@ Lexer::lex()
 		}
 	}
 
-	result.emplace_back(TokenType::eof);
+	tokens.emplace_back(TokenType::eof);
+
+	auto result = LexResult{curr_line_, &lines_[0], tokens};
+	for( auto& tok : tokens )
+	{
+		tok.neighborhood.lines = &result.markers;
+	}
 
 	return result;
 }
@@ -154,6 +172,8 @@ Lexer::lex_consume_number()
 	token.start = &input_[cursor_];
 	token.literal_type = LiteralType::integer;
 	token.type = TokenType::literal;
+	token.neighborhood.line_num = curr_line_;
+
 	for( ; cursor_ < input_len_; cursor_++ )
 	{
 		char c = input_[cursor_];
@@ -180,6 +200,7 @@ Lexer::lex_consume_single()
 	Token token{};
 	token.start = &input_[cursor_];
 	token.size = 1;
+	token.neighborhood.line_num = curr_line_;
 
 	char c = input_[cursor_];
 
@@ -237,6 +258,8 @@ Lexer::lex_consume_identifier()
 {
 	Token token{};
 	token.start = &input_[cursor_];
+	token.neighborhood.line_num = curr_line_;
+
 	for( ; cursor_ < input_len_; cursor_++ )
 	{
 		char c = input_[cursor_];

@@ -6,6 +6,15 @@
 #include <cstring>
 #include <vector>
 
+class LexResult
+{
+public:
+	LineMarkers markers;
+	std::vector<Token> tokens;
+
+	LexResult(unsigned int num_lines, char const** lines, std::vector<Token> tokens);
+};
+
 class Lexer
 {
 public:
@@ -15,12 +24,14 @@ public:
 		, input_len_(strlen(in))
 	{}
 
-	std::vector<Token> lex();
+	LexResult lex();
 
 private:
+	std::vector<char const*> lines_;
 	char const* input_;
 	int cursor_;
 	int input_len_;
+	unsigned int curr_line_;
 
 	Token lex_consume_identifier();
 	Token lex_consume_number();

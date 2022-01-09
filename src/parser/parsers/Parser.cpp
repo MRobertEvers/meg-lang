@@ -200,7 +200,7 @@ Parser::parse_type_decl(bool allow_empty)
 		star_tok = cursor.consume_if_expected(TokenType::star);
 	}
 
-	return std::move(type);
+	return type;
 }
 
 ParseResult<Struct>
@@ -279,7 +279,7 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 		// If this is a binop that binds at least as tightly as the current binop,
 		// consume it, otherwise we are done.
 		if( TokPrec < ExprPrec )
-			return std::move(LHS);
+			return LHS;
 
 		// This is a binary operation because TokPrec would be less than ExprPrec if
 		// the next token was not a bin op (e.g. if statement or so.)
@@ -402,7 +402,7 @@ Parser::parse_expr()
 		return LHS;
 	}
 
-	auto OP = parse_bin_op(0, std::move(LHS.unwrap()));
+	auto OP = parse_bin_op(0, LHS.unwrap());
 
 	return OP;
 }
@@ -438,7 +438,7 @@ Parser::parse_function_parameter_list()
 			type_decl.unwrap(),
 		};
 
-		result.emplace_back(std::move(decl));
+		result.emplace_back(decl);
 
 		// Also catches trailing comma.
 		cursor.consume_if_expected(TokenType::comma);
@@ -490,7 +490,7 @@ Parser::parse_function_proto()
 	auto fn_return_type_decl =
 		TypeIdentifier(String{tok_fn_return_type.start, tok_fn_return_type.size});
 
-	return Prototype{fn_name_decl, fn_return_type_decl, std::move(*params.unwrap().get())};
+	return Prototype{fn_name_decl, fn_return_type_decl, *params.unwrap().get()};
 }
 
 ParseResult<Function>
@@ -515,7 +515,7 @@ Parser::parse_function()
 		return definition;
 	}
 
-	return ast::Function(std::move(proto.unwrap()), std::move(definition.unwrap()));
+	return ast::Function(proto.unwrap(), definition.unwrap());
 }
 
 ParseResult<Block>
