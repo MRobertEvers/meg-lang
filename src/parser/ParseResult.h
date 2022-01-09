@@ -47,6 +47,14 @@ public:
 
 	// ~ParseResult() { std::cout << "~ParseResult: " << std::hex << result.get() << std::endl; }
 
+	template<
+		typename TPolymorphic,
+		typename = std::enable_if_t<std::is_base_of<T, TPolymorphic>::value>>
+	ParseResult(TPolymorphic&& other)
+		: result(new TPolymorphic(std::move(other))){
+
+		  };
+
 	/**
 	 * @brief For passing up Base pointers, e.g. ParseResult<ConcreteExpr> ->
 	 * ParseResult<IExpressionNode>

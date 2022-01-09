@@ -3,6 +3,6 @@ struct my_struct {
     b: i32;
 }
 
-fn func(s: my_struct*) {
+fn func(s: my_struct*): i32 {
     return s.b;
 }

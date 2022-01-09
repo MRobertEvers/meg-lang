@@ -41,17 +41,13 @@ add_executable(sushi
     src/lexer/token.h
     src/lexer/TokenCursor.h
     src/lexer/TokenCursor.cpp
-    # src/format/Format.h
-    # src/format/Format.cpp
     src/common/OwnPtr.h
     src/common/Vec.h
     src/common/String.h
-    # src/codegen/Codegen.h
-    # src/codegen/Codegen.cpp
+    src/format/Format.h
+    src/format/Format.cpp
     src/parser/ParseResult.h
     src/parser/ParseResult.cpp
-    src/parser/parsers/Parser.h
-    src/parser/parsers/Parser.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
     src/ast/expressions/BinOp.h
@@ -68,6 +64,7 @@ add_executable(sushi
     src/ast/statements/Prototype.cpp
     src/ast/statements/Return.h
     src/ast/statements/Return.cpp
+    src/ast/statements/Struct.h
 )
 
 set_property(TARGET sushi PROPERTY CXX_STANDARD 17)

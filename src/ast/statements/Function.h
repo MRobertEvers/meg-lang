@@ -12,10 +12,10 @@ namespace ast
 class Function : public IStatementNode
 {
 public:
-	std::unique_ptr<Prototype> Proto;
-	std::unique_ptr<Block> Body;
+	OwnPtr<Prototype> Proto;
+	OwnPtr<Block> Body;
 
-	Function(std::unique_ptr<Prototype> Proto, std::unique_ptr<Block> Body)
+	Function(OwnPtr<Prototype> Proto, OwnPtr<Block> Body)
 		: Proto(std::move(Proto))
 		, Body(std::move(Body))
 	{}

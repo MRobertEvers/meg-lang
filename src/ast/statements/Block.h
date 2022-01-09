@@ -1,18 +1,17 @@
 #pragma once
 
 #include "../IStatementNode.h"
-
-#include <memory>
-#include <vector>
+#include "common/OwnPtr.h"
+#include "common/Vec.h"
 
 namespace ast
 {
 class Block : public IStatementNode
 {
 public:
-	std::vector<std::unique_ptr<IStatementNode>> statements;
+	Vec<OwnPtr<IStatementNode>> statements;
 
-	Block(std::vector<std::unique_ptr<IStatementNode>> stmts)
+	Block(Vec<OwnPtr<IStatementNode>> stmts)
 		: statements(std::move(stmts))
 	{}
 

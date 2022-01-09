@@ -33,7 +33,7 @@ public:
 		for( auto& s : path )
 		{
 			if( idx++ != 0 )
-				sz += "::";
+				sz += ".";
 			sz += s;
 		}
 
@@ -48,6 +48,7 @@ public:
  */
 class Identifier : public IExpressionNode
 {
+protected:
 	Path path;
 	bool is_empty_ = true;
 
@@ -82,11 +83,11 @@ class TypeIdentifier : public Identifier
 
 public:
 	TypeIdentifier(TypeIdentifier&& other)
-		: Identifier("")
+		: Identifier(other.path)
 		, base(std::move(other.base))
 	{}
 	TypeIdentifier(TypeIdentifier& other)
-		: Identifier("")
+		: Identifier(other.path)
 		, base(std::move(other.base))
 	{}
 
@@ -116,6 +117,8 @@ public:
 			return base->get_fqn();
 		}
 	}
+
+	bool is_empty() const { return is_empty_; }
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 
@@ -160,6 +163,9 @@ public:
 		: Identifier(name)
 	{}
 	ValueIdentifier(Path& path)
+		: Identifier(path)
+	{}
+	ValueIdentifier(Path&& path)
 		: Identifier(path)
 	{}
 

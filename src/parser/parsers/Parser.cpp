@@ -32,7 +32,7 @@ Parser::parse_module()
 {
 	Vec<OwnPtr<IStatementNode>> nodes;
 
-	while( cursor.has_tokens() )
+	while( cursor.has_tokens() && cursor.peek().type != TokenType::eof )
 	{
 		auto item = parse_module_top_level_item();
 		if( !item.ok() )
@@ -42,7 +42,7 @@ Parser::parse_module()
 		nodes.emplace_back(item.unwrap());
 	}
 
-	return OwnPtr<ast::Module>::of(std::move(nodes));
+	return ast::Module{std::move(nodes)};
 }
 
 ParseResult<IStatementNode>
@@ -84,7 +84,7 @@ Parser::parse_let()
 	{
 		return ParseError("Expected identifier", tok.as());
 	}
-	auto name = OwnPtr<ValueIdentifier>::of(to_value_identifier(tok));
+	auto name = to_value_identifier(tok);
 
 	tok = cursor.consume(TokenType::colon, TokenType::equal);
 	if( !tok.ok() )
@@ -111,7 +111,60 @@ Parser::parse_let()
 ParseResult<Block>
 Parser::parse_block()
 {
-	return ParseError("Not implemented.");
+	Vec<OwnPtr<IStatementNode>> stmts;
+
+	auto tok = cursor.consume(TokenType::open_curly);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '{'", tok.as());
+	}
+
+	auto curr_tok = cursor.peek();
+	while( curr_tok.type != TokenType::close_curly )
+	{
+		// TODO: parse statement (i.e. this consumes the semicolon)
+		switch( curr_tok.type )
+		{
+		case TokenType::return_keyword:
+		{
+			cursor.consume_if_expected(TokenType::return_keyword);
+
+			auto return_expr = parse_expr();
+			if( !return_expr.ok() )
+			{
+				return return_expr;
+			}
+
+			stmts.push_back(new Return{return_expr.unwrap()});
+			break;
+		}
+		case TokenType::let:
+		{
+			auto expr = parse_let();
+			if( !expr.ok() )
+			{
+				return expr;
+			}
+
+			stmts.push_back(expr.unwrap());
+		}
+		break;
+		default:
+			std::cout << "Expected expression or return statement" << std::endl;
+			break;
+		}
+
+		tok = cursor.consume(TokenType::semicolon);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected ';'", tok.as());
+		}
+
+		curr_tok = cursor.peek();
+	}
+	cursor.consume_if_expected(TokenType::close_curly);
+
+	return Block{std::move(stmts)};
 }
 
 static TypeIdentifier
@@ -167,7 +220,7 @@ Parser::parse_struct()
 		return ParseError("Expected struct identifier.", consume_tok.as());
 	}
 
-	auto struct_name = OwnPtr<TypeIdentifier>::of(to_type_identifier(consume_tok));
+	auto struct_name = to_type_identifier(consume_tok);
 
 	consume_tok = cursor.consume(TokenType::open_curly);
 	if( !consume_tok.ok() )
@@ -184,7 +237,7 @@ Parser::parse_struct()
 			return ParseError("Expected member declaration.", consume_tok.as());
 		}
 
-		auto name = OwnPtr<ValueIdentifier>::of(to_value_identifier(consume_tok));
+		auto name = to_value_identifier(consume_tok);
 
 		consume_tok = cursor.consume(TokenType::colon);
 		if( !consume_tok.ok() )
@@ -204,12 +257,14 @@ Parser::parse_struct()
 			return ParseError("Expected ';'.", consume_tok.as());
 		}
 
-		members.emplace_back(new ast::MemberVariableDeclaration{std::move(name), decl.unwrap()});
+		members.emplace_back(ast::MemberVariableDeclaration{name, decl.unwrap()});
 
 		tok = cursor.peek();
 	}
 
-	return Struct{std::move(struct_name), std::move(members)};
+	consume_tok = cursor.consume(TokenType::close_curly);
+
+	return Struct{struct_name, std::move(members)};
 }
 
 ParseResult<IExpressionNode>
@@ -250,53 +305,75 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 		}
 
 		// Merge LHS/RHS.
-		LHS = OwnPtr<IExpressionNode>(new BinaryOperation{Op, std::move(LHS), RHS.unwrap()});
+		LHS = BinaryOperation{Op, std::move(LHS), RHS.unwrap()};
 	}
 }
 
 ParseResult<IExpressionNode>
 Parser::parse_literal()
 {
-	return ParseError("Not implemented.");
+	auto tok = cursor.consume(TokenType::literal);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected literal", tok.as());
+	}
+
+	auto curr_tok = tok.unwrap();
+	switch( curr_tok.literal_type )
+	{
+	case LiteralType::integer:
+	{
+		auto sz = String{curr_tok.start, curr_tok.size};
+		int val = std::stoi(sz);
+		return Number(val);
+	}
+	break;
+
+	default:
+		return ParseError("Expected literal type", tok.as());
+	}
 }
 
-ParseResult<Identifier>
+static Path
+to_path(Vec<Token>& tokens)
+{
+	Vec<String> names;
+	for( auto& tok : tokens )
+	{
+		names.emplace_back(tok.start, tok.size);
+	}
+
+	return Path{names};
+}
+
+ParseResult<ValueIdentifier>
 Parser::parse_identifier()
 {
-	// std::vector<Token> toks;
+	Vec<Token> tokens;
 
-	// auto tok = cursor.peek();
-	// if( tok.type != TokenType::identifier )
-	// {
-	// 	std::cout << "Expected identifier" << std::endl;
-	// 	return nullptr;
-	// }
-	// cursor.adv();
+	auto tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier", tok.as());
+	}
 
-	// toks.push_back(tok);
-	// tok = cursor.peek();
-	// while( tok.type == TokenType::dot )
-	// {
-	// 	cursor.adv();
-	// 	tok = cursor.peek();
+	tokens.push_back(tok.unwrap());
+	auto curr_tok = cursor.peek();
+	while( curr_tok.type == TokenType::dot )
+	{
+		cursor.consume(TokenType::dot);
 
-	// 	if( tok.type != TokenType::identifier )
-	// 	{
-	// 		std::cout << "Expected identifier" << std::endl;
-	// 		return nullptr;
-	// 	}
-	// 	toks.push_back(tok);
-	// 	cursor.adv();
-	// }
+		tok = cursor.consume(TokenType::identifier);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected identifier", tok.as());
+		}
+		tokens.push_back(tok.unwrap());
 
-	// std::vector<std::string> path;
-	// for( auto& t : toks )
-	// {
-	// 	path.emplace_back(t.start, t.size);
-	// }
+		curr_tok = cursor.peek();
+	}
 
-	// return std::make_unique<ValueIdentifier>(path);
-	return ParseError("Not implemented.");
+	return ValueIdentifier(to_path(tokens));
 }
 
 ParseResult<IExpressionNode>
@@ -319,18 +396,130 @@ Parser::parse_simple_expr()
 ParseResult<IExpressionNode>
 Parser::parse_expr()
 {
-	return ParseError("Not implemented.");
+	auto LHS = parse_simple_expr();
+	if( !LHS.ok() )
+	{
+		return LHS;
+	}
+
+	auto OP = parse_bin_op(0, std::move(LHS.unwrap()));
+
+	return OP;
+}
+ParseResult<Vec<OwnPtr<ParameterDeclaration>>>
+Parser::parse_function_parameter_list()
+{
+	Vec<OwnPtr<ParameterDeclaration>> result;
+
+	Token curr_tok = cursor.peek();
+	while( curr_tok.type != TokenType::close_paren )
+	{
+		auto tok = cursor.consume(TokenType::identifier);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected identifier", tok.as());
+		}
+
+		auto name_tok = tok.as();
+		tok = cursor.consume(TokenType::colon);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected ':'", tok.as());
+		}
+
+		auto type_decl = parse_type_decl(false);
+		if( !type_decl.ok() )
+		{
+			return type_decl;
+		}
+
+		auto decl = ParameterDeclaration{
+			ValueIdentifier(String{name_tok.start, name_tok.size}),
+			type_decl.unwrap(),
+		};
+
+		result.emplace_back(std::move(decl));
+
+		// Also catches trailing comma.
+		cursor.consume_if_expected(TokenType::comma);
+		curr_tok = cursor.peek();
+	}
+
+	return result;
+}
+
+ParseResult<Prototype>
+Parser::parse_function_proto()
+{
+	auto tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier", tok.as());
+	}
+
+	auto tok_fn_name = tok.unwrap();
+	auto fn_name_decl = ValueIdentifier(String{tok_fn_name.start, tok_fn_name.size});
+
+	tok = cursor.consume(TokenType::open_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '('", tok.as());
+	}
+
+	auto params = parse_function_parameter_list();
+
+	tok = cursor.consume(TokenType::close_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ')'", tok.as());
+	}
+
+	tok = cursor.consume(TokenType::colon);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ':'", tok.as());
+	}
+
+	tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected function return type", tok.as());
+	}
+
+	auto tok_fn_return_type = tok.unwrap();
+	auto fn_return_type_decl =
+		TypeIdentifier(String{tok_fn_return_type.start, tok_fn_return_type.size});
+
+	return Prototype{fn_name_decl, fn_return_type_decl, std::move(*params.unwrap().get())};
 }
 
 ParseResult<Function>
 Parser::parse_function()
 {
-	return ParseError("Not implemented.");
+	auto tok = cursor.consume(TokenType::fn);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'fn'", tok.as());
+	}
+
+	auto proto = parse_function_proto();
+	if( !proto.ok() )
+	{
+		return proto;
+	}
+
+	// TODO: Pass in proto to check return type
+	auto definition = parse_function_body();
+	if( !definition.ok() )
+	{
+		return definition;
+	}
+
+	return ast::Function(std::move(proto.unwrap()), std::move(definition.unwrap()));
 }
 
 ParseResult<Block>
 Parser::parse_function_body()
 {
-	auto p = ParseResult<Block>{ParseError("Not implemented.")};
-	return p;
+	return parse_block();
 }

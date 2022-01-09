@@ -25,11 +25,13 @@ private:
 	ParseResult<IExpressionNode> parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS);
 
 	ParseResult<IExpressionNode> parse_literal();
-	ParseResult<Identifier> parse_identifier();
+	ParseResult<ValueIdentifier> parse_identifier();
 
 	ParseResult<IExpressionNode> parse_simple_expr();
 	ParseResult<IExpressionNode> parse_expr();
 
+	ParseResult<Vec<OwnPtr<ParameterDeclaration>>> parse_function_parameter_list();
+	ParseResult<Prototype> parse_function_proto();
 	ParseResult<Function> parse_function();
 	ParseResult<Block> parse_function_body();
 };

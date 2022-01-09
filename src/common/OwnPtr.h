@@ -26,6 +26,14 @@ public:
 			  // std::cout << "OwnPtr(T&&) " << std::hex << internal_.get() << std::endl;
 		  };
 
+	template<
+		typename TPolymorphic,
+		typename = std::enable_if_t<std::is_base_of<T, TPolymorphic>::value>>
+	OwnPtr(TPolymorphic&& other)
+		: internal_(new TPolymorphic(std::move(other))){
+
+		  };
+
 	template<typename TPolymorphic>
 	OwnPtr(OwnPtr<TPolymorphic>&& other)
 		: internal_(other.get())

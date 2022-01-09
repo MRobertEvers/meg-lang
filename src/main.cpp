@@ -29,11 +29,11 @@ gen_code(std::vector<Token> const& tokens)
 	Parser parse{cursor};
 	auto mod = parse.parse_module();
 
-	// Format fm;
+	Format fm;
 
 	if( mod.ok() )
 	{
-		// mod.unwrap()->visit(&fm);
+		mod.unwrap()->visit(&fm);
 		// mod.unwrap()->visit(&cg);
 	}
 	else
