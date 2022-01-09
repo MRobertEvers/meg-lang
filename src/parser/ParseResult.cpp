@@ -43,7 +43,8 @@ ParseError::print() const
 	{
 		auto line = get_line(token.neighborhood.lines.lines[i]);
 
-		std::cout << i << " | " << line << "\n";
+		auto ln_str = std::to_string(i);
+		std::cout << ln_str << " | " << line << "\n";
 
 		if( i == token.neighborhood.line_num )
 		{
@@ -52,9 +53,8 @@ ParseError::print() const
 			assert(offset != nullptr);
 			unsigned int diff = offset - line.c_str();
 
-			std::cout << " "
-					  << " | " << String(diff, ' ') << String(token.size, '^') << " here"
-					  << std::endl;
+			std::cout << String(ln_str.size(), ' ') << " | " << String(diff, ' ')
+					  << String(token.size, '^') << " here" << std::endl;
 		}
 	}
 }
