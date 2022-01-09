@@ -85,15 +85,20 @@
 
 // clang-format on
 
-LexResult::LexResult(unsigned int num_lines, char const** lines, std::vector<Token> tokens)
+LexResult::LexResult(unsigned int num_lines, Vec<char const*> lines, Vec<Token> tokens)
 	: tokens(std::move(tokens))
 {
 	markers.lines = lines;
 	markers.num_lines = num_lines;
+
+	for( auto& tok : this->tokens )
+	{
+		tok.neighborhood.lines = markers;
+	}
 }
 
 void
-Lexer::print_tokens(std::vector<Token> const& tokens)
+Lexer::print_tokens(Vec<Token> const& tokens)
 {
 	for( auto& tok : tokens )
 	{
@@ -105,9 +110,10 @@ Lexer::print_tokens(std::vector<Token> const& tokens)
 LexResult
 Lexer::lex()
 {
-	std::vector<Token> tokens{};
+	Vec<Token> tokens{};
 	tokens.reserve(30);
 	cursor_ = 0;
+	lines_.push_back(&input_[cursor_]);
 
 	for( ; cursor_ < input_len_; cursor_++ )
 	{
@@ -156,11 +162,7 @@ Lexer::lex()
 
 	tokens.emplace_back(TokenType::eof);
 
-	auto result = LexResult{curr_line_, &lines_[0], tokens};
-	for( auto& tok : tokens )
-	{
-		tok.neighborhood.lines = &result.markers;
-	}
+	auto result = LexResult{curr_line_, lines_, tokens};
 
 	return result;
 }

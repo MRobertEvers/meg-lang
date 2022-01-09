@@ -1,6 +1,8 @@
 #ifndef TOKEN_H_
 #define TOKEN_H_
 
+#include "common/Vec.h"
+
 enum class TokenType
 {
 	// Keyword or other identifier
@@ -46,13 +48,13 @@ enum class LiteralType
 
 struct LineMarkers
 {
-	char const** lines;
+	Vec<char const*> lines;
 	unsigned int num_lines;
 };
 
 struct TokenNeighborhood
 {
-	LineMarkers* lines;
+	LineMarkers lines;
 	int line_num;
 };
 

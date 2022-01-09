@@ -8,13 +8,15 @@
 String
 get_line(char const* line)
 {
-	auto offset = strstr(line, "\n");
+	auto offset = strstr(line + 1, "\n");
 	if( offset == nullptr )
 	{
 		return "";
 	}
 	unsigned int size = offset - line;
-	return String(line, size);
+	if( size == 1 )
+		return "";
+	return String(line + 1, size - 1);
 }
 
 void
@@ -28,18 +30,18 @@ ParseError::print() const
 	{
 		line_start = 0;
 	}
-	if( token.neighborhood.lines->num_lines == 0 )
+	if( token.neighborhood.lines.num_lines == 0 )
 		return;
 
 	int line_end = token.neighborhood.line_num + 1;
-	if( line_end >= token.neighborhood.lines->num_lines )
+	if( line_end >= token.neighborhood.lines.num_lines )
 	{
-		line_end = token.neighborhood.lines->num_lines - 1;
+		line_end = token.neighborhood.lines.num_lines - 1;
 	}
 
-	for( int i = line_start; i < line_end; i++ )
+	for( int i = line_start; i <= line_end; i++ )
 	{
-		auto line = get_line(token.neighborhood.lines->lines[i]);
+		auto line = get_line(token.neighborhood.lines.lines[i]);
 
 		std::cout << i << " | " << line << "\n";
 
@@ -51,7 +53,7 @@ ParseError::print() const
 			unsigned int diff = offset - line.c_str();
 
 			std::cout << " "
-					  << " | " << String(diff, ' ') << String(token.size, '^') << "here"
+					  << " | " << String(diff, ' ') << String(token.size, '^') << " here"
 					  << std::endl;
 		}
 	}

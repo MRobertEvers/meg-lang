@@ -12,7 +12,7 @@ public:
 	LineMarkers markers;
 	std::vector<Token> tokens;
 
-	LexResult(unsigned int num_lines, char const** lines, std::vector<Token> tokens);
+	LexResult(unsigned int num_lines, Vec<char const*> lines, Vec<Token> tokens);
 };
 
 class Lexer
