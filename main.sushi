@@ -1,0 +1,8 @@
+struct my_struct {
+    a: i32;
+    b: i32;
+}
+
+fn func(s: my_struct*) {
+    return s.b;
+}
