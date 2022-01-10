@@ -79,7 +79,8 @@
         "thread": "cpp",
         "iomanip": "cpp",
         "filesystem": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "__functional_base_03": "cpp"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

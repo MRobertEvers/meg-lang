@@ -1,7 +1,80 @@
 #pragma once
+#include "ast/ast.h"
+#include "common/String.h"
+#include <llvm/IR/Function.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Value.h>
 
+#include <map>
 namespace codegen
 {
+
+class IdentifierValue
+{
+public:
+	ast::Identifier* identifier;
+
+	bool is_type_name = false;
+	union Data
+	{
+		llvm::AllocaInst* Value;
+
+		// Accompanys TypeTy;
+		struct TypeIdentifierValue
+		{
+			llvm::Type* TypeTy;
+			ast::Struct const* type_struct;
+
+			TypeIdentifierValue(llvm::Type* TypeTy, ast::Struct const* type_struct)
+				: TypeTy(TypeTy)
+				, type_struct(type_struct){};
+		} type;
+
+		Data(llvm::AllocaInst* Value)
+			: Value(Value)
+		{}
+		Data(llvm::Type* TypeTy, ast::Struct const* type_struct)
+			: type(TypeTy, type_struct)
+		{}
+	} data;
+
+	IdentifierValue(ast::Identifier* identifier, llvm::AllocaInst* Value)
+		: identifier(identifier)
+		, data(Value){};
+
+	IdentifierValue(ast::Identifier* identifier, llvm::Type* TypeTy, ast::Struct const* type_struct)
+		: identifier(identifier)
+		, data(TypeTy, type_struct){};
+};
+
+class Scope
+{
+	llvm::Function* Function = nullptr;
+	Scope* parent = nullptr;
+	llvm::Type* expected_type = nullptr;
+
+	std::map<String, IdentifierValue> names;
+
+public:
+	Scope(){};
+	Scope(Scope* parent)
+		: parent(parent){};
+	Scope(Scope* parent, llvm::Function* Function)
+		: parent(parent)
+		, Function(Function){};
+
+	void add_named_value(String const& name, IdentifierValue id);
+	IdentifierValue* get_identifier(std::string const& name);
+
+	Scope* get_parent() { return parent; }
+
+	llvm::Function* get_function();
+
+	llvm::Type* get_expected_type() { return expected_type; };
+	void set_expected_type(llvm::Type* type) { expected_type = type; }
+};
+
 class Codegen : public IAstVisitor
 {
 	llvm::Value* last_expr = nullptr;

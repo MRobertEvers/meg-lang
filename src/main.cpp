@@ -1,4 +1,5 @@
 #include "ast/ast.h"
+#include "codegen/Codegen.h"
 #include "common/OwnPtr.h"
 #include "format/Format.h"
 #include "lexer/Lexer.h"
@@ -23,7 +24,7 @@ using namespace ast;
 using namespace llvm;
 
 void
-gen_code(std::vector<Token> const& tokens)
+gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 {
 	TokenCursor cursor{tokens};
 	Parser parse{cursor};
@@ -34,29 +35,13 @@ gen_code(std::vector<Token> const& tokens)
 	if( mod.ok() )
 	{
 		mod.unwrap()->visit(&fm);
-		// mod.unwrap()->visit(&cg);
+		mod.unwrap()->visit(&cg);
 	}
 	else
 	{
 		mod.get_error()->print();
 	}
 }
-
-struct A
-{
-	int i;
-}
-
-;
-struct B : public A
-{
-	int b;
-};
-
-struct C
-{
-	int c;
-};
 
 int
 main(int argc, char* argv[])
@@ -82,7 +67,7 @@ main(int argc, char* argv[])
 
 	std::cout << filedata << std::endl;
 
-	// codegen::Codegen cg;
+	codegen::Codegen cg;
 
 	Lexer lex{filedata.c_str()};
 
@@ -90,7 +75,7 @@ main(int argc, char* argv[])
 
 	Lexer::print_tokens(lex_result.tokens);
 
-	gen_code(lex_result.tokens);
+	gen_code(cg, lex_result.tokens);
 
 	// std::string Str;
 	// raw_string_ostream OS(Str);

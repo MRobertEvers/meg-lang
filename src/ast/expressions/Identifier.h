@@ -70,6 +70,7 @@ public:
 	virtual String get_fqn() const { return path.get_fqn(); }
 
 	virtual bool is_pointer_type() const { return false; }
+	virtual bool is_type_identifier() const { return false; }
 
 protected:
 	Identifier(bool is_empty)
@@ -105,6 +106,7 @@ public:
 	{}
 
 	bool is_pointer_type() const override { return !base.is_null(); }
+	bool is_type_identifier() const override { return true; }
 
 	String get_fqn() const override
 	{

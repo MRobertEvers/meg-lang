@@ -43,7 +43,7 @@ ParseError::print() const
 	{
 		auto line = get_line(token.neighborhood.lines.lines[i]);
 
-		auto ln_str = std::to_string(i);
+		auto ln_str = std::to_string(i + 1);
 		std::cout << ln_str << " | " << line << "\n";
 
 		if( i == token.neighborhood.line_num )
