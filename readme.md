@@ -361,3 +361,46 @@ I.e.
 llvm::Type* PointerToTy = ...; // Must be a pointer type
 
 ```
+
+
+## Notes - Deref on Struct Nested
+
+```c
+struct Nested
+{
+	int n;
+};
+
+struct T
+{
+	int a;
+	struct Nested b;
+};
+
+int
+my_func(struct T* my_t)
+{
+	int a = my_t->a;
+	return my_t->b.n + a;
+}
+```
+
+```
+; Function Attrs: noinline nounwind optnone ssp uwtable
+define i32 @my_func(%struct.T* %0) #0 {
+  %2 = alloca %struct.T*, align 8
+  %3 = alloca i32, align 4
+  store %struct.T* %0, %struct.T** %2, align 8
+  %4 = load %struct.T*, %struct.T** %2, align 8
+  %5 = getelementptr inbounds %struct.T, %struct.T* %4, i32 0, i32 0
+  %6 = load i32, i32* %5, align 4
+  store i32 %6, i32* %3, align 4
+  %7 = load %struct.T*, %struct.T** %2, align 8
+  %8 = getelementptr inbounds %struct.T, %struct.T* %7, i32 0, i32 1
+  %9 = getelementptr inbounds %struct.Nested, %struct.Nested* %8, i32 0, i32 0
+  %10 = load i32, i32* %9, align 4
+  %11 = load i32, i32* %3, align 4
+  %12 = add nsw i32 %10, %11
+  ret i32 %12
+}
+```

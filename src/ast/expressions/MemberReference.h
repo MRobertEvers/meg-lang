@@ -16,6 +16,8 @@ class MemberReference : public IExpressionNode
 {
 	Type const& type;
 
+	bool is_lvalue = false;
+
 public:
 	OwnPtr<IExpressionNode> base = nullptr;
 	OwnPtr<ValueIdentifier> name = nullptr;

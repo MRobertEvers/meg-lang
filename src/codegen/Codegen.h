@@ -108,5 +108,7 @@ private:
 	llvm::Type* get_builtin_type(std::string const& name);
 
 	llvm::Type* get_type(ast::Type const& name);
+
+	llvm::Value* load_if_gep(llvm::Value* val, ast::IExpressionNode const* node);
 };
 } // namespace codegen

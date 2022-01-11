@@ -36,9 +36,9 @@ ParseError::print() const
 		return;
 
 	int line_end = token.neighborhood.line_num + 1;
-	if( line_end >= token.neighborhood.lines.num_lines )
+	if( line_end > token.neighborhood.lines.num_lines )
 	{
-		line_end = token.neighborhood.lines.num_lines - 1;
+		line_end = token.neighborhood.lines.num_lines;
 	}
 
 	for( int i = line_start; i <= line_end; i++ )

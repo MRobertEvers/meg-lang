@@ -168,6 +168,8 @@ Parser::parse_let()
 
 	auto name = to_value_identifier(name_tok, type_decl->get_type());
 
+	current_scope->add_name(name.get_fqn(), &type_decl->get_type());
+
 	return ast::Let{std::move(name), std::move(type_decl), std::move(expr)};
 }
 
@@ -457,9 +459,12 @@ Parser::parse_identifier()
 	auto name = String{tok_val.start, tok_val.size};
 
 	auto type = current_scope->get_type_for_name(name);
+
 	if( type == nullptr )
 	{
-		return ValueIdentifier(name, infer_type);
+		return ParseError(
+			String("Could not find identifier ") + String(name.data()) + " in current scope.",
+			tok.as());
 	}
 	else
 	{
@@ -544,7 +549,11 @@ Parser::parse_postfix_expr()
 		{
 		case TokenType::dot:
 			// Member dereference
-			return parse_member_reference(expr.unwrap());
+			expr = parse_member_reference(expr.unwrap());
+			if( !expr.ok() )
+			{
+				return expr;
+			}
 			break;
 		case TokenType::open_paren:
 			// Function call

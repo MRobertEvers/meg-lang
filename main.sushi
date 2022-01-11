@@ -1,9 +1,13 @@
+struct my_nested {
+    n: i32;
+}
+
 struct my_struct {
     a: i32;
-    b: i32;
+    b: my_nested;
 }
 
 fn func(s: my_struct*): i32 {
     let a = s.a;
-    return s.b + a;
+    return s.b.n + a;
 }

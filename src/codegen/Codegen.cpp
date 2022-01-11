@@ -78,6 +78,27 @@ Scope::get_function()
 	return Fn;
 }
 
+// TODO: Remove this.
+llvm::Value*
+Codegen::load_if_gep(llvm::Value* val, ast::IExpressionNode const* node)
+{
+	return val;
+	// if( !val->hasValueHandle() )
+	// {
+	// 	auto RHSType = get_type(node->get_type());
+	// 	if( !RHSType )
+	// 	{
+	// 		std::cout << "No Type!!!" << std::endl;
+	// 		return val;
+	// 	}
+	// 	return Builder->CreateLoad(RHSType, val);
+	// }
+	// else
+	// {
+	// 	return val;
+	// }
+}
+
 /**
  * @brief 'type' always refers to llvm::llvm::Type, ast::TypeIdentifier is refered to as
  * TypeIdentifier
@@ -198,10 +219,12 @@ Codegen::visit(ast::BinaryOperation const* node)
 	node->LHS->visit(this);
 	auto L = last_expr;
 	last_expr = nullptr;
+	L = load_if_gep(L, node->LHS.get());
 
 	node->RHS->visit(this);
 	auto R = last_expr;
 	last_expr = nullptr;
+	R = load_if_gep(R, node->RHS.get());
 
 	if( !L || !R )
 		return;
@@ -275,7 +298,7 @@ Codegen::visit(ast::Return const* node)
 		}
 		else
 		{
-			Builder->CreateRet(last_expr);
+			Builder->CreateRet(load_if_gep(last_expr, node->ReturnExpr.get()));
 			last_expr = nullptr;
 		}
 	}
@@ -394,6 +417,7 @@ Codegen::visit(ast::Let const* node)
 
 	auto R = last_expr;
 	last_expr = nullptr;
+	R = load_if_gep(R, node->RHS.get());
 
 	// Create an alloca for this variable.
 	auto& type = node->Type->get_type();
@@ -459,45 +483,61 @@ Codegen::visit(ast::MemberReference const* node)
 	}
 
 	auto BaseType = BaseValue->getType();
+	auto PointedToType = BaseType;
 
+	// TODO: This allows a free dereference if needed.
 	if( BaseType->isPointerTy() )
 	{
-		auto PointedToType = BaseType->getPointerElementType();
-		if( !PointedToType->isStructTy() )
-		{
-			std::cout << "Attempted to dereference non-struct" << std::endl;
-			return;
-		}
-
-		// Look up the struct definition
-		auto StructName = PointedToType->getStructName();
-		auto struct_name_str = String{StructName.data()};
-		auto as_struct_id_val = current_scope->get_identifier(struct_name_str);
-		if( !as_struct_id_val->is_type_name )
-		{
-			std::cout << "???" << std::endl;
-			return;
-		}
-		auto member_name = node->name->get_fqn();
-		auto ast_struct_definition = as_struct_id_val->data.type.type_struct;
-		auto idx = get_element_index_in_struct(ast_struct_definition, member_name);
-		auto ast_member_decl = get_member_of_struct(ast_struct_definition, member_name);
-		auto MemberType = get_type(ast_member_decl->Type->get_type());
-		if( idx == -1 || MemberType == nullptr )
-		{
-			std::cout << "??!!" << std::endl;
-			return;
-		}
-
-		auto MemberPtr = Builder->CreateStructGEP(
-			PointedToType, BaseValue, idx, struct_name_str + "." + member_name);
-
-		last_expr = Builder->CreateLoad(MemberType, MemberPtr, "");
+		PointedToType = BaseType->getPointerElementType();
 	}
 	else
 	{
+		BaseValue->hasValueHandle();
+		// BaseValue = Builder->CreateLoad(
+		// 	Var->getAllocatedType(), Var, value_identifier->identifier->get_fqn());
+	}
+
+	if( !PointedToType->isStructTy() )
+	{
 		std::cout << "Attempted to dereference non-struct" << std::endl;
 		return;
+	}
+
+	// Look up the struct definition
+	auto StructName = PointedToType->getStructName();
+	auto struct_name_str = String{StructName.data()};
+	auto as_struct_id_val = current_scope->get_identifier(struct_name_str);
+	if( !as_struct_id_val->is_type_name )
+	{
+		std::cout << "???" << std::endl;
+		return;
+	}
+	auto member_name = node->name->get_fqn();
+	auto ast_struct_definition = as_struct_id_val->data.type.type_struct;
+	auto idx = get_element_index_in_struct(ast_struct_definition, member_name);
+	// auto ast_member_decl = get_member_of_struct(ast_struct_definition, member_name);
+	// auto MemberType = get_type(ast_member_decl->Type->get_type());
+	if( idx == -1 )
+	{
+		std::cout << "??!!" << std::endl;
+		return;
+	}
+
+	auto MemberPtr = Builder->CreateStructGEP(
+		PointedToType, BaseValue, idx, struct_name_str + "." + member_name);
+
+	// If the type of MemberPtr is a struct pointer, don't load it.
+	// Most operations in llvm work on struct pointers, not the struct itself.
+	// This makes sense too because if
+	if( MemberPtr->getType()->getPointerElementType()->isStructTy() )
+	{
+		// Do nothing
+		last_expr = MemberPtr;
+	}
+	else
+	{
+		// Load the value.
+		last_expr = Builder->CreateLoad(MemberType, MemberPtr, "");
 	}
 
 	// auto member_ty = get_type(member->llvm::Type->get_fqn());
