@@ -75,10 +75,7 @@ public:
 	template<typename TOther, typename = std::enable_if_t<std::is_base_of<T, TOther>::value>>
 	ParseResult<T>(ParseResult<TOther>&& other)
 		: result(std::move(other.unwrap()))
-		, error(std::move(other.get_error()))
-	{
-		std::cout << "Hello" << std::endl;
-	};
+		, error(std::move(other.get_error())){};
 
 	/**
 	 * @brief For passing errors.
