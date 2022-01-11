@@ -17,6 +17,8 @@ postfix_expr_tail := "[" expr "]"
                     | "--"
 ```
 
+In this branch, only '.' is implemented. 
+
 
 # Building
 
@@ -40,57 +42,68 @@ make
 
 The output is `sushi`.
 
-Once you run `./sushi` it will generate the output file from the hardcoded program. 
+The `./sushi` executable takes a single argument, the file to compile. It produces an `output.o` file, which can be linked normally against C linkage.
 
-```cpp
-char const buf[] =
-    "fn func(a: i32, b: i32): i8 { let x: i32 = 4; return a*8+x+b; } fn f72(): i8 { "
-    "return 12*1*3+4; }";
+
+You can use clang to bootstrap calling into our object code.
+
+For example, given the following input for sushi,
+
+```
+struct my_nested {
+    n: i32;
+}
+
+struct my_struct {
+    a: i32;
+    b: my_nested;
+}
+
+fn func(s: my_struct*): i32 {
+    let a = s.a;
+    return s.b.n + a;
+}
 ```
 
-The output is `output.o`. We can use clang to bootstrap calling into our object code with `test.cpp`.
+The `output.o` file will contain a `func` symbol which can be called into using the following cpp code.
+
+```cpp
+#include <iostream>
+
+struct my_nested
+{
+	int n;
+};
+
+struct my_struct
+{
+	int a;
+	struct my_nested b;
+};
+
+extern "C" int func(my_struct const* s);
+
+int
+main()
+{
+	struct my_struct s;
+	s.a = 1;
+	s.b.n = 2;
+	std::cout << func(&s) << std::endl;
+
+	return 0;
+}
+```
+
+In order to link and call the code
 
 ```
 clang++ test.cpp output.o -o test
 
 ./test
 
->>> Value: 4
->>> Value: 12
->>> Value: 13
->>> Value: 14
->>> Value: 15
->>> Value: 16
->>> Value: 20
->>> Value: 28
+>>> 3
 ```
-
-# Exploration 6
-
-
-In this branch we use our `IAstVisitor` to implement the code generation. Currently, any required type checking (i.e. required by llvm) is done during codegen, which is not what we want in the long term.
-
-I made a few realizations. First I realize now why the Kaleidoscope example has a `parse_primary` function.
-
-C++ has a similar notion, https://docs.microsoft.com/en-us/cpp/cpp/types-of-expressions?view=msvc-170. Basically, we need to specially parse infix, and postfix expressions. So here I think I will device the term for Sushi Lang, __simple expression__. A simply expression is any expression that can be parsed from left to right without knowing where other expressions fall in the AST.
-
-A __complex expression__ is one where it can't be simply parsed from left to right. I.e. Expressions that come later in the parse might affect the position of expressions earlier in the parse. Right now, this only results from infix expressions, i.e. Binary Operations.
-
-```
-simple_expr := 
-    variable_expr | 
-    literal_expr | 
-    '(' complex_expr ')'
-
-complex_expr :=
-    simple_expr | 
-    simple_expr unary_op complex_expr
-```
-
-So, in our parse code, we have functions to parse a complex expression, and a simple expression. 
-
-For the most part, this is just exploring how to pass structures, pointers, etc and how to access fields on them.
-
 
 # Notes
 
@@ -404,3 +417,4 @@ define i32 @my_func(%struct.T* %0) #0 {
   ret i32 %12
 }
 ```
+
