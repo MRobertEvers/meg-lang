@@ -51,11 +51,12 @@ ParseError::print() const
 		if( i == token.neighborhood.line_num )
 		{
 			auto sz = String{token.start, token.size};
-			char const* offset = strstr(line.c_str(), sz.c_str());
-			assert(offset != nullptr);
-			unsigned int diff = offset - line.c_str();
+			int offset = token.start - token.neighborhood.lines.lines[i];
+			if( i != 0 )
+				offset -= 1; // Skip passed '\n' character.
+			assert(offset > 0);
 
-			std::cout << String(ln_str.size(), ' ') << " | " << String(diff, ' ')
+			std::cout << String(ln_str.size(), ' ') << " | " << String(offset, ' ')
 					  << String(token.size, '^') << " here" << std::endl;
 		}
 	}
