@@ -100,6 +100,7 @@ public:
 	virtual void visit(ast::Struct const*) override;
 	virtual void visit(ast::MemberReference const*) override;
 	virtual void visit(ast::TypeDeclarator const*) override;
+	virtual void visit(ast::If const*) override;
 
 private:
 	void pop_scope();

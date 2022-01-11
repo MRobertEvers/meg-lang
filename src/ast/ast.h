@@ -10,6 +10,7 @@
 #include "expressions/TypeDeclarator.h"
 #include "statements/Block.h"
 #include "statements/Function.h"
+#include "statements/If.h"
 #include "statements/Let.h"
 #include "statements/Prototype.h"
 #include "statements/Return.h"

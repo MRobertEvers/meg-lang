@@ -147,3 +147,7 @@ Format::visit(ast::TypeDeclarator const* node)
 	}
 	std::cout << node->get_fqn();
 }
+
+void
+Format::visit(ast::If const* node)
+{}

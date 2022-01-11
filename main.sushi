@@ -9,5 +9,5 @@ struct my_struct {
 
 fn func(s: my_struct*): i32 {
     let a = s.a;
-    return s.a.n + a;
+    return s.b.n + a * 5;
 }

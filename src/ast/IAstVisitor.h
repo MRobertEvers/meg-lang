@@ -14,6 +14,7 @@ class TypeDeclarator;
 class ValueIdentifier;
 class Let;
 class Struct;
+class If;
 class MemberReference;
 } // namespace ast
 
@@ -33,4 +34,5 @@ public:
 	virtual void visit(ast::Struct const*) = 0;
 	virtual void visit(ast::MemberReference const*) = 0;
 	virtual void visit(ast::TypeDeclarator const*) = 0;
+	virtual void visit(ast::If const*) = 0;
 };

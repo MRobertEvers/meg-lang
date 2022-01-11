@@ -32,6 +32,8 @@ enum class TokenType
 	return_keyword,
 	let,
 	struct_keyword,
+	if_keyword,
+	else_keyword,
 
 	eof,
 	bad,

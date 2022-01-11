@@ -14,7 +14,6 @@ public:
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
-	// AstNodeType get_type() const override { return AstNodeType::number; }
 
 	Type const& get_type() const override { return type; }
 };

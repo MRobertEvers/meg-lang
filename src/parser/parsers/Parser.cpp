@@ -187,43 +187,13 @@ Parser::parse_block()
 	auto curr_tok = cursor.peek();
 	while( curr_tok.type != TokenType::close_curly )
 	{
-		// TODO: parse statement (i.e. this consumes the semicolon)
-		switch( curr_tok.type )
+		auto stmt = parse_statement();
+		if( !stmt.ok() )
 		{
-		case TokenType::return_keyword:
-		{
-			cursor.consume_if_expected(TokenType::return_keyword);
-
-			auto return_expr = parse_expr();
-			if( !return_expr.ok() )
-			{
-				return return_expr;
-			}
-
-			stmts.push_back(new Return{return_expr.unwrap()});
-			break;
-		}
-		case TokenType::let:
-		{
-			auto expr = parse_let();
-			if( !expr.ok() )
-			{
-				return expr;
-			}
-
-			stmts.push_back(expr.unwrap());
-		}
-		break;
-		default:
-			std::cout << "Expected expression or return statement" << std::endl;
-			break;
+			return stmt;
 		}
 
-		tok = cursor.consume(TokenType::semicolon);
-		if( !tok.ok() )
-		{
-			return ParseError("Expected ';'", tok.as());
-		}
+		stmts.push_back(stmt.unwrap());
 
 		curr_tok = cursor.peek();
 	}
@@ -266,8 +236,6 @@ Parser::parse_type_decl(bool allow_empty)
 		return ParseError("'" + name + "' is not a type.", tok.as());
 	}
 
-	// The pointer-to type is owned
-
 	auto type = OwnPtr<TypeDeclarator>::of(*existing_type);
 	auto star_tok = cursor.consume_if_expected(TokenType::star);
 	while( star_tok.ok() )
@@ -276,8 +244,6 @@ Parser::parse_type_decl(bool allow_empty)
 		star_tok = cursor.consume_if_expected(TokenType::star);
 	}
 
-	// The type declaration is the owning pointer, but this could return either a pointer to type,
-	// which is owned, or a reference to the original type which wouldn't be owned.
 	return std::move(type);
 }
 
@@ -394,6 +360,121 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 	}
 }
 
+ParseResult<IStatementNode>
+Parser::parse_statement()
+{
+	auto tok = cursor.peek();
+
+	OwnPtr<IStatementNode> stmt = nullptr;
+	switch( tok.type )
+	{
+	case TokenType::return_keyword:
+	{
+		// TODO: Parse return.
+		cursor.consume_if_expected(TokenType::return_keyword);
+
+		auto return_expr = parse_expr();
+		if( !return_expr.ok() )
+		{
+			return return_expr;
+		}
+
+		stmt = Return{return_expr.unwrap()};
+		break;
+	}
+	case TokenType::let:
+	{
+		auto expr = parse_let();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+	}
+	break;
+	case TokenType::if_keyword:
+	{
+		auto expr = parse_if();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+	}
+	break;
+	default:
+	{
+		auto expr = parse_expr();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+	}
+	break;
+	}
+
+	auto curr_tok = cursor.consume(TokenType::semicolon);
+	if( !curr_tok.ok() )
+	{
+		return ParseError("Expected ';'", curr_tok.as());
+	}
+
+	return stmt;
+}
+
+ParseResult<If>
+Parser::parse_if()
+{
+	auto tok = cursor.consume(TokenType::if_keyword);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'if'", tok.as());
+	}
+
+	auto open_paren_tok = cursor.consume_if_expected(TokenType::open_paren);
+
+	auto condition = parse_expr();
+	if( !condition.ok() )
+	{
+		return condition;
+	}
+
+	if( open_paren_tok.ok() )
+	{
+		auto tok = cursor.consume(TokenType::close_paren);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected ')'", tok.as());
+		}
+	}
+
+	auto then_block = parse_statement();
+	if( !then_block.ok() )
+	{
+		return then_block;
+	}
+
+	// Else block is optional
+	OwnPtr<IStatementNode> else_block = nullptr;
+	tok = cursor.consume_if_expected(TokenType::else_keyword);
+	if( tok.ok() )
+	{
+		auto else_block_result = parse_statement();
+		if( !else_block_result.ok() )
+		{
+			return else_block_result;
+		}
+
+		else_block = else_block_result.unwrap();
+	}
+
+	return If{condition.unwrap(), then_block.unwrap(), std::move(else_block)};
+}
+
 ParseResult<IExpressionNode>
 Parser::parse_literal()
 {
@@ -440,21 +521,6 @@ Parser::parse_identifier()
 		return ParseError("Expected identifier", tok.as());
 	}
 
-	// tokens.push_back(tok.unwrap());
-	// auto curr_tok = cursor.peek();
-	// while( curr_tok.type == TokenType::dot )
-	// {
-	// 	cursor.consume(TokenType::dot);
-
-	// 	tok = cursor.consume(TokenType::identifier);
-	// 	if( !tok.ok() )
-	// 	{
-	// 		return ParseError("Expected identifier", tok.as());
-	// 	}
-	// 	tokens.push_back(tok.unwrap());
-
-	// 	curr_tok = cursor.peek();
-	// }
 	auto tok_val = tok.as();
 	auto name = String{tok_val.start, tok_val.size};
 
@@ -491,11 +557,6 @@ Parser::parse_member_reference(OwnPtr<IExpressionNode> base)
 
 	auto member_name = String{tok.as().start, tok.as().size};
 	auto struct_type = &base->get_type();
-	// if( struct_type == nullptr )
-	// {
-	// 	return ParseError(
-	// 		"Cannot dereference " + member_name + " from " + struct_type_usage_name.name, tok.as());
-	// }
 
 	// TODO: This allows 1 free deref
 	if( struct_type->is_pointer_type() )
@@ -526,6 +587,24 @@ Parser::parse_simple_expr()
 
 	case TokenType::identifier:
 		return parse_identifier();
+
+	case TokenType::open_paren:
+	{
+		cursor.consume(TokenType::open_paren);
+		auto expr = parse_expr();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		auto ctok = cursor.consume(TokenType::close_paren);
+		if( !ctok.ok() )
+		{
+			return ParseError("Expected ')'", ctok.as());
+		}
+
+		return expr.unwrap();
+	}
 
 	default:
 		return ParseError("Expected simple expression.");
@@ -567,6 +646,9 @@ done:
 	return expr;
 }
 
+// expr := "(" expr ")"
+//			|
+// How to handle (a.b+4)
 ParseResult<IExpressionNode>
 Parser::parse_expr()
 {
@@ -577,6 +659,19 @@ Parser::parse_expr()
 	}
 
 	auto OP = parse_bin_op(0, LHS.unwrap());
+	if( !OP.ok() )
+	{
+		return OP;
+	}
+
+	// if( open_paren_tok.ok() )
+	// {
+	// 	auto tok = cursor.consume(TokenType::close_paren);
+	// 	if( !tok.ok() )
+	// 	{
+	// 		return ParseError("Expected ')'", tok.as());
+	// 	}
+	// }
 
 	return OP;
 }
@@ -678,7 +773,6 @@ Parser::parse_function_proto()
 
 	auto fn_return_type_decl = TypeDeclarator(*type);
 
-	// This params.unwrap.get is mega shaky. Prototype moves out of the vec so its ok, but damn.
 	auto own = params.unwrap();
 	auto own_ptr = own.get();
 	own.release();

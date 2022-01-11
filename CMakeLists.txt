@@ -61,6 +61,7 @@ add_executable(sushi
     src/ast/statements/Let.h
     src/ast/expressions/Number.h
     src/ast/expressions/Number.cpp
+    src/ast/statements/If.h
     src/ast/statements/Block.h
     src/ast/statements/Block.cpp
     src/ast/statements/Function.h

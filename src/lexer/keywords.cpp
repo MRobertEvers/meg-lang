@@ -9,13 +9,16 @@ struct KeywordIdentifierTuple
 };
 
 // clang-format off
+static
 KeywordIdentifierTuple keywords[] =
 {
 	// clang-format on
 	{"fn", TokenType::fn},
 	{"return", TokenType::return_keyword},
 	{"let", TokenType::let},
-	{"struct", TokenType::struct_keyword}
+	{"struct", TokenType::struct_keyword},
+	{"if", TokenType::if_keyword},
+	{"else", TokenType::else_keyword}
 	// clang-format off
 };
 // clang-format on
@@ -47,6 +50,8 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::plus, "plus"},
 	{TokenType::minus, "minus"},
 	{TokenType::slash, "slash"},
+	{TokenType::if_keyword, "if"},
+	{TokenType::else_keyword, "else"},
 	{TokenType::open_paren, "open_paren"},
 	{TokenType::close_paren, "close_paren"},
 	{TokenType::open_curly, "open_curly"},

@@ -490,12 +490,6 @@ Codegen::visit(ast::MemberReference const* node)
 	{
 		PointedToType = BaseType->getPointerElementType();
 	}
-	else
-	{
-		BaseValue->hasValueHandle();
-		// BaseValue = Builder->CreateLoad(
-		// 	Var->getAllocatedType(), Var, value_identifier->identifier->get_fqn());
-	}
 
 	if( !PointedToType->isStructTy() )
 	{
@@ -515,8 +509,6 @@ Codegen::visit(ast::MemberReference const* node)
 	auto member_name = node->name->get_fqn();
 	auto ast_struct_definition = as_struct_id_val->data.type.type_struct;
 	auto idx = get_element_index_in_struct(ast_struct_definition, member_name);
-	// auto ast_member_decl = get_member_of_struct(ast_struct_definition, member_name);
-	// auto MemberType = get_type(ast_member_decl->Type->get_type());
 	if( idx == -1 )
 	{
 		std::cout << "??!!" << std::endl;
@@ -528,7 +520,6 @@ Codegen::visit(ast::MemberReference const* node)
 
 	// If the type of MemberPtr is a struct pointer, don't load it.
 	// Most operations in llvm work on struct pointers, not the struct itself.
-	// This makes sense too because if
 	if( MemberPtr->getType()->getPointerElementType()->isStructTy() )
 	{
 		// Do nothing
@@ -539,36 +530,16 @@ Codegen::visit(ast::MemberReference const* node)
 		// Load the value.
 		last_expr = Builder->CreateLoad(MemberType, MemberPtr, "");
 	}
-
-	// auto member_ty = get_type(member->llvm::Type->get_fqn());
-	// if( idx == -1 || !member || !member_ty )
-	// {
-	// 	std::cout << "Unrecognized member variable " << nm << std::endl;
-	// 	return;
-	// }
-
-	// std::vector<llvm::llvm::Type*> members;
-	// for( auto& mem : node->MemberVariables )
-	// {
-	// 	auto ty = get_type(mem->llvm::Type->get_fqn());
-	// 	if( !ty )
-	// 	{
-	// 		std::cout << "llvm::Type name unknown" << std::endl;
-	// 		return;
-	// 	}
-
-	// 	members.push_back(ty);
-	// }
-
-	// llvm::StructType* StructTy =
-	// 	llvm::StructType::create(*Context, members, node->TypeName->get_fqn());
-
-	// current_scope->add_named_value(
-	// 	TypedIdentifier{node->TypeName.get(), node->TypeName.get(), StructTy, node});
 }
 
 void
 Codegen::visit(ast::TypeDeclarator const* node)
+{
+	// No Op?
+}
+
+void
+Codegen::visit(ast::If const* node)
 {
 	// No Op?
 }

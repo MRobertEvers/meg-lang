@@ -43,7 +43,9 @@ private:
 	ParseResult<Struct> parse_struct();
 	ParseResult<TypeDeclarator> parse_type_decl(bool allow_empty);
 	ParseResult<IExpressionNode> parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS);
+	ParseResult<IStatementNode> parse_statement();
 
+	ParseResult<If> parse_if();
 	ParseResult<IExpressionNode> parse_literal();
 	ParseResult<ValueIdentifier> parse_identifier();
 	ParseResult<MemberReference> parse_member_reference(OwnPtr<IExpressionNode> base);
