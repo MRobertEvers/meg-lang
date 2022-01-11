@@ -45,6 +45,7 @@ public:
 
 	IdentifierValue(ast::Identifier* identifier, llvm::Type* TypeTy, ast::Struct const* type_struct)
 		: identifier(identifier)
+		, is_type_name(true)
 		, data(TypeTy, type_struct){};
 };
 
@@ -97,6 +98,8 @@ public:
 	virtual void visit(ast::ValueIdentifier const*) override;
 	virtual void visit(ast::Let const*) override;
 	virtual void visit(ast::Struct const*) override;
+	virtual void visit(ast::MemberReference const*) override;
+	virtual void visit(ast::TypeDeclarator const*) override;
 
 private:
 	void pop_scope();
@@ -104,6 +107,6 @@ private:
 
 	llvm::Type* get_builtin_type(std::string const& name);
 
-	llvm::Type* get_type(std::string const& name);
+	llvm::Type* get_type(ast::Type const& name);
 };
 } // namespace codegen

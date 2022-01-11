@@ -2,6 +2,8 @@
 
 #include "../IExpressionNode.h"
 #include "../IStatementNode.h"
+#include "../expressions/Identifier.h"
+#include "../expressions/TypeDeclarator.h"
 #include "common/OwnPtr.h"
 #include "common/Vec.h"
 
@@ -10,10 +12,10 @@ namespace ast
 class MemberVariableDeclaration
 {
 public:
-	OwnPtr<TypeIdentifier> Type;
+	OwnPtr<TypeDeclarator> Type;
 	OwnPtr<ValueIdentifier> Name;
 
-	MemberVariableDeclaration(OwnPtr<ValueIdentifier> Name, OwnPtr<TypeIdentifier> Type)
+	MemberVariableDeclaration(OwnPtr<ValueIdentifier> Name, OwnPtr<TypeDeclarator> Type)
 		: Name(std::move(Name))
 		, Type(std::move(Type)){};
 };

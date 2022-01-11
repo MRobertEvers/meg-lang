@@ -21,6 +21,7 @@ public:
 	Lexer(char const* in)
 		: input_(in)
 		, cursor_(0)
+		, curr_line_(0)
 		, input_len_(strlen(in))
 	{}
 

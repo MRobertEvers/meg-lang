@@ -10,9 +10,11 @@ class Number;
 class Return;
 class Prototype;
 class TypeIdentifier;
+class TypeDeclarator;
 class ValueIdentifier;
 class Let;
 class Struct;
+class MemberReference;
 } // namespace ast
 
 class IAstVisitor
@@ -29,4 +31,6 @@ public:
 	virtual void visit(ast::ValueIdentifier const*) = 0;
 	virtual void visit(ast::Let const*) = 0;
 	virtual void visit(ast::Struct const*) = 0;
+	virtual void visit(ast::MemberReference const*) = 0;
+	virtual void visit(ast::TypeDeclarator const*) = 0;
 };

@@ -6,9 +6,11 @@
 #include <string.h>
 
 String
-get_line(char const* line)
+get_line(char const* line, int line_num)
 {
-	auto offset = strstr(line + 1, "\n");
+	if( line_num != 0 )
+		line += 1; // Skip passed '\n' character.
+	auto offset = strstr(line, "\n");
 	if( offset == nullptr )
 	{
 		return "";
@@ -16,7 +18,7 @@ get_line(char const* line)
 	unsigned int size = offset - line;
 	if( size == 1 )
 		return "";
-	return String(line + 1, size - 1);
+	return String(line, size);
 }
 
 void
@@ -41,7 +43,7 @@ ParseError::print() const
 
 	for( int i = line_start; i <= line_end; i++ )
 	{
-		auto line = get_line(token.neighborhood.lines.lines[i]);
+		auto line = get_line(token.neighborhood.lines.lines[i], i);
 
 		auto ln_str = std::to_string(i + 1);
 		std::cout << ln_str << " | " << line << "\n";

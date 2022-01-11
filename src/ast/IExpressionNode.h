@@ -2,6 +2,7 @@
 #define IEXPRESSION_NODE_H_
 
 #include "IAstNode.h"
+#include "Type.h"
 #include <llvm/IR/Value.h>
 
 namespace ast
@@ -10,6 +11,8 @@ class IExpressionNode : public IAstNode
 {
 public:
 	virtual ~IExpressionNode() = default;
+
+	virtual Type const& get_type() const = 0;
 };
 } // namespace ast
 

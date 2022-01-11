@@ -17,10 +17,15 @@ public:
 		: error(str){};
 	ParseError(String& str)
 		: error(std::move(str)){};
+	ParseError(String&& str)
+		: error(std::move(str)){};
 	ParseError(char const* str, Token token)
 		: error(str)
 		, token(token){};
 	ParseError(String& str, Token token)
+		: error(str)
+		, token(token){};
+	ParseError(String&& str, Token token)
 		: error(str)
 		, token(token){};
 
@@ -101,6 +106,7 @@ public:
 
 	OwnPtr<T> unwrap() { return std::move(result); }
 	OwnPtr<ParseError>& get_error() { return error; }
+	T* as() { return result.get(); }
 
 	bool ok() const { return error.is_null(); }
 };

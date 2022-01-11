@@ -1,5 +1,6 @@
 #include "../IExpressionNode.h"
 #include "../IStatementNode.h"
+#include "../expressions/TypeDeclarator.h"
 
 #include <memory>
 namespace ast
@@ -7,12 +8,12 @@ namespace ast
 class Let : public IStatementNode
 {
 public:
-	OwnPtr<TypeIdentifier> Type;
+	OwnPtr<TypeDeclarator> Type;
 	OwnPtr<ValueIdentifier> Name;
 	OwnPtr<IExpressionNode> RHS;
 
 	Let(OwnPtr<ValueIdentifier> identifier,
-		OwnPtr<TypeIdentifier> type,
+		OwnPtr<TypeDeclarator> type,
 		OwnPtr<IExpressionNode> rhs)
 		: Name(std::move(identifier))
 		, Type(std::move(type))

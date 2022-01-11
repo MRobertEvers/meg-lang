@@ -18,6 +18,56 @@ get_token_precedence(Token const& token)
 	return TokPrec;
 }
 
+static ValueIdentifier
+to_value_identifier(ConsumeResult const& tok_res, Type const& type)
+{
+	auto tok = tok_res.unwrap();
+
+	return ValueIdentifier{String{tok.start, tok.size}, type};
+}
+
+void
+ParseScope::add_name(String const& name, Type const* type)
+{
+	names.insert(std::make_pair(name, type));
+}
+
+Type const*
+ParseScope::get_type_for_name(String const& name)
+{
+	auto find_iter = names.find(name);
+	if( find_iter == names.end() )
+	{
+		if( parent != nullptr )
+		{
+			return parent->get_type_for_name(name);
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+	else
+	{
+		return find_iter->second;
+	}
+}
+
+ParseScope*
+ParseScope::CreateDefault()
+{
+	auto base_scope = new ParseScope();
+
+	base_scope->add_name(i8_type.name, &i8_type);
+	base_scope->add_name(i16_type.name, &i16_type);
+	base_scope->add_name(i32_type.name, &i32_type);
+	base_scope->add_name(u8_type.name, &u8_type);
+	base_scope->add_name(u16_type.name, &u16_type);
+	base_scope->add_name(u32_type.name, &i32_type);
+
+	return base_scope;
+}
+
 Parser::Parser(TokenCursor& cursor)
 	: cursor(cursor)
 {
@@ -25,6 +75,9 @@ Parser::Parser(TokenCursor& cursor)
 	BinopPrecedence['+'] = 20;
 	BinopPrecedence['-'] = 20;
 	BinopPrecedence['*'] = 40; // highest.
+
+	// Module global scope.
+	current_scope = ParseScope::CreateDefault();
 }
 
 ParseResult<ast::Module>
@@ -62,14 +115,6 @@ Parser::parse_module_top_level_item()
 	}
 }
 
-static ValueIdentifier
-to_value_identifier(ConsumeResult const& tok_res)
-{
-	auto tok = tok_res.unwrap();
-
-	return ValueIdentifier{String{tok.start, tok.size}};
-}
-
 ParseResult<Let>
 Parser::parse_let()
 {
@@ -84,7 +129,7 @@ Parser::parse_let()
 	{
 		return ParseError("Expected identifier", tok.as());
 	}
-	auto name = to_value_identifier(tok);
+	auto name_tok = tok;
 
 	tok = cursor.consume(TokenType::colon, TokenType::equal);
 	if( !tok.ok() )
@@ -98,13 +143,14 @@ Parser::parse_let()
 		return type;
 	}
 
+	auto name = to_value_identifier(tok, type.as()->get_type());
+
 	cursor.consume_if_expected(TokenType::equal);
 	auto expr = parse_expr();
 	if( !expr.ok() )
 	{
 		return expr;
 	}
-
 	return ast::Let{std::move(name), type.unwrap(), expr.unwrap()};
 }
 
@@ -175,7 +221,8 @@ to_type_identifier(ConsumeResult const& tok_res)
 	return TypeIdentifier{String{tok.start, tok.size}};
 }
 
-ParseResult<TypeIdentifier>
+// type declarator, not a type declaration. e.g. x: my_type.
+ParseResult<TypeDeclarator>
 Parser::parse_type_decl(bool allow_empty)
 {
 	auto tok = cursor.consume_if_expected(TokenType::identifier);
@@ -183,7 +230,7 @@ Parser::parse_type_decl(bool allow_empty)
 	{
 		if( allow_empty )
 		{
-			return TypeIdentifier::Empty();
+			return TypeDeclarator::Empty();
 		}
 		else
 		{
@@ -191,16 +238,28 @@ Parser::parse_type_decl(bool allow_empty)
 		}
 	}
 
-	auto type = OwnPtr<TypeIdentifier>::of(to_type_identifier(tok));
+	auto tok_val = tok.as();
+	auto name = String{tok_val.start, tok_val.size};
 
+	auto existing_type = current_scope->get_type_for_name(name);
+	if( existing_type == nullptr )
+	{
+		return ParseError("'" + name + "' is not a type.", tok.as());
+	}
+
+	// The pointer-to type is owned
+
+	auto type = OwnPtr<TypeDeclarator>::of(*existing_type);
 	auto star_tok = cursor.consume_if_expected(TokenType::star);
 	while( star_tok.ok() )
 	{
-		type = TypeIdentifier::PointerToTy(std::move(type));
+		type = TypeDeclarator::PointerToTy(std::move(type));
 		star_tok = cursor.consume_if_expected(TokenType::star);
 	}
 
-	return type;
+	// The type declaration is the owning pointer, but this could return either a pointer to type,
+	// which is owned, or a reference to the original type which wouldn't be owned.
+	return std::move(type);
 }
 
 ParseResult<Struct>
@@ -237,7 +296,7 @@ Parser::parse_struct()
 			return ParseError("Expected member declaration.", consume_tok.as());
 		}
 
-		auto name = to_value_identifier(consume_tok);
+		auto name_tok = consume_tok;
 
 		consume_tok = cursor.consume(TokenType::colon);
 		if( !consume_tok.ok() )
@@ -251,6 +310,9 @@ Parser::parse_struct()
 			return decl;
 		}
 
+		auto& type = decl.as()->get_type();
+		auto name = to_value_identifier(name_tok, type);
+
 		consume_tok = cursor.consume(TokenType::semicolon);
 		if( !consume_tok.ok() )
 		{
@@ -259,8 +321,12 @@ Parser::parse_struct()
 
 		members.emplace_back(ast::MemberVariableDeclaration{name, decl.unwrap()});
 
+		struct_name.add_member(name.get_fqn(), type);
+
 		tok = cursor.peek();
 	}
+
+	current_scope->add_name(struct_name.get_fqn(), &struct_name.get_type());
 
 	consume_tok = cursor.consume(TokenType::close_curly);
 
@@ -289,7 +355,7 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 		cursor.consume(TokenType::struct_keyword);
 
 		// Parse the primary expression after the binary operator.
-		auto RHS = parse_simple_expr();
+		auto RHS = parse_postfix_expr();
 		if( !RHS.ok() )
 			return RHS;
 
@@ -325,7 +391,7 @@ Parser::parse_literal()
 	{
 		auto sz = String{curr_tok.start, curr_tok.size};
 		int val = std::stoi(sz);
-		return Number(val);
+		return Number(val, i32_type);
 	}
 	break;
 
@@ -349,31 +415,82 @@ to_path(Vec<Token>& tokens)
 ParseResult<ValueIdentifier>
 Parser::parse_identifier()
 {
-	Vec<Token> tokens;
-
 	auto tok = cursor.consume(TokenType::identifier);
 	if( !tok.ok() )
 	{
 		return ParseError("Expected identifier", tok.as());
 	}
 
-	tokens.push_back(tok.unwrap());
-	auto curr_tok = cursor.peek();
-	while( curr_tok.type == TokenType::dot )
+	// tokens.push_back(tok.unwrap());
+	// auto curr_tok = cursor.peek();
+	// while( curr_tok.type == TokenType::dot )
+	// {
+	// 	cursor.consume(TokenType::dot);
+
+	// 	tok = cursor.consume(TokenType::identifier);
+	// 	if( !tok.ok() )
+	// 	{
+	// 		return ParseError("Expected identifier", tok.as());
+	// 	}
+	// 	tokens.push_back(tok.unwrap());
+
+	// 	curr_tok = cursor.peek();
+	// }
+	auto tok_val = tok.as();
+	auto name = String{tok_val.start, tok_val.size};
+
+	auto type = current_scope->get_type_for_name(name);
+	if( type == nullptr )
 	{
-		cursor.consume(TokenType::dot);
+		return ValueIdentifier(name, infer_type);
+	}
+	else
+	{
+		return ValueIdentifier(name, *type);
+	}
+}
 
-		tok = cursor.consume(TokenType::identifier);
-		if( !tok.ok() )
-		{
-			return ParseError("Expected identifier", tok.as());
-		}
-		tokens.push_back(tok.unwrap());
-
-		curr_tok = cursor.peek();
+// TODO: Anything that takes an existing expr pointer by value and might fail will result
+// in that node getting deleted... which is not what we want.
+ParseResult<MemberReference>
+Parser::parse_member_reference(OwnPtr<IExpressionNode> base)
+{
+	auto tok = cursor.consume(TokenType::dot);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '.'", tok.as());
 	}
 
-	return ValueIdentifier(to_path(tokens));
+	tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier", tok.as());
+	}
+
+	auto member_name = String{tok.as().start, tok.as().size};
+	auto struct_type = &base->get_type();
+	// if( struct_type == nullptr )
+	// {
+	// 	return ParseError(
+	// 		"Cannot dereference " + member_name + " from " + struct_type_usage_name.name, tok.as());
+	// }
+
+	// TODO: This allows 1 free deref
+	if( struct_type->is_pointer_type() )
+	{
+		struct_type = struct_type->base;
+	}
+
+	auto type = struct_type->get_member_type(member_name);
+	if( type == nullptr )
+	{
+		return ParseError(
+			"Struct " + struct_type->name + " does not have member " + member_name, tok.as());
+	}
+
+	auto identifier = to_value_identifier(tok, *type);
+
+	return MemberReference{std::move(base), identifier, *type};
 }
 
 ParseResult<IExpressionNode>
@@ -394,9 +511,40 @@ Parser::parse_simple_expr()
 }
 
 ParseResult<IExpressionNode>
+Parser::parse_postfix_expr()
+{
+	auto expr = parse_simple_expr();
+	if( !expr.ok() )
+	{
+		return expr;
+	}
+
+	while( true )
+	{
+		auto tok = cursor.peek();
+
+		switch( tok.type )
+		{
+		case TokenType::dot:
+			// Member dereference
+			return parse_member_reference(expr.unwrap());
+			break;
+		case TokenType::open_paren:
+			// Function call
+			break;
+		default:
+			goto done;
+			break;
+		}
+	}
+done:
+	return expr;
+}
+
+ParseResult<IExpressionNode>
 Parser::parse_expr()
 {
-	auto LHS = parse_simple_expr();
+	auto LHS = parse_postfix_expr();
 	if( !LHS.ok() )
 	{
 		return LHS;
@@ -406,6 +554,7 @@ Parser::parse_expr()
 
 	return OP;
 }
+
 ParseResult<Vec<OwnPtr<ParameterDeclaration>>>
 Parser::parse_function_parameter_list()
 {
@@ -432,10 +581,13 @@ Parser::parse_function_parameter_list()
 		{
 			return type_decl;
 		}
+		auto name = String{name_tok.start, name_tok.size};
+		auto type_declarator = type_decl.unwrap();
+		current_scope->add_name(name, &type_declarator->get_type());
 
 		auto decl = ParameterDeclaration{
-			ValueIdentifier(String{name_tok.start, name_tok.size}),
-			type_decl.unwrap(),
+			ValueIdentifier(name, type_declarator->get_type()),
+			std::move(type_declarator),
 		};
 
 		result.emplace_back(decl);
@@ -458,7 +610,7 @@ Parser::parse_function_proto()
 	}
 
 	auto tok_fn_name = tok.unwrap();
-	auto fn_name_decl = ValueIdentifier(String{tok_fn_name.start, tok_fn_name.size});
+	auto fn_name_decl = TypeIdentifier{String{tok_fn_name.start, tok_fn_name.size}};
 
 	tok = cursor.consume(TokenType::open_paren);
 	if( !tok.ok() )
@@ -467,6 +619,10 @@ Parser::parse_function_proto()
 	}
 
 	auto params = parse_function_parameter_list();
+	if( !params.ok() )
+	{
+		return params;
+	}
 
 	tok = cursor.consume(TokenType::close_paren);
 	if( !tok.ok() )
@@ -487,15 +643,27 @@ Parser::parse_function_proto()
 	}
 
 	auto tok_fn_return_type = tok.unwrap();
-	auto fn_return_type_decl =
-		TypeIdentifier(String{tok_fn_return_type.start, tok_fn_return_type.size});
+	auto type_name = String{tok_fn_return_type.start, tok_fn_return_type.size};
+	auto type = current_scope->get_type_for_name(type_name);
+	if( type == nullptr )
+	{
+		return ParseError("Unrecognized typename " + type_name, tok.as());
+	}
 
-	return Prototype{fn_name_decl, fn_return_type_decl, *params.unwrap().get()};
+	auto fn_return_type_decl = TypeDeclarator(*type);
+
+	// This params.unwrap.get is mega shaky. Prototype moves out of the vec so its ok, but damn.
+	auto own = params.unwrap();
+	auto own_ptr = own.get();
+	own.release();
+	return Prototype{fn_name_decl, fn_return_type_decl, *own_ptr};
 }
 
 ParseResult<Function>
 Parser::parse_function()
 {
+	new_scope();
+
 	auto tok = cursor.consume(TokenType::fn);
 	if( !tok.ok() )
 	{
@@ -515,6 +683,8 @@ Parser::parse_function()
 		return definition;
 	}
 
+	pop_scope();
+
 	return ast::Function(proto.unwrap(), definition.unwrap());
 }
 
@@ -522,4 +692,25 @@ ParseResult<Block>
 Parser::parse_function_body()
 {
 	return parse_block();
+}
+
+void
+Parser::pop_scope()
+{
+	auto parent_scope = current_scope->get_parent();
+	if( !parent_scope )
+	{
+		// TODO: Error
+	}
+
+	delete current_scope;
+	current_scope = parent_scope;
+}
+
+void
+Parser::new_scope()
+{
+	ParseScope* scope = new ParseScope(current_scope);
+
+	current_scope = scope;
 }

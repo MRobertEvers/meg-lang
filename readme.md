@@ -4,6 +4,19 @@ Sushi is my cat.
 
 The last several branches were an exploration of how to appropriately generate llvm-ir. What I'm realizing is that it might be best to specify some language features a bit better so I can organize the code and data in a way that makes more sense.
 
+Postfix expressions. Identifiers can have several postfix operations performed on them.
+
+```
+postfix_expr := simple_expr postfix_expr_tail
+
+postfix_expr_tail := "[" expr "]"
+                    | "(" func-args ")"
+                    | "." ident
+                    | "->" ident
+                    | "++"
+                    | "--"
+```
+
 
 # Building
 

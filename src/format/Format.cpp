@@ -128,3 +128,22 @@ Format::visit(ast::Struct const* node)
 	}
 	std::cout << "}" << std::endl;
 }
+
+void
+Format::visit(ast::MemberReference const* node)
+{
+	node->base->visit(this);
+	std::cout << ".";
+	node->name->visit(this);
+}
+
+void
+Format::visit(ast::TypeDeclarator const* node)
+{
+	auto base = node->get_base();
+	if( base )
+	{
+		base->visit(this);
+	}
+	std::cout << node->get_fqn();
+}

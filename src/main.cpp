@@ -28,18 +28,26 @@ gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 {
 	TokenCursor cursor{tokens};
 	Parser parse{cursor};
-	auto mod = parse.parse_module();
+	auto mod_result = parse.parse_module();
 
 	Format fm;
 
-	if( mod.ok() )
+	if( mod_result.ok() )
 	{
-		mod.unwrap()->visit(&fm);
-		mod.unwrap()->visit(&cg);
+		auto mod = mod_result.unwrap();
+		mod->visit(&fm);
+		mod->visit(&cg);
+
+		std::string Str;
+		raw_string_ostream OS(Str);
+
+		cg.Module->print(OS, nullptr);
+
+		std::cout << Str;
 	}
 	else
 	{
-		mod.get_error()->print();
+		mod_result.get_error()->print();
 	}
 }
 

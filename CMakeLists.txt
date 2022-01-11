@@ -52,9 +52,12 @@ add_executable(sushi
     src/parser/ParseResult.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
+    src/ast/type.h
+    src/ast/type.cpp
     src/ast/expressions/BinOp.h
     src/ast/expressions/BinOp.cpp
     src/ast/expressions/Identifier.h
+    src/ast/expressions/MemberReference.h
     src/ast/statements/Let.h
     src/ast/expressions/Number.h
     src/ast/expressions/Number.cpp

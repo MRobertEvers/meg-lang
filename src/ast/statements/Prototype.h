@@ -2,6 +2,7 @@
 
 #include "../IStatementNode.h"
 #include "../expressions/Identifier.h"
+#include "../expressions/TypeDeclarator.h"
 #include "common/OwnPtr.h"
 #include "common/Vec.h"
 
@@ -13,10 +14,10 @@ namespace ast
 class ParameterDeclaration
 {
 public:
-	OwnPtr<TypeIdentifier> Type;
+	OwnPtr<TypeDeclarator> Type;
 	OwnPtr<ValueIdentifier> Name;
 
-	ParameterDeclaration(OwnPtr<ValueIdentifier> Name, OwnPtr<TypeIdentifier> Type)
+	ParameterDeclaration(OwnPtr<ValueIdentifier> Name, OwnPtr<TypeDeclarator> Type)
 		: Name(std::move(Name))
 		, Type(std::move(Type)){};
 };
@@ -28,12 +29,12 @@ class Prototype : public IStatementNode
 {
 public:
 	Vec<OwnPtr<ParameterDeclaration>> Parameters;
-	OwnPtr<TypeIdentifier> ReturnType;
-	OwnPtr<ValueIdentifier> Name;
+	OwnPtr<TypeDeclarator> ReturnType;
+	OwnPtr<TypeIdentifier> Name;
 
 	Prototype(
-		OwnPtr<ValueIdentifier> Name,
-		OwnPtr<TypeIdentifier> ReturnType,
+		OwnPtr<TypeIdentifier> Name,
+		OwnPtr<TypeDeclarator> ReturnType,
 		Vec<OwnPtr<ParameterDeclaration>>& Parms)
 		: Name(std::move(Name))
 		, Parameters(std::move(Parms))

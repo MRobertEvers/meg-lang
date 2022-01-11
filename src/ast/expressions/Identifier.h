@@ -17,6 +17,9 @@ class Path
 public:
 	Path(){};
 	Path(String& path)
+		: path({path})
+	{}
+	Path(String&& path)
 		: path({std::move(path)})
 	{}
 	Path(Vec<String>& path)
@@ -50,67 +53,78 @@ class Identifier : public IExpressionNode
 {
 protected:
 	Path path;
-	bool is_empty_ = true;
 
 public:
 	Identifier(String& name)
 		: path(name)
-		, is_empty_(false)
 	{}
 	Identifier(String&& name)
 		: path(name)
-		, is_empty_(false)
 	{}
 
 	Identifier(Path& path)
 		: path(path)
-		, is_empty_(false)
 	{}
 
 	virtual String get_fqn() const { return path.get_fqn(); }
 
-	virtual bool is_pointer_type() const { return false; }
 	virtual bool is_type_identifier() const { return false; }
 
 protected:
-	Identifier(bool is_empty)
-		: is_empty_(true)
-	{}
+	Identifier(bool is_empty) {}
 };
 
 class TypeIdentifier : public Identifier
 {
-	OwnPtr<TypeIdentifier> base = nullptr;
+	TypeIdentifier const* base = nullptr;
+	OwnPtr<Type> type = void_type;
 
 public:
+	// Copy and move constructors
 	TypeIdentifier(TypeIdentifier&& other)
 		: Identifier(other.path)
 		, base(std::move(other.base))
+		, type(std::move(other.type))
 	{}
 	TypeIdentifier(TypeIdentifier& other)
 		: Identifier(other.path)
 		, base(std::move(other.base))
+		, type(std::move(other.type))
 	{}
 
-	TypeIdentifier(OwnPtr<TypeIdentifier> base)
-		: Identifier("")
-		, base(std::move(base))
-	{}
-
+	// Base constructors
 	TypeIdentifier(String name)
 		: Identifier(name)
+		, type(new Type{name})
 	{}
 
+	// Constructor of pointer to type
+	TypeIdentifier(TypeIdentifier const* base)
+		: Identifier("")
+		, base(base)
+		// base arg is moved before this type (based on order of declaration; be careful!)
+		, type(Type::PointerTo(*this->base->type.get()))
+	{}
+
+	// TODO: not sure path is needed
+	/**
+	 * @brief Construct a new Type Identifier object
+	 *
+	 * @deprecated dont use path
+	 *
+	 * @param path
+	 */
 	TypeIdentifier(Path path)
 		: Identifier(path)
+		, type(new Type{path.get_fqn()})
 	{}
 
-	bool is_pointer_type() const override { return !base.is_null(); }
+	bool is_pointer_type() const { return base != nullptr; }
 	bool is_type_identifier() const override { return true; }
 
 	String get_fqn() const override
 	{
-		if( base.is_null() )
+		if( base == nullptr )
 		{
 			return Identifier::get_fqn();
 		}
@@ -120,21 +134,29 @@ public:
 		}
 	}
 
-	bool is_empty() const { return is_empty_; }
+	Type const& get_type() const override { return *type.get(); }
+
+	void add_member(String const& name, Type const& type) { this->type->add_member(name, type); }
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 
 private:
 	TypeIdentifier()
 		: Identifier(true)
+		, type(infer_type)
 	{}
 
 public:
+	// TODO: This should be anonymous.
 	static OwnPtr<TypeIdentifier> Empty() { return new TypeIdentifier(); }
-	static OwnPtr<TypeIdentifier> PointerToTy(OwnPtr<TypeIdentifier> base)
-	{
-		return OwnPtr<TypeIdentifier>::of(std::move(base));
-	}
+	// static OwnPtr<TypeIdentifier> PointerToTy(OwnPtr<TypeIdentifier> base)
+	// {
+	// 	return OwnPtr<TypeIdentifier>::of(std::move(base));
+	// }
+	// static OwnPtr<TypeIdentifier> PointerToTy(TypeIdentifier const* base)
+	// {
+	// 	return OwnPtr<TypeIdentifier>::of(base);
+	// }
 };
 
 /// Ripped off from llvm
@@ -148,30 +170,41 @@ class ValueIdentifier : public Identifier
 private:
 	ValueIdentifier()
 		: Identifier(true)
+		, type(void_type)
 	{}
+
+	Type const& type;
 
 public:
-	ValueIdentifier(ValueIdentifier& val)
-		: Identifier(val.get_fqn())
+	ValueIdentifier(ValueIdentifier& other)
+		: Identifier(other.get_fqn())
+		, type(other.type)
 	{}
-	ValueIdentifier(ValueIdentifier&& val)
-		: Identifier(val.get_fqn())
+	ValueIdentifier(ValueIdentifier&& other)
+		: Identifier(other.get_fqn())
+		, type(other.type)
 	{}
 
-	ValueIdentifier(String& name)
+	ValueIdentifier(String& name, Type const& type)
 		: Identifier(name)
+		, type(type)
 	{}
-	ValueIdentifier(String&& name)
+	ValueIdentifier(String&& name, Type const& type)
 		: Identifier(name)
+		, type(type)
 	{}
-	ValueIdentifier(Path& path)
+	ValueIdentifier(Path& path, Type const& type)
 		: Identifier(path)
+		, type(type)
 	{}
-	ValueIdentifier(Path&& path)
+	ValueIdentifier(Path&& path, Type const& type)
 		: Identifier(path)
+		, type(type)
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
+
+	Type const& get_type() const override { return type; }
 
 public:
 	static OwnPtr<ValueIdentifier> Empty() { return new ValueIdentifier(); }
