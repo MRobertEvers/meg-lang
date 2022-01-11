@@ -4,6 +4,9 @@
 #include <map>
 namespace ast
 {
+
+static char const* infer_type_name = "@_infer";
+
 class Type
 {
 private:
@@ -49,6 +52,7 @@ public:
 	// 	}
 	// }
 
+	bool is_infer_type() const { return name == infer_type_name; }
 	bool is_pointer_type() const { return base != nullptr; }
 
 	Type const* get_member_type(String const& name) const;
@@ -58,7 +62,7 @@ public:
 };
 
 static Type void_type{"void"};
-static Type infer_type{"@_infer"};
+static Type infer_type{infer_type_name};
 static Type i8_type{"i8"};
 static Type i16_type{"i16"};
 static Type i32_type{"i32"};

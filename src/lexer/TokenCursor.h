@@ -51,4 +51,5 @@ public:
 
 	// TODO: Template?
 	ConsumeResult consume(TokenType expected_one, TokenType expected_two);
+	ConsumeResult consume(std::initializer_list<TokenType> expecteds);
 };

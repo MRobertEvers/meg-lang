@@ -137,21 +137,38 @@ Parser::parse_let()
 		return ParseError("Expected identifier or '='", tok.as());
 	}
 
-	auto type = parse_type_decl(true);
-	if( !type.ok() )
+	auto type_decl = TypeDeclarator::Empty();
+	if( tok.as().type == TokenType::colon )
 	{
-		return type;
-	}
+		auto type_result = parse_type_decl(true);
+		if( !type_result.ok() )
+		{
+			return type_result;
+		}
 
-	auto name = to_value_identifier(tok, type.as()->get_type());
+		type_decl = type_result.unwrap();
+	}
 
 	cursor.consume_if_expected(TokenType::equal);
-	auto expr = parse_expr();
-	if( !expr.ok() )
+	auto expr_result = parse_expr();
+	if( !expr_result.ok() )
 	{
-		return expr;
+		return expr_result;
 	}
-	return ast::Let{std::move(name), type.unwrap(), expr.unwrap()};
+
+	auto expr = expr_result.unwrap();
+	if( type_decl->get_type().is_infer_type() )
+	{
+		type_decl = TypeDeclarator{expr->get_type()};
+	}
+	else
+	{
+		// TODO: Check that types are the same.
+	}
+
+	auto name = to_value_identifier(name_tok, type_decl->get_type());
+
+	return ast::Let{std::move(name), std::move(type_decl), std::move(expr)};
 }
 
 ParseResult<Block>
@@ -352,7 +369,7 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 		char Op = *cur.start;
 
 		// TODO: Consume bin op
-		cursor.consume(TokenType::struct_keyword);
+		cursor.consume({TokenType::plus, TokenType::star, TokenType::minus});
 
 		// Parse the primary expression after the binary operator.
 		auto RHS = parse_postfix_expr();

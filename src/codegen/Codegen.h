@@ -13,7 +13,7 @@ namespace codegen
 class IdentifierValue
 {
 public:
-	ast::Identifier* identifier;
+	ast::Identifier* identifier = nullptr;
 
 	bool is_type_name = false;
 	union Data

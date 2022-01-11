@@ -195,52 +195,52 @@ Codegen::visit(ast::Block const* node)
 void
 Codegen::visit(ast::BinaryOperation const* node)
 {
-	// node->LHS->visit(this);
-	// auto L = last_expr;
-	// last_expr = nullptr;
+	node->LHS->visit(this);
+	auto L = last_expr;
+	last_expr = nullptr;
 
-	// node->RHS->visit(this);
-	// auto R = last_expr;
-	// last_expr = nullptr;
+	node->RHS->visit(this);
+	auto R = last_expr;
+	last_expr = nullptr;
 
-	// if( !L || !R )
-	// 	return;
+	if( !L || !R )
+		return;
 
-	// if( !L->getType()->isIntegerTy() )
-	// {
-	// 	std::cout << "TODO: Typechecking, expecting int type" << std::endl;
-	// 	return;
-	// }
+	if( !L->getType()->isIntegerTy() )
+	{
+		std::cout << "TODO: Typechecking, expecting int type" << std::endl;
+		return;
+	}
 
-	// if( !R->getType()->isIntegerTy() )
-	// {
-	// 	std::cout << "TODO: Typechecking, expecting int type" << std::endl;
-	// 	return;
-	// }
+	if( !R->getType()->isIntegerTy() )
+	{
+		std::cout << "TODO: Typechecking, expecting int type" << std::endl;
+		return;
+	}
 
-	// // TODO: Height
+	// TODO: Height
 
-	// auto Op = node->Op;
-	// switch( Op )
-	// {
-	// case '+':
-	// 	last_expr = Builder->CreateAdd(L, R, "addtmp");
-	// 	break;
-	// case '-':
-	// 	last_expr = Builder->CreateSub(L, R, "subtmp");
-	// 	break;
-	// case '*':
-	// 	last_expr = Builder->CreateMul(L, R, "multmp");
-	// 	break;
-	// case '/':
-	// 	last_expr = Builder->CreateSDiv(L, R, "divtmp");
-	// 	break;
-	// case '<':
-	// 	last_expr = Builder->CreateICmpULT(L, R, "cmptmp");
-	// 	break;
-	// default:
-	// 	return;
-	// }
+	auto Op = node->Op;
+	switch( Op )
+	{
+	case '+':
+		last_expr = Builder->CreateAdd(L, R, "addtmp");
+		break;
+	case '-':
+		last_expr = Builder->CreateSub(L, R, "subtmp");
+		break;
+	case '*':
+		last_expr = Builder->CreateMul(L, R, "multmp");
+		break;
+	case '/':
+		last_expr = Builder->CreateSDiv(L, R, "divtmp");
+		break;
+	case '<':
+		last_expr = Builder->CreateICmpULT(L, R, "cmptmp");
+		break;
+	default:
+		return;
+	}
 }
 
 void
@@ -379,128 +379,38 @@ Codegen::visit(ast::ValueIdentifier const* node)
 	auto Var = value_identifier->data.Value;
 	last_expr =
 		Builder->CreateLoad(Var->getAllocatedType(), Var, value_identifier->identifier->get_fqn());
-
-	// auto expected_type = current_scope->get_expected_type();
-
-	// while( expected_type->isPointerTy() )
-	// {}
-	// if( node->path.size() == 1 )
-	// {
-	// 	auto Var = current_scope->get_named_value(node->get_fqn());
-	// 	if( !Var )
-	// 	{
-	// 		std::cout << "Unrecognized value identifier: " << node->get_fqn() << std::endl;
-	// 		return;
-	// 	}
-
-	// 	last_expr =
-	// 		Builder->CreateLoad(Var->Value->getAllocatedType(), Var->Value, Var->name->get_fqn());
-	// }
-	// else
-	// {
-	// 	// a.my.nested
-	// 	// Look up 'a'
-	// 	// 'a' must be a lvalue
-	// 	auto iter = node->path.cbegin();
-	// 	auto nm = *iter;
-	// 	auto st_val = current_scope->get_named_value(nm);
-	// 	if( !st_val || st_val->is_type_name )
-	// 	{
-	// 		std::cout << "Unrecognized identifier " << nm << std::endl;
-	// 		return;
-	// 	}
-
-	// 	// Get the type of the variable... this should succeed if it's  struct. If its not,
-	// 	// then this will fail.
-	// 	auto st_type = current_scope->get_named_value(st_val->type->get_fqn());
-	// 	if( !st_type )
-	// 	{
-	// 		std::cout << nm << " must be a struct to use '.'" << std::endl;
-	// 		return;
-	// 	}
-
-	// 	if( !st_type || !st_type->is_type_name || !st_type->TypeTy->isStructTy() )
-	// 	{
-	// 		std::cout << "Not a type name or not a struct. How did we get here?" << std::endl;
-	// 		return;
-	// 	}
-
-	// 	if( !st_val->type->is_pointer_type() )
-	// 	{
-	// 		std::cout << "Must use '.' for pointer to struct types" << std::endl;
-	// 	}
-
-	// 	iter++;
-
-	// 	// Prime the iteration
-	// 	auto curr_st_type = st_type;
-	// 	// llvm::Value* curr_st_value = st_val->Value;
-	// 	llvm::Value* curr_st_value =
-	// 		Builder->CreateLoad(st_type->TypeTy->getPointerTo(), st_val->Value, "Deref");
-	// 	for( ; iter != node->path.cend(); iter++ )
-	// 	{
-	// 		nm = *iter;
-	// 		if( !curr_st_type )
-	// 		{
-	// 			break;
-	// 		}
-
-	// 		// a.my.nested
-	// 		auto idx = get_element_index_in_struct(curr_st_type->type_struct, nm);
-	// 		auto member = get_member_of_struct(curr_st_type->type_struct, nm);
-	// 		auto member_ty = get_type(member->llvm::Type->get_fqn());
-	// 		if( idx == -1 || !member || !member_ty )
-	// 		{
-	// 			std::cout << "Unrecognized member variable " << nm << std::endl;
-	// 			return;
-	// 		}
-
-	// 		auto MemberPtr = Builder->CreateStructGEP(
-	// 			curr_st_type->TypeTy, curr_st_value, idx, st_type->name->get_fqn() + "." + nm);
-
-	// 		last_expr = Builder->CreateLoad(member_ty, MemberPtr, "");
-
-	// 		// If we have more steps to go, last_expr value must be a value type.
-	// 		curr_st_type = current_scope->get_named_value(member->llvm::Type->get_fqn());
-	// 		curr_st_value = last_expr;
-	// 	}
-
-	// 	if( iter != node->path.cend() )
-	// 	{
-	// 		std::cout << "Failed to deref struct" << std::endl;
-	// 		last_expr = nullptr;
-	// 	}
-	// }
 }
 
 void
 Codegen::visit(ast::Let const* node)
 {
-	// // Create an alloca for this variable.
-	// auto builtin_ty = get_builtin_type(node->llvm::Type->get_fqn());
-	// if( builtin_ty == nullptr )
-	// {
-	// 	std::cout << "Error type node found: " << node->llvm::Type->get_fqn() << std::endl;
-	// 	return;
-	// }
+	node->RHS->visit(this);
+	// Get the last expression value somehow?
+	if( last_expr == nullptr )
+	{
+		std::cout << "Expected expression" << std::endl;
+		return;
+	}
 
-	// AllocaInst* Alloca = Builder->CreateAlloca(builtin_ty, nullptr, node->Name->get_fqn());
+	auto R = last_expr;
+	last_expr = nullptr;
 
-	// node->RHS->visit(this);
+	// Create an alloca for this variable.
+	auto& type = node->Type->get_type();
+	llvm::Type* Type = get_type(type);
+	if( Type == nullptr )
+	{
+		std::cout << "Unknown type " << type.name << std::endl;
+		return;
+	}
 
-	// // Get the last expression value somehow?
-	// if( last_expr == nullptr )
-	// {
-	// 	std::cout << "Expected expression" << std::endl;
-	// 	return;
-	// }
+	auto variable_name = node->Name->get_fqn();
+	AllocaInst* Alloca = Builder->CreateAlloca(Type, nullptr, variable_name);
 
-	// // Add the value to the named scope AFTER the expression is genned.
-	// current_scope->add_named_value(TypedIdentifier{node->Name.get(), node->llvm::Type.get(),
-	// Alloca});
+	// Add the value to the named scope AFTER the expression is genned.
+	current_scope->add_named_value(variable_name, IdentifierValue{node->Name.get(), Alloca});
 
-	// Builder->CreateStore(last_expr, Alloca);
-	// last_expr = nullptr;
+	Builder->CreateStore(R, Alloca);
 }
 
 // https://lists.llvm.org/pipermail/llvm-dev/2013-February/058880.html
@@ -578,8 +488,6 @@ Codegen::visit(ast::MemberReference const* node)
 			std::cout << "??!!" << std::endl;
 			return;
 		}
-
-		// llvm::Value* PointerToStructValue = Builder->CreateLoad(BaseType, BaseValue, "Deref");
 
 		auto MemberPtr = Builder->CreateStructGEP(
 			PointedToType, BaseValue, idx, struct_name_str + "." + member_name);

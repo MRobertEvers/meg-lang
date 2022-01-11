@@ -43,6 +43,21 @@ TokenCursor::consume(TokenType expected_one, TokenType expected_two)
 	}
 }
 
+ConsumeResult
+TokenCursor::consume(std::initializer_list<TokenType> expecteds)
+{
+	auto tok = next_token();
+	for( auto& exp : expecteds )
+	{
+		if( tok->type == exp )
+		{
+			_index += 1;
+			return ConsumeResult{tok};
+		}
+	}
+	return ConsumeResult::fail(tok);
+}
+
 Token const*
 TokenCursor::next_token() const
 {

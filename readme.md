@@ -350,3 +350,14 @@ define i32 @_Z9call_funcv() #0 {
   ret i32 %5
 }
 ```
+
+## Notes - GEP
+
+GEP takes a PointerToTy as it's Ptr value.
+
+I.e.
+
+```
+llvm::Type* PointerToTy = ...; // Must be a pointer type
+
+```
