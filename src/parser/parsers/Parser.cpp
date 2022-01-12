@@ -360,6 +360,51 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 	}
 }
 
+ParseResult<Assign>
+Parser::parse_assign(OwnPtr<IExpressionNode> lhs)
+{
+	auto tok = cursor.consume(TokenType::equal);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '='", tok.as());
+	}
+
+	auto rhs = parse_expr();
+	if( !rhs.ok() )
+	{
+		return rhs;
+	}
+
+	return Assign{'=', std::move(lhs), rhs.unwrap()};
+}
+
+/**
+ * @brief Does not consume ';'.
+ *
+ * @return ParseResult<IStatementNode>
+ */
+ParseResult<IStatementNode>
+Parser::parse_expr_statement()
+{
+	auto expr = parse_expr();
+	if( !expr.ok() )
+	{
+		return expr;
+	}
+
+	auto tok = cursor.peek();
+	switch( tok.type )
+	{
+	case TokenType::equal:
+		return parse_assign(expr.unwrap());
+		break;
+
+	default:
+		return expr;
+		break;
+	}
+}
+
 ParseResult<IStatementNode>
 Parser::parse_statement()
 {
@@ -406,7 +451,7 @@ Parser::parse_statement()
 	break;
 	default:
 	{
-		auto expr = parse_expr();
+		auto expr = parse_expr_statement();
 		if( !expr.ok() )
 		{
 			return expr;
@@ -646,9 +691,6 @@ done:
 	return expr;
 }
 
-// expr := "(" expr ")"
-//			|
-// How to handle (a.b+4)
 ParseResult<IExpressionNode>
 Parser::parse_expr()
 {
@@ -663,15 +705,6 @@ Parser::parse_expr()
 	{
 		return OP;
 	}
-
-	// if( open_paren_tok.ok() )
-	// {
-	// 	auto tok = cursor.consume(TokenType::close_paren);
-	// 	if( !tok.ok() )
-	// 	{
-	// 		return ParseError("Expected ')'", tok.as());
-	// 	}
-	// }
 
 	return OP;
 }

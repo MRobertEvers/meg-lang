@@ -11,13 +11,66 @@ postfix_expr := simple_expr postfix_expr_tail
 
 postfix_expr_tail := "[" expr "]"
                     | "(" func-args ")"
-                    | "." ident
-                    | "->" ident
+                    | "." identifier
+                    | "->" identifier
                     | "++"
                     | "--"
 ```
 
 In this branch, only '.' is implemented. 
+
+Additionally handling parenthized expressions was added.
+
+```
+expr         := postfix_expr
+              | postfix_expr binary_operator postfix_expr
+
+postfix_expr := simple_expr
+              | simple_expr postfix_expr_tail
+
+simple_expr  := "(" expr ")"
+              | identifier
+              | literal
+```
+
+Example working code.
+
+```
+struct my_nested {
+    n: i32;
+}
+
+struct my_struct {
+    a: i32;
+    b: my_nested;
+}
+
+fn func(s: my_struct*): i32 {
+    let a = s.a;
+    return (s.b.n + (a) * 5);
+}
+```
+
+I additionally took a look at how to handle LValues. For example, we don't want `5=3` to make it to codegen.
+
+`chibbic` captures errors like this at codegen. `clang` tracks LValueness during compilation (although I didn't dig too deep).
+
+Generally, something is an lvalue if all operations on it return lvalues. 
+
+```
+let x = 5;
+x+6 = 4; // x+6 is not an lvalue.
+```
+
+It depends on the operation defined between the two operands. Let `&` denote an LValue and `&&` denote an LRValue, that is an LRValue can be either an L value or an RValue, but only an LValue can be assigned. This is ad-hoc pseudo code which I am making up on the spot.
+
+```
+define '+' (l&& int, r&& int): int&&
+define '++' (l&& int): l& if l is l& else l&&
+```
+
+LValueness is a property of the expression, not the type. In addition to types, each expression also has a LValueness or RValueness. For now lets ignore this.
+
 
 
 # Building

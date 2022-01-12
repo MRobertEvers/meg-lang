@@ -78,25 +78,19 @@ Scope::get_function()
 	return Fn;
 }
 
-// TODO: Remove this.
 llvm::Value*
-Codegen::load_if_gep(llvm::Value* val, ast::IExpressionNode const* node)
+Codegen::promote_to_value(llvm::Value* Val)
 {
-	return val;
-	// if( !val->hasValueHandle() )
-	// {
-	// 	auto RHSType = get_type(node->get_type());
-	// 	if( !RHSType )
-	// 	{
-	// 		std::cout << "No Type!!!" << std::endl;
-	// 		return val;
-	// 	}
-	// 	return Builder->CreateLoad(RHSType, val);
-	// }
-	// else
-	// {
-	// 	return val;
-	// }
+	if( Val->getType()->isPointerTy() )
+	{
+		auto PointedToType = Val->getType()->getPointerElementType();
+		return Builder->CreateLoad(PointedToType, Val);
+	}
+	else
+	{
+		// TODO: Should this be a logic error?
+		return Val;
+	}
 }
 
 /**
@@ -219,15 +213,16 @@ Codegen::visit(ast::BinaryOperation const* node)
 	node->LHS->visit(this);
 	auto L = last_expr;
 	last_expr = nullptr;
-	L = load_if_gep(L, node->LHS.get());
 
 	node->RHS->visit(this);
 	auto R = last_expr;
 	last_expr = nullptr;
-	R = load_if_gep(R, node->RHS.get());
 
 	if( !L || !R )
 		return;
+
+	L = promote_to_value(L);
+	R = promote_to_value(R);
 
 	if( !L->getType()->isIntegerTy() )
 	{
@@ -298,7 +293,7 @@ Codegen::visit(ast::Return const* node)
 		}
 		else
 		{
-			Builder->CreateRet(load_if_gep(last_expr, node->ReturnExpr.get()));
+			Builder->CreateRet(promote_to_value(last_expr));
 			last_expr = nullptr;
 		}
 	}
@@ -399,9 +394,13 @@ Codegen::visit(ast::ValueIdentifier const* node)
 		std::cout << "Unexpected type name" << std::endl;
 		return;
 	}
-	auto Var = value_identifier->data.Value;
-	last_expr =
-		Builder->CreateLoad(Var->getAllocatedType(), Var, value_identifier->identifier->get_fqn());
+
+	// If the value is being used as an LValue, we want the Value itself.
+	// TODO: Change the paradigm of last_expr to return the pointer to the value,
+	// then if the value is needed, do a signle pointer deref.
+	last_expr = value_identifier->data.Value;
+	// last_expr =
+	// 	Builder->CreateLoad(Var->getAllocatedType(), Var, value_identifier->identifier->get_fqn());
 }
 
 void
@@ -417,7 +416,7 @@ Codegen::visit(ast::Let const* node)
 
 	auto R = last_expr;
 	last_expr = nullptr;
-	R = load_if_gep(R, node->RHS.get());
+	R = promote_to_value(R);
 
 	// Create an alloca for this variable.
 	auto& type = node->Type->get_type();
@@ -483,21 +482,35 @@ Codegen::visit(ast::MemberReference const* node)
 	}
 
 	auto BaseType = BaseValue->getType();
-	auto PointedToType = BaseType;
 
-	// TODO: This allows a free dereference if needed.
-	if( BaseType->isPointerTy() )
+	// We receive structs by reference, (i.e. struct*), so a pointer to a
+	// struct is (struct**). Primitive value references are just themselves (i.e. int instead of
+	// int*). So we always want to do ONE dereference.
+	if( !BaseType->isPointerTy() )
 	{
-		PointedToType = BaseType->getPointerElementType();
+		std::cout << "Attempted to dereference non-reference" << std::endl;
+		return;
 	}
 
-	if( !PointedToType->isStructTy() )
+	// One free deref.
+	// TODO: This should really be '->' (i.e. a separate node type)
+	auto FreeDeref = BaseType->getPointerElementType();
+	if( FreeDeref->isPointerTy() && FreeDeref->getPointerElementType()->isStructTy() )
+	{
+		BaseType = FreeDeref;
+		BaseValue = Builder->CreateLoad(BaseType, BaseValue, "->");
+	}
+
+	// Now we check if this is a struct reference.
+	if( !BaseType->isPointerTy() || !BaseType->getPointerElementType()->isStructTy() )
 	{
 		std::cout << "Attempted to dereference non-struct" << std::endl;
 		return;
 	}
 
-	// Look up the struct definition
+	// Look up the struct definition; only need base type name to
+	// look up the type definition and compute the GEP
+	auto PointedToType = BaseType->getPointerElementType();
 	auto StructName = PointedToType->getStructName();
 	auto struct_name_str = String{StructName.data()};
 	auto as_struct_id_val = current_scope->get_identifier(struct_name_str);
@@ -506,6 +519,7 @@ Codegen::visit(ast::MemberReference const* node)
 		std::cout << "???" << std::endl;
 		return;
 	}
+
 	auto member_name = node->name->get_fqn();
 	auto ast_struct_definition = as_struct_id_val->data.type.type_struct;
 	auto idx = get_element_index_in_struct(ast_struct_definition, member_name);
@@ -518,18 +532,23 @@ Codegen::visit(ast::MemberReference const* node)
 	auto MemberPtr = Builder->CreateStructGEP(
 		PointedToType, BaseValue, idx, struct_name_str + "." + member_name);
 
-	// If the type of MemberPtr is a struct pointer, don't load it.
-	// Most operations in llvm work on struct pointers, not the struct itself.
-	if( MemberPtr->getType()->getPointerElementType()->isStructTy() )
-	{
-		// Do nothing
-		last_expr = MemberPtr;
-	}
-	else
-	{
-		// Load the value.
-		last_expr = Builder->CreateLoad(MemberType, MemberPtr, "");
-	}
+	last_expr = MemberPtr;
+
+	// LEGACY! We want to return values by reference so than can be used as LValues or RValues,
+	// if something needs a value, the callee must perform the load themselves.
+
+	// // If the type of MemberPtr is a struct pointer, don't load it.
+	// // Most operations in llvm work on struct pointers, not the struct itself.
+	// if( MemberPtr->getType()->getPointerElementType()->isStructTy() )
+	// {
+	// 	// Do nothing
+	// 	last_expr = MemberPtr;
+	// }
+	// else
+	// {
+	// 	// Load the value.
+	// 	last_expr = Builder->CreateLoad(MemberType, MemberPtr, "");
+	// }
 }
 
 void
@@ -542,6 +561,39 @@ void
 Codegen::visit(ast::If const* node)
 {
 	// No Op?
+}
+
+void
+Codegen::visit(ast::Assign const* node)
+{
+	node->lhs->visit(this);
+
+	auto LValue = last_expr;
+	last_expr = nullptr;
+	if( !LValue )
+	{
+		std::cout << "LValue undefined" << std::endl;
+		return;
+	}
+
+	if( !LValue->getType()->isPointerTy() )
+	{
+		std::cout << "LValue must be an LValue! (a pointer type)" << std::endl;
+		return;
+	}
+
+	// Store the initial value into the alloca.
+	node->rhs->visit(this);
+	auto RLValue = last_expr;
+	last_expr = nullptr;
+	if( !RLValue )
+	{
+		std::cout << "RLValue undefined" << std::endl;
+		return;
+	}
+	RLValue = promote_to_value(RLValue);
+
+	Builder->CreateStore(RLValue, LValue);
 }
 
 void

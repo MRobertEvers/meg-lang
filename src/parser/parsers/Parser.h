@@ -42,7 +42,10 @@ private:
 	ParseResult<Block> parse_block();
 	ParseResult<Struct> parse_struct();
 	ParseResult<TypeDeclarator> parse_type_decl(bool allow_empty);
+
 	ParseResult<IExpressionNode> parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS);
+	ParseResult<Assign> parse_assign(OwnPtr<IExpressionNode> lhs);
+	ParseResult<IStatementNode> parse_expr_statement();
 	ParseResult<IStatementNode> parse_statement();
 
 	ParseResult<If> parse_if();

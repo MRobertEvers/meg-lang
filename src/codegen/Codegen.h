@@ -101,6 +101,7 @@ public:
 	virtual void visit(ast::MemberReference const*) override;
 	virtual void visit(ast::TypeDeclarator const*) override;
 	virtual void visit(ast::If const*) override;
+	virtual void visit(ast::Assign const*) override;
 
 private:
 	void pop_scope();
@@ -110,6 +111,6 @@ private:
 
 	llvm::Type* get_type(ast::Type const& name);
 
-	llvm::Value* load_if_gep(llvm::Value* val, ast::IExpressionNode const* node);
+	llvm::Value* promote_to_value(llvm::Value* val);
 };
 } // namespace codegen

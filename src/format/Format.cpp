@@ -151,3 +151,7 @@ Format::visit(ast::TypeDeclarator const* node)
 void
 Format::visit(ast::If const* node)
 {}
+
+void
+Format::visit(ast::Assign const* node)
+{}

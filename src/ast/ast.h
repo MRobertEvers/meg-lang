@@ -8,6 +8,7 @@
 #include "expressions/MemberReference.h"
 #include "expressions/Number.h"
 #include "expressions/TypeDeclarator.h"
+#include "statements/Assign.h"
 #include "statements/Block.h"
 #include "statements/Function.h"
 #include "statements/If.h"
