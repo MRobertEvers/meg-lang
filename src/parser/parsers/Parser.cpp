@@ -71,7 +71,7 @@ ParseScope::CreateDefault()
 Parser::Parser(TokenCursor& cursor)
 	: cursor(cursor)
 {
-	BinopPrecedence['<'] = 10;
+	BinopPrecedence['>'] = 10;
 	BinopPrecedence['+'] = 20;
 	BinopPrecedence['-'] = 20;
 	BinopPrecedence['*'] = 40; // highest.
@@ -337,7 +337,7 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 		char Op = *cur.start;
 
 		// TODO: Consume bin op
-		cursor.consume({TokenType::plus, TokenType::star, TokenType::minus});
+		cursor.consume({TokenType::plus, TokenType::star, TokenType::minus, TokenType::gt});
 
 		// Parse the primary expression after the binary operator.
 		auto RHS = parse_postfix_expr();
@@ -447,6 +447,22 @@ Parser::parse_statement()
 		}
 
 		stmt = expr.unwrap();
+
+		// TODO: Better way to do this?
+		goto no_semi;
+	}
+	break;
+	case TokenType::open_curly:
+	{
+		auto expr = parse_block();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+
+		goto no_semi;
 	}
 	break;
 	default:
@@ -462,12 +478,15 @@ Parser::parse_statement()
 	break;
 	}
 
-	auto curr_tok = cursor.consume(TokenType::semicolon);
-	if( !curr_tok.ok() )
 	{
-		return ParseError("Expected ';'", curr_tok.as());
+		auto curr_tok = cursor.consume(TokenType::semicolon);
+		if( !curr_tok.ok() )
+		{
+			return ParseError("Expected ';'", curr_tok.as());
+		}
 	}
 
+no_semi:
 	return stmt;
 }
 
@@ -490,7 +509,7 @@ Parser::parse_if()
 
 	if( open_paren_tok.ok() )
 	{
-		auto tok = cursor.consume(TokenType::close_paren);
+		tok = cursor.consume(TokenType::close_paren);
 		if( !tok.ok() )
 		{
 			return ParseError("Expected ')'", tok.as());
@@ -504,7 +523,7 @@ Parser::parse_if()
 	}
 
 	// Else block is optional
-	OwnPtr<IStatementNode> else_block = nullptr;
+	OwnPtr<IStatementNode> else_block = Block{};
 	tok = cursor.consume_if_expected(TokenType::else_keyword);
 	if( tok.ok() )
 	{

@@ -253,8 +253,8 @@ Codegen::visit(ast::BinaryOperation const* node)
 	case '/':
 		last_expr = Builder->CreateSDiv(L, R, "divtmp");
 		break;
-	case '<':
-		last_expr = Builder->CreateICmpULT(L, R, "cmptmp");
+	case '>':
+		last_expr = Builder->CreateICmpUGT(L, R, "cmptmp");
 		break;
 	default:
 		return;
@@ -560,7 +560,57 @@ Codegen::visit(ast::TypeDeclarator const* node)
 void
 Codegen::visit(ast::If const* node)
 {
-	// No Op?
+	node->condition->visit(this);
+	auto CondV = last_expr;
+	last_expr = nullptr;
+	if( !CondV )
+		return;
+
+	auto Function = current_scope->get_function();
+
+	// Create blocks for the then and else cases.  Insert the 'then' block at the
+	// end of the function.
+	BasicBlock* ThenBB = BasicBlock::Create(*Context, "then", Function);
+	BasicBlock* ElseBB = BasicBlock::Create(*Context, "else");
+	BasicBlock* MergeBB = BasicBlock::Create(*Context, "ifcont");
+
+	Builder->CreateCondBr(CondV, ThenBB, ElseBB);
+
+	// Emit then value.
+	Builder->SetInsertPoint(ThenBB);
+
+	node->then_block->visit(this);
+	auto ThenV = last_expr;
+	last_expr = nullptr;
+
+	Builder->CreateBr(MergeBB);
+	// Codegen of 'Then' can change the current block, update ThenBB for the PHI.
+	ThenBB = Builder->GetInsertBlock();
+
+	// Emit else block.
+	Function->getBasicBlockList().push_back(ElseBB);
+	Builder->SetInsertPoint(ElseBB);
+
+	node->else_block->visit(this);
+	auto ElseV = last_expr;
+	last_expr = nullptr;
+
+	Builder->CreateBr(MergeBB);
+	// Codegen of 'Else' can change the current block, update ElseBB for the PHI.
+	ElseBB = Builder->GetInsertBlock();
+
+	// Emit merge block.
+	Function->getBasicBlockList().push_back(MergeBB);
+	Builder->SetInsertPoint(MergeBB);
+
+	// This would be needed for a ternary expr.
+
+	// PHINode* PN = Builder->CreatePHI(llvm::Type::getDoubleTy(*Context), 2, "iftmp");
+
+	// PN->addIncoming(ThenV, ThenBB);
+	// PN->addIncoming(ElseV, ElseBB);
+
+	// last_expr = PN;
 }
 
 void

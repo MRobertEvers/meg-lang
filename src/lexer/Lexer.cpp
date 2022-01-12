@@ -150,6 +150,7 @@ Lexer::lex()
 		case ':':
 		case ',':
 		case '.':
+		case '>':
 		case '=':
 			tokens.push_back(lex_consume_single());
 			break;
@@ -246,6 +247,9 @@ Lexer::lex_consume_single()
 		break;
 	case '.':
 		token.type = TokenType::dot;
+		break;
+	case '>':
+		token.type = TokenType::gt;
 		break;
 	default:
 		token.type = TokenType::bad;

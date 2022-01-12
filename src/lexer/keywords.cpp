@@ -47,6 +47,7 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::identifier, "identifier"},
 	{TokenType::literal, "literal"},
 	{TokenType::star, "star"},
+	{TokenType::gt, "gt"},
 	{TokenType::plus, "plus"},
 	{TokenType::minus, "minus"},
 	{TokenType::slash, "slash"},

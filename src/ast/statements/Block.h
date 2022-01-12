@@ -10,7 +10,7 @@ class Block : public IStatementNode
 {
 public:
 	Vec<OwnPtr<IStatementNode>> statements;
-
+	Block(){};
 	Block(Vec<OwnPtr<IStatementNode>> stmts)
 		: statements(std::move(stmts))
 	{}

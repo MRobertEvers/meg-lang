@@ -15,6 +15,7 @@ enum class TokenType
 	plus,
 	minus,
 	slash,
+	gt, // Greater Than
 
 	open_paren,
 	close_paren,
