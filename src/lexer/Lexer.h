@@ -38,6 +38,8 @@ private:
 	Token lex_consume_number();
 	Token lex_consume_single();
 
+	void track_newline(std::vector<Token>& tokens);
+
 public:
 	static void print_tokens(std::vector<Token> const& tokens);
 };

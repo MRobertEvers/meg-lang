@@ -7,8 +7,9 @@ class Number : public IExpressionNode
 {
 public:
 	int Val;
-	Number(int Val)
-		: Val(Val)
+	Number(Span span, int Val)
+		: IExpressionNode(span)
+		, Val(Val)
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };

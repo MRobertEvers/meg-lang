@@ -6,24 +6,19 @@
 
 using namespace ast;
 
-// class ParseScope
-// {
-// 	ParseScope* parent = nullptr;
+class ParseTrail
+{
+	TokenCursor& cursor;
+	int start = 0;
+	int size = 0;
 
-// 	std::map<String, Type const*> names;
+public:
+	ParseTrail(TokenCursor& cursor)
+		: cursor(cursor)
+		, start(cursor.get_index()){};
 
-// public:
-// 	ParseScope(){};
-// 	ParseScope(ParseScope* parent)
-// 		: parent(parent){};
-
-// 	void add_name(String const& name, Type const* type);
-// 	Type const* get_type_for_name(String const& name);
-
-// 	ParseScope* get_parent() { return parent; }
-
-// 	static ParseScope* CreateDefault();
-// };
+	Span mark();
+};
 
 class Parser
 {
@@ -50,20 +45,18 @@ private:
 
 	ParseResult<If> parse_if();
 	ParseResult<IExpressionNode> parse_literal();
+	ParseResult<TypeIdentifier> parse_type_identifier();
 	ParseResult<ValueIdentifier> parse_identifier();
-	ParseResult<Vec<OwnPtr<IExpressionNode>>> parse_value_list();
+	ParseResult<ArgumentList> parse_value_list();
 	ParseResult<Call> parse_call(OwnPtr<IExpressionNode> base);
 	ParseResult<MemberReference> parse_member_reference(OwnPtr<IExpressionNode> base);
-	// ParseResult<MemberReference> parse_function_call();
+
 	ParseResult<IExpressionNode> parse_simple_expr();
 	ParseResult<IExpressionNode> parse_postfix_expr();
 	ParseResult<IExpressionNode> parse_expr();
 
-	ParseResult<Vec<OwnPtr<ParameterDeclaration>>> parse_function_parameter_list();
+	ParseResult<ParameterList> parse_function_parameter_list();
 	ParseResult<Prototype> parse_function_proto();
 	ParseResult<Function> parse_function();
 	ParseResult<Block> parse_function_body();
-
-	// void pop_scope();
-	// void new_scope();
 };

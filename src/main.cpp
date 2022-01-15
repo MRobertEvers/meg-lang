@@ -29,7 +29,7 @@ gen_code(std::vector<Token> const& tokens)
 	Parser parse{cursor};
 	auto mod_result = parse.parse_module();
 
-	Format fm;
+	Format fm{tokens};
 
 	if( mod_result.ok() )
 	{
@@ -75,7 +75,7 @@ main(int argc, char* argv[])
 
 	Lexer::print_tokens(lex_result.tokens);
 
-	// gen_code(cg, lex_result.tokens);
+	gen_code(lex_result.tokens);
 
 	// std::string Str;
 	// raw_string_ostream OS(Str);

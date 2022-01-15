@@ -18,11 +18,13 @@ protected:
 	String name;
 
 public:
-	Identifier(String& name)
-		: name(name)
+	Identifier(Span span, String& name)
+		: IExpressionNode(span)
+		, name(name)
 	{}
-	Identifier(String&& name)
-		: name(name)
+	Identifier(Span span, String&& name)
+		: IExpressionNode(span)
+		, name(name)
 	{}
 
 	virtual String get_name() const { return name; }
@@ -30,15 +32,17 @@ public:
 	virtual bool is_type_identifier() const { return false; }
 
 protected:
-	Identifier(bool is_empty) {}
+	Identifier(bool is_empty)
+		: IExpressionNode(Span{})
+	{}
 };
 
 class TypeIdentifier : public Identifier
 {
 public:
 	// Base constructors
-	TypeIdentifier(String name)
-		: Identifier(name)
+	TypeIdentifier(Span span, String name)
+		: Identifier(span, name)
 	{}
 
 	bool is_type_identifier() const override { return true; }
@@ -72,18 +76,18 @@ private:
 	{}
 
 public:
-	ValueIdentifier(ValueIdentifier& other)
-		: Identifier(other.get_name())
+	ValueIdentifier(Span span, ValueIdentifier& other)
+		: Identifier(span, other.get_name())
 	{}
-	ValueIdentifier(ValueIdentifier&& other)
-		: Identifier(other.get_name())
+	ValueIdentifier(Span span, ValueIdentifier&& other)
+		: Identifier(span, other.get_name())
 	{}
 
-	ValueIdentifier(String& name)
-		: Identifier(name)
+	ValueIdentifier(Span span, String& name)
+		: Identifier(span, name)
 	{}
-	ValueIdentifier(String&& name)
-		: Identifier(name)
+	ValueIdentifier(Span span, String&& name)
+		: Identifier(span, name)
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };

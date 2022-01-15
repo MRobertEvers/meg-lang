@@ -9,8 +9,9 @@ class Assign : public IStatementNode
 public:
 	char Op;
 	OwnPtr<IExpressionNode> lhs, rhs;
-	Assign(char Op, OwnPtr<IExpressionNode> LHS, OwnPtr<IExpressionNode> RHS)
-		: Op(Op)
+	Assign(Span span, char Op, OwnPtr<IExpressionNode> LHS, OwnPtr<IExpressionNode> RHS)
+		: IStatementNode(span)
+		, Op(Op)
 		, lhs(std::move(LHS))
 		, rhs(std::move(RHS))
 	{}

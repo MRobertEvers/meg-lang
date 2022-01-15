@@ -9,8 +9,9 @@ class BinaryOperation : public IExpressionNode
 public:
 	char Op;
 	OwnPtr<IExpressionNode> LHS, RHS;
-	BinaryOperation(char Op, OwnPtr<IExpressionNode> LHS, OwnPtr<IExpressionNode> RHS)
-		: Op(Op)
+	BinaryOperation(Span span, char Op, OwnPtr<IExpressionNode> LHS, OwnPtr<IExpressionNode> RHS)
+		: IExpressionNode(span)
+		, Op(Op)
 		, LHS(std::move(LHS))
 		, RHS(std::move(RHS))
 	{}

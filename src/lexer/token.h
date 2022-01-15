@@ -69,6 +69,7 @@ struct Token
 	LiteralType literal_type = LiteralType::none;
 	char const* start = nullptr;
 	unsigned int size = 0;
+	unsigned int num_trailing_newlines = 0;
 
 	Token(){};
 	Token(TokenType type)

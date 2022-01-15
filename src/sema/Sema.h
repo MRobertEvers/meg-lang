@@ -1,14 +1,23 @@
 #pragma once
 #include "../ast/IAstVisitor.h"
-#include "lexer/token.h"
+#include "SemaResult.h"
 
-class Format : public IAstVisitor
+/**
+ * @brief Performs semantic analysis on the AST produced by parser and produces HIR
+ *
+ * Since we are using a visit pattern that returns void,
+ * there are a few conceptual helpers to make seem like we
+ * can call visit and get a return value.
+ *
+ * First, each node is either a statement or an expression.
+ * Nodes can return statements through the 'last_stmt' and
+ * expressions through 'last_expr'. Just like the parser
+ * however, the last result is return via a SemaResult<T>
+ * and should be checked before continuing.
+ */
+class Sema : public IAstVisitor
 {
-	Vec<Token> const& source;
-
 public:
-	Format(Vec<Token> const& source);
-
 	virtual void visit(ast::Module const*) override;
 	virtual void visit(ast::Function const*) override;
 	virtual void visit(ast::Block const*) override;
@@ -27,5 +36,4 @@ public:
 	virtual void visit(ast::While const*) override;
 	virtual void visit(ast::Call const*) override;
 	virtual void visit(ast::Statement const*) override;
-	virtual void visit(ast::Expression const*) override;
-};
+}

@@ -9,6 +9,18 @@
 
 namespace ast
 {
+
+class ArgumentList
+{
+public:
+	Span span;
+	Vec<OwnPtr<IExpressionNode>> args;
+
+	ArgumentList(Span span, Vec<OwnPtr<IExpressionNode>>& args)
+		: span(span)
+		, args(std::move(args)){};
+};
+
 /**
  * @brief a()
  *
@@ -16,11 +28,12 @@ namespace ast
 class Call : public IExpressionNode
 {
 public:
-	Vec<OwnPtr<IExpressionNode>> args;
-	OwnPtr<TypeIdentifier> name = nullptr;
+	ArgumentList args;
+	OwnPtr<IExpressionNode> call_target = nullptr;
 
-	Call(OwnPtr<TypeIdentifier> name, Vec<OwnPtr<IExpressionNode>>& args)
-		: name(std::move(name))
+	Call(Span span, OwnPtr<IExpressionNode> call_target, ArgumentList& args)
+		: IExpressionNode(span)
+		, call_target(std::move(call_target))
 		, args(std::move(args))
 	{}
 

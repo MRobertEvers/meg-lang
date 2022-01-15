@@ -5,6 +5,10 @@
 #include <iomanip>
 #include <iostream>
 
+Format::Format(Vec<Token> const& source)
+	: source(source)
+{}
+
 void
 Format::visit(ast::Module const* node)
 {
@@ -64,7 +68,8 @@ Format::visit(ast::Prototype const* node)
 	node->Name->visit(this);
 	std::cout << "(";
 
-	auto& args = node->get_parameters();
+	auto& args = node->get_parameters()->Parameters;
+
 	for( int i = 0; i < args.size(); i++ )
 	{
 		auto& arg = args[i];
@@ -80,7 +85,9 @@ Format::visit(ast::Prototype const* node)
 			std::cout << ", ";
 		}
 	}
-	std::cout << ")" << std::endl;
+	std::cout << "): ";
+
+	node->ReturnType->visit(this);
 }
 
 void
@@ -150,16 +157,64 @@ Format::visit(ast::TypeDeclarator const* node)
 
 void
 Format::visit(ast::If const* node)
-{}
+{
+	std::cout << "if ";
+	node->condition->visit(this);
+	node->then_block->visit(this);
+
+	if( !node->else_block.is_null() )
+	{
+		std::cout << "else ";
+		node->else_block->visit(this);
+	}
+}
 
 void
 Format::visit(ast::Assign const* node)
-{}
+{
+	node->lhs->visit(this);
+	std::cout << " = ";
+	node->rhs->visit(this);
+	std::cout << ";" << std::endl;
+}
 
 void
 Format::visit(ast::While const* node)
-{}
+{
+	std::cout << "while ";
+	node->condition->visit(this);
+	node->loop_block->visit(this);
+}
 
 void
 Format::visit(ast::Call const* node)
-{}
+{
+	node->call_target->visit(this);
+	std::cout << "(";
+
+	auto& args = node->args.args;
+	for( int i = 0; i < args.size(); i++ )
+	{
+		auto& arg = args[i];
+		arg->visit(this);
+
+		if( i != args.size() - 1 )
+		{
+			std::cout << ", ";
+		}
+	}
+
+	std::cout << ")";
+}
+
+void
+Format::visit(ast::Statement const* node)
+{
+	node->stmt->visit(this);
+}
+
+void
+Format::visit(ast::Expression const* node)
+{
+	node->base->visit(this);
+}

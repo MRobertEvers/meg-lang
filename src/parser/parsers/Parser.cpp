@@ -19,11 +19,27 @@ get_token_precedence(Token const& token)
 }
 
 static ValueIdentifier
-to_value_identifier(ConsumeResult const& tok_res)
+to_value_identifier(ConsumeResult const& tok_res, Span span)
 {
 	auto tok = tok_res.unwrap();
 
-	return ValueIdentifier{String{tok.start, tok.size}};
+	return ValueIdentifier{span, String{tok.start, tok.size}};
+}
+
+static TypeIdentifier
+to_type_identifier(ConsumeResult const& tok_res, Span span)
+{
+	auto tok = tok_res.unwrap();
+
+	return TypeIdentifier{span, String{tok.start, tok.size}};
+}
+
+Span
+ParseTrail::mark()
+{
+	size = cursor.get_index() - start;
+
+	return Span{start, size};
 }
 
 // void
@@ -84,308 +100,284 @@ Parser::Parser(TokenCursor& cursor)
 ParseResult<ast::Module>
 Parser::parse_module()
 {
-	// Vec<OwnPtr<IStatementNode>> nodes;
+	auto trail = ParseTrail{cursor};
 
-	// while( cursor.has_tokens() && cursor.peek().type != TokenType::eof )
-	// {
-	// 	auto item = parse_module_top_level_item();
-	// 	if( !item.ok() )
-	// 	{
-	// 		return item;
-	// 	}
-	// 	nodes.emplace_back(item.unwrap());
-	// }
+	Vec<OwnPtr<IStatementNode>> nodes;
 
-	// return ast::Module{std::move(nodes)};
-	return ParseError("Not implemented.");
+	while( cursor.has_tokens() && cursor.peek().type != TokenType::eof )
+	{
+		auto item = parse_module_top_level_item();
+		if( !item.ok() )
+		{
+			return item;
+		}
+		nodes.emplace_back(item.unwrap());
+	}
+
+	return ast::Module{trail.mark(), std::move(nodes)};
 }
 
 ParseResult<IStatementNode>
 Parser::parse_module_top_level_item()
 {
-	// auto tok = cursor.peek();
-	// switch( tok.type )
-	// {
-	// case TokenType::fn:
-	// {
-	// 	return parse_function();
-	// }
-	// case TokenType::struct_keyword:
-	// 	return parse_struct();
-	// default:
-	// 	return ParseError("Expected top level 'fn' or 'struct' declaration.");
-	// }
-	return ParseError("Not implemented.");
+	auto tok = cursor.peek();
+	switch( tok.type )
+	{
+	case TokenType::fn:
+	{
+		return parse_function();
+	}
+	case TokenType::struct_keyword:
+		return parse_struct();
+	default:
+		return ParseError("Expected top level 'fn' or 'struct' declaration.");
+	}
 }
 
 ParseResult<Let>
 Parser::parse_let()
 {
-	// auto tok = cursor.consume(TokenType::let);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected 'let'", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// tok = cursor.consume(TokenType::identifier);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected identifier", tok.as());
-	// }
-	// auto name_tok = tok;
+	auto tok = cursor.consume(TokenType::let);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'let'", tok.as());
+	}
 
-	// tok = cursor.consume(TokenType::colon, TokenType::equal);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected identifier or '='", tok.as());
-	// }
+	tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier", tok.as());
+	}
+	auto name_tok = tok;
 
-	// auto type_decl = TypeDeclarator::Empty();
-	// if( tok.as().type == TokenType::colon )
-	// {
-	// 	auto type_result = parse_type_decl(true);
-	// 	if( !type_result.ok() )
-	// 	{
-	// 		return type_result;
-	// 	}
+	tok = cursor.consume(TokenType::colon, TokenType::equal);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier or '='", tok.as());
+	}
 
-	// 	type_decl = type_result.unwrap();
-	// }
+	auto type_decl = TypeDeclarator::Empty();
+	if( tok.as().type == TokenType::colon )
+	{
+		auto type_result = parse_type_decl(true);
+		if( !type_result.ok() )
+		{
+			return type_result;
+		}
 
-	// cursor.consume_if_expected(TokenType::equal);
-	// auto expr_result = parse_expr();
-	// if( !expr_result.ok() )
-	// {
-	// 	return expr_result;
-	// }
+		type_decl = type_result.unwrap();
+	}
 
-	// auto expr = expr_result.unwrap();
-	// if( type_decl->get_type().is_infer_type() )
-	// {
-	// 	type_decl = TypeDeclarator{expr->get_type()};
-	// }
-	// else
-	// {
-	// 	// TODO: Check that types are the same.
-	// }
+	cursor.consume_if_expected(TokenType::equal);
 
-	// auto name = to_value_identifier(name_tok, type_decl->get_type());
+	auto expr_result = parse_expr();
+	if( !expr_result.ok() )
+	{
+		return expr_result;
+	}
 
-	// current_scope->add_name(name.get_fqn(), &type_decl->get_type());
+	auto expr = expr_result.unwrap();
 
-	// return ast::Let{std::move(name), std::move(type_decl), std::move(expr)};
-	return ParseError("Not implemented.");
+	auto name = to_value_identifier(name_tok, trail.mark());
+
+	return ast::Let{trail.mark(), std::move(name), std::move(type_decl), std::move(expr)};
 }
 
 ParseResult<Block>
 Parser::parse_block()
 {
-	// Vec<OwnPtr<IStatementNode>> stmts;
+	auto trail = ParseTrail{cursor};
 
-	// auto tok = cursor.consume(TokenType::open_curly);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected '{'", tok.as());
-	// }
+	Vec<OwnPtr<IStatementNode>> stmts;
 
-	// auto curr_tok = cursor.peek();
-	// while( curr_tok.type != TokenType::close_curly )
-	// {
-	// 	auto stmt = parse_statement();
-	// 	if( !stmt.ok() )
-	// 	{
-	// 		return stmt;
-	// 	}
+	auto tok = cursor.consume(TokenType::open_curly);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '{'", tok.as());
+	}
 
-	// 	stmts.push_back(stmt.unwrap());
+	auto curr_tok = cursor.peek();
+	while( curr_tok.type != TokenType::close_curly )
+	{
+		auto stmt = parse_statement();
+		if( !stmt.ok() )
+		{
+			return stmt;
+		}
 
-	// 	curr_tok = cursor.peek();
-	// }
-	// cursor.consume_if_expected(TokenType::close_curly);
+		stmts.push_back(stmt.unwrap());
 
-	// return Block{std::move(stmts)};
+		curr_tok = cursor.peek();
+	}
+	cursor.consume_if_expected(TokenType::close_curly);
 
-	return ParseError("Not implemented.");
-}
-
-static TypeIdentifier
-to_type_identifier(ConsumeResult const& tok_res)
-{
-	auto tok = tok_res.unwrap();
-
-	return TypeIdentifier{String{tok.start, tok.size}};
+	return Block{trail.mark(), std::move(stmts)};
 }
 
 // type declarator, not a type declaration. e.g. x: my_type.
 ParseResult<TypeDeclarator>
 Parser::parse_type_decl(bool allow_empty)
 {
-	// auto tok = cursor.consume_if_expected(TokenType::identifier);
-	// if( !tok.ok() )
-	// {
-	// 	if( allow_empty )
-	// 	{
-	// 		return TypeDeclarator::Empty();
-	// 	}
-	// 	else
-	// 	{
-	// 		return ParseError("Unexpected token while parsing type.", tok.as());
-	// 	}
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// auto tok_val = tok.as();
-	// auto name = String{tok_val.start, tok_val.size};
+	auto tok = cursor.consume_if_expected(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		if( allow_empty )
+		{
+			return TypeDeclarator::Empty();
+		}
+		else
+		{
+			return ParseError("Unexpected token while parsing type.", tok.as());
+		}
+	}
 
-	// auto existing_type = current_scope->get_type_for_name(name);
-	// if( existing_type == nullptr )
-	// {
-	// 	return ParseError("'" + name + "' is not a type.", tok.as());
-	// }
+	auto tok_val = tok.as();
+	auto name = String{tok_val.start, tok_val.size};
 
-	// auto type = OwnPtr<TypeDeclarator>::of(*existing_type);
-	// auto star_tok = cursor.consume_if_expected(TokenType::star);
-	// while( star_tok.ok() )
-	// {
-	// 	type = TypeDeclarator::PointerToTy(std::move(type));
-	// 	star_tok = cursor.consume_if_expected(TokenType::star);
-	// }
+	auto type = OwnPtr<TypeDeclarator>::of(trail.mark(), name);
+	auto star_tok = cursor.consume_if_expected(TokenType::star);
+	while( star_tok.ok() )
+	{
+		type = TypeDeclarator::PointerToTy(trail.mark(), std::move(type));
+		star_tok = cursor.consume_if_expected(TokenType::star);
+	}
 
-	// return std::move(type);
-	return ParseError("Not implemented.");
+	return std::move(type);
 }
 
 ParseResult<Struct>
 Parser::parse_struct()
 {
-	// Vec<OwnPtr<ast::MemberVariableDeclaration>> members;
+	auto trail = ParseTrail{cursor};
 
-	// auto consume_tok = cursor.consume(TokenType::struct_keyword);
-	// if( !consume_tok.ok() )
-	// {
-	// 	return ParseError("Expected 'struct'", consume_tok.as());
-	// }
+	Vec<OwnPtr<ast::MemberVariableDeclaration>> members;
 
-	// consume_tok = cursor.consume(TokenType::identifier);
-	// if( !consume_tok.ok() )
-	// {
-	// 	return ParseError("Expected struct identifier.", consume_tok.as());
-	// }
+	auto consume_tok = cursor.consume(TokenType::struct_keyword);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected 'struct'", consume_tok.as());
+	}
 
-	// auto struct_name = to_type_identifier(consume_tok);
+	consume_tok = cursor.consume(TokenType::identifier);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected struct identifier.", consume_tok.as());
+	}
 
-	// consume_tok = cursor.consume(TokenType::open_curly);
-	// if( !consume_tok.ok() )
-	// {
-	// 	return ParseError("Expected block, '{'.", consume_tok.as());
-	// }
+	auto struct_name = to_type_identifier(consume_tok, trail.mark());
 
-	// auto tok = cursor.peek();
-	// while( tok.type != TokenType::close_curly )
-	// {
-	// 	consume_tok = cursor.consume(TokenType::identifier);
-	// 	if( !consume_tok.ok() )
-	// 	{
-	// 		return ParseError("Expected member declaration.", consume_tok.as());
-	// 	}
+	consume_tok = cursor.consume(TokenType::open_curly);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected block, '{'.", consume_tok.as());
+	}
 
-	// 	auto name_tok = consume_tok;
+	auto tok = cursor.peek();
+	while( tok.type != TokenType::close_curly )
+	{
+		auto member_trail = ParseTrail{cursor};
 
-	// 	consume_tok = cursor.consume(TokenType::colon);
-	// 	if( !consume_tok.ok() )
-	// 	{
-	// 		return ParseError("Expected ':'.", consume_tok.as());
-	// 	}
+		consume_tok = cursor.consume(TokenType::identifier);
+		if( !consume_tok.ok() )
+		{
+			return ParseError("Expected member declaration.", consume_tok.as());
+		}
 
-	// 	auto decl = parse_type_decl(false);
-	// 	if( !decl.ok() )
-	// 	{
-	// 		return decl;
-	// 	}
+		auto name = to_value_identifier(consume_tok, member_trail.mark());
 
-	// 	auto& type = decl.as()->get_type();
-	// 	auto name = to_value_identifier(name_tok, type);
+		consume_tok = cursor.consume(TokenType::colon);
+		if( !consume_tok.ok() )
+		{
+			return ParseError("Expected ':'.", consume_tok.as());
+		}
 
-	// 	consume_tok = cursor.consume(TokenType::semicolon);
-	// 	if( !consume_tok.ok() )
-	// 	{
-	// 		return ParseError("Expected ';'.", consume_tok.as());
-	// 	}
+		auto decl = parse_type_decl(false);
+		if( !decl.ok() )
+		{
+			return decl;
+		}
 
-	// 	members.emplace_back(ast::MemberVariableDeclaration{name, decl.unwrap()});
+		consume_tok = cursor.consume(TokenType::semicolon);
+		if( !consume_tok.ok() )
+		{
+			return ParseError("Expected ';'.", consume_tok.as());
+		}
 
-	// 	struct_name.add_member(name.get_fqn(), type);
+		members.emplace_back(
+			ast::MemberVariableDeclaration{member_trail.mark(), name, decl.unwrap()});
 
-	// 	tok = cursor.peek();
-	// }
+		tok = cursor.peek();
+	}
 
-	// current_scope->add_name(struct_name.get_fqn(), &struct_name.get_type());
+	consume_tok = cursor.consume(TokenType::close_curly);
 
-	// consume_tok = cursor.consume(TokenType::close_curly);
-
-	// return Struct{struct_name, std::move(members)};
-	return ParseError("Not implemented.");
+	return Struct{trail.mark(), struct_name, std::move(members)};
 }
 
 ParseResult<IExpressionNode>
 Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 {
-	// // If this is a binop, find its precedence.
-	// while( true )
-	// {
-	// 	auto cur = cursor.peek();
-	// 	int TokPrec = get_token_precedence(cur);
+	auto trail = ParseTrail{cursor};
+	// If this is a binop, find its precedence.
+	while( true )
+	{
+		auto cur = cursor.peek();
+		int TokPrec = get_token_precedence(cur);
 
-	// 	// If this is a binop that binds at least as tightly as the current binop,
-	// 	// consume it, otherwise we are done.
-	// 	if( TokPrec < ExprPrec )
-	// 		return LHS;
+		// If this is a binop that binds at least as tightly as the current binop,
+		// consume it, otherwise we are done.
+		if( TokPrec < ExprPrec )
+			return LHS;
 
-	// 	// This is a binary operation because TokPrec would be less than ExprPrec if
-	// 	// the next token was not a bin op (e.g. if statement or so.)
-	// 	char Op = *cur.start;
+		// This is a binary operation because TokPrec would be less than ExprPrec if
+		// the next token was not a bin op (e.g. if statement or so.)
+		char Op = *cur.start;
 
-	// 	// TODO: Consume bin op
-	// 	cursor.consume({TokenType::plus, TokenType::star, TokenType::minus, TokenType::gt});
+		// TODO: Consume bin op
+		cursor.consume({TokenType::plus, TokenType::star, TokenType::minus, TokenType::gt});
 
-	// 	// Parse the primary expression after the binary operator.
-	// 	auto RHS = parse_postfix_expr();
-	// 	if( !RHS.ok() )
-	// 		return RHS;
+		// Parse the primary expression after the binary operator.
+		auto RHS = parse_postfix_expr();
+		if( !RHS.ok() )
+			return RHS;
 
-	// 	// If BinOp binds less tightly with RHS than the operator after RHS, let
-	// 	// the pending operator take RHS as its LHS.
-	// 	cur = cursor.peek();
-	// 	int NextPrec = get_token_precedence(cur);
-	// 	if( TokPrec < NextPrec )
-	// 	{
-	// 		RHS = parse_bin_op(TokPrec + 1, RHS.unwrap());
-	// 		if( !RHS.ok() )
-	// 			return RHS;
-	// 	}
+		// If BinOp binds less tightly with RHS than the operator after RHS, let
+		// the pending operator take RHS as its LHS.
+		cur = cursor.peek();
+		int NextPrec = get_token_precedence(cur);
+		if( TokPrec < NextPrec )
+		{
+			RHS = parse_bin_op(TokPrec + 1, RHS.unwrap());
+			if( !RHS.ok() )
+				return RHS;
+		}
 
-	// 	// Merge LHS/RHS.
-	// 	LHS = BinaryOperation{Op, std::move(LHS), RHS.unwrap()};
-	// }
-	return ParseError("Not implemented.");
+		// Merge LHS/RHS.
+		LHS = BinaryOperation{trail.mark(), Op, std::move(LHS), RHS.unwrap()};
+	}
 }
 
 ParseResult<Assign>
 Parser::parse_assign(OwnPtr<IExpressionNode> lhs)
 {
-	// auto tok = cursor.consume(TokenType::equal);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected '='", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
+	auto tok = cursor.consume(TokenType::equal);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '='", tok.as());
+	}
 
-	// auto rhs = parse_expr();
-	// if( !rhs.ok() )
-	// {
-	// 	return rhs;
-	// }
+	auto rhs = parse_expr();
+	if( !rhs.ok() )
+	{
+		return rhs;
+	}
 
-	// return Assign{'=', std::move(lhs), rhs.unwrap()};
-	return ParseError("Not implemented.");
+	return Assign{trail.mark(), '=', std::move(lhs), rhs.unwrap()};
 }
 
 /**
@@ -396,316 +388,327 @@ Parser::parse_assign(OwnPtr<IExpressionNode> lhs)
 ParseResult<IStatementNode>
 Parser::parse_expr_statement()
 {
-	// auto expr = parse_expr();
-	// if( !expr.ok() )
-	// {
-	// 	return expr;
-	// }
+	auto expr = parse_expr();
+	if( !expr.ok() )
+	{
+		return expr;
+	}
 
-	// auto tok = cursor.peek();
-	// switch( tok.type )
-	// {
-	// case TokenType::equal:
-	// 	return parse_assign(expr.unwrap());
-	// 	break;
+	auto tok = cursor.peek();
+	switch( tok.type )
+	{
+	case TokenType::equal:
+		return parse_assign(expr.unwrap());
+		break;
 
-	// default:
-	// 	return expr;
-	// 	break;
-	// }
-	return ParseError("Not implemented.");
+	default:
+		return expr;
+		break;
+	}
 }
 
 ParseResult<While>
 Parser::parse_while()
 {
-	// auto tok = cursor.consume(TokenType::while_keyword);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected while keyword", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// auto open_paren_tok = cursor.consume_if_expected(TokenType::open_paren);
+	auto tok = cursor.consume(TokenType::while_keyword);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected while keyword", tok.as());
+	}
 
-	// auto condition = parse_expr();
-	// if( !condition.ok() )
-	// {
-	// 	return condition;
-	// }
+	auto open_paren_tok = cursor.consume_if_expected(TokenType::open_paren);
 
-	// if( open_paren_tok.ok() )
-	// {
-	// 	tok = cursor.consume(TokenType::close_paren);
-	// 	if( !tok.ok() )
-	// 	{
-	// 		return ParseError("Expected ')'", tok.as());
-	// 	}
-	// }
+	auto condition = parse_expr();
+	if( !condition.ok() )
+	{
+		return condition;
+	}
 
-	// auto loop_block = parse_statement();
-	// if( !loop_block.ok() )
-	// {
-	// 	return loop_block;
-	// }
+	if( open_paren_tok.ok() )
+	{
+		tok = cursor.consume(TokenType::close_paren);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected ')'", tok.as());
+		}
+	}
 
-	// return While{condition.unwrap(), loop_block.unwrap()};
-	return ParseError("Not implemented.");
+	auto loop_block = parse_statement();
+	if( !loop_block.ok() )
+	{
+		return loop_block;
+	}
+
+	return While{trail.mark(), condition.unwrap(), loop_block.unwrap()};
 }
 
 ParseResult<IStatementNode>
 Parser::parse_statement()
 {
-	// 	auto tok = cursor.peek();
+	auto trail = ParseTrail{cursor};
 
-	// 	OwnPtr<IStatementNode> stmt = nullptr;
-	// 	switch( tok.type )
-	// 	{
-	// 	case TokenType::return_keyword:
-	// 	{
-	// 		// TODO: Parse return.
-	// 		cursor.consume_if_expected(TokenType::return_keyword);
+	auto tok = cursor.peek();
 
-	// 		auto return_expr = parse_expr();
-	// 		if( !return_expr.ok() )
-	// 		{
-	// 			return return_expr;
-	// 		}
+	OwnPtr<IStatementNode> stmt = nullptr;
+	switch( tok.type )
+	{
+	case TokenType::return_keyword:
+	{
+		// TODO: Parse return.
+		cursor.consume_if_expected(TokenType::return_keyword);
 
-	// 		stmt = Return{return_expr.unwrap()};
-	// 		break;
-	// 	}
-	// 	case TokenType::while_keyword:
-	// 	{
-	// 		auto expr = parse_while();
-	// 		if( !expr.ok() )
-	// 		{
-	// 			return expr;
-	// 		}
+		auto return_expr = parse_expr();
+		if( !return_expr.ok() )
+		{
+			return return_expr;
+		}
 
-	// 		stmt = expr.unwrap();
+		stmt = Return{trail.mark(), return_expr.unwrap()};
+		break;
+	}
+	case TokenType::while_keyword:
+	{
+		auto expr = parse_while();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
 
-	// 		goto no_semi;
-	// 	}
-	// 	break;
-	// 	case TokenType::let:
-	// 	{
-	// 		auto expr = parse_let();
-	// 		if( !expr.ok() )
-	// 		{
-	// 			return expr;
-	// 		}
+		stmt = expr.unwrap();
 
-	// 		stmt = expr.unwrap();
-	// 	}
-	// 	break;
-	// 	case TokenType::if_keyword:
-	// 	{
-	// 		auto expr = parse_if();
-	// 		if( !expr.ok() )
-	// 		{
-	// 			return expr;
-	// 		}
+		goto no_semi;
+	}
+	break;
+	case TokenType::let:
+	{
+		auto expr = parse_let();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
 
-	// 		stmt = expr.unwrap();
+		stmt = expr.unwrap();
+	}
+	break;
+	case TokenType::if_keyword:
+	{
+		auto expr = parse_if();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
 
-	// 		// TODO: Better way to do this?
-	// 		goto no_semi;
-	// 	}
-	// 	break;
-	// 	case TokenType::open_curly:
-	// 	{
-	// 		auto expr = parse_block();
-	// 		if( !expr.ok() )
-	// 		{
-	// 			return expr;
-	// 		}
+		stmt = expr.unwrap();
 
-	// 		stmt = expr.unwrap();
+		// TODO: Better way to do this?
+		goto no_semi;
+	}
+	break;
+	case TokenType::open_curly:
+	{
+		auto expr = parse_block();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
 
-	// 		goto no_semi;
-	// 	}
-	// 	break;
-	// 	default:
-	// 	{
-	// 		auto expr = parse_expr_statement();
-	// 		if( !expr.ok() )
-	// 		{
-	// 			return expr;
-	// 		}
+		stmt = expr.unwrap();
 
-	// 		stmt = expr.unwrap();
-	// 	}
-	// 	break;
-	// 	}
+		goto no_semi;
+	}
+	break;
+	default:
+	{
+		auto expr = parse_expr_statement();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
 
-	// 	{
-	// 		auto curr_tok = cursor.consume(TokenType::semicolon);
-	// 		if( !curr_tok.ok() )
-	// 		{
-	// 			return ParseError("Expected ';'", curr_tok.as());
-	// 		}
-	// 	}
+		stmt = expr.unwrap();
+	}
+	break;
+	}
 
-	// no_semi:
-	// 	return stmt;
-	return ParseError("Not implemented.");
+	{
+		auto curr_tok = cursor.consume(TokenType::semicolon);
+		if( !curr_tok.ok() )
+		{
+			return ParseError("Expected ';'", curr_tok.as());
+		}
+	}
+
+no_semi:
+	return Statement{trail.mark(), std::move(stmt)};
 }
 
 ParseResult<If>
 Parser::parse_if()
 {
-	// auto tok = cursor.consume(TokenType::if_keyword);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected 'if'", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// auto open_paren_tok = cursor.consume_if_expected(TokenType::open_paren);
+	auto tok = cursor.consume(TokenType::if_keyword);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'if'", tok.as());
+	}
 
-	// auto condition = parse_expr();
-	// if( !condition.ok() )
-	// {
-	// 	return condition;
-	// }
+	auto open_paren_tok = cursor.consume_if_expected(TokenType::open_paren);
 
-	// if( open_paren_tok.ok() )
-	// {
-	// 	tok = cursor.consume(TokenType::close_paren);
-	// 	if( !tok.ok() )
-	// 	{
-	// 		return ParseError("Expected ')'", tok.as());
-	// 	}
-	// }
+	auto condition = parse_expr();
+	if( !condition.ok() )
+	{
+		return condition;
+	}
 
-	// auto then_block = parse_statement();
-	// if( !then_block.ok() )
-	// {
-	// 	return then_block;
-	// }
+	if( open_paren_tok.ok() )
+	{
+		tok = cursor.consume(TokenType::close_paren);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected ')'", tok.as());
+		}
+	}
 
-	// // Else block is optional
-	// OwnPtr<IStatementNode> else_block = Block{};
-	// tok = cursor.consume_if_expected(TokenType::else_keyword);
-	// if( tok.ok() )
-	// {
-	// 	auto else_block_result = parse_statement();
-	// 	if( !else_block_result.ok() )
-	// 	{
-	// 		return else_block_result;
-	// 	}
+	auto then_block = parse_statement();
+	if( !then_block.ok() )
+	{
+		return then_block;
+	}
 
-	// 	else_block = else_block_result.unwrap();
-	// }
+	// Else block is optional
+	OwnPtr<IStatementNode> else_block = Block{};
+	tok = cursor.consume_if_expected(TokenType::else_keyword);
+	if( tok.ok() )
+	{
+		auto else_block_result = parse_statement();
+		if( !else_block_result.ok() )
+		{
+			return else_block_result;
+		}
 
-	// return If{condition.unwrap(), then_block.unwrap(), std::move(else_block)};
-	return ParseError("Not implemented.");
+		else_block = else_block_result.unwrap();
+	}
+
+	return If{trail.mark(), condition.unwrap(), then_block.unwrap(), std::move(else_block)};
 }
 
 ParseResult<IExpressionNode>
 Parser::parse_literal()
 {
-	// auto tok = cursor.consume(TokenType::literal);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected literal", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// auto curr_tok = tok.unwrap();
-	// switch( curr_tok.literal_type )
-	// {
-	// case LiteralType::integer:
-	// {
-	// 	auto sz = String{curr_tok.start, curr_tok.size};
-	// 	int val = std::stoi(sz);
-	// 	return Number(val, i32_type);
-	// }
-	// break;
+	auto tok = cursor.consume(TokenType::literal);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected literal", tok.as());
+	}
 
-	// default:
-	// 	return ParseError("Expected literal type", tok.as());
-	// }
-	return ParseError("Not implemented.");
+	auto curr_tok = tok.unwrap();
+	switch( curr_tok.literal_type )
+	{
+	case LiteralType::integer:
+	{
+		auto sz = String{curr_tok.start, curr_tok.size};
+		int val = std::stoi(sz);
+		return Number(trail.mark(), val);
+	}
+	break;
+
+	default:
+		return ParseError("Expected literal type", tok.as());
+	}
+}
+
+ParseResult<TypeIdentifier>
+Parser::parse_type_identifier()
+{
+	auto trail = ParseTrail{cursor};
+
+	auto tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier", tok.as());
+	}
+
+	auto tok_val = tok.as();
+	auto name = String{tok_val.start, tok_val.size};
+
+	return TypeIdentifier(trail.mark(), name);
 }
 
 ParseResult<ValueIdentifier>
 Parser::parse_identifier()
 {
-	// auto tok = cursor.consume(TokenType::identifier);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected identifier", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// auto tok_val = tok.as();
-	// auto name = String{tok_val.start, tok_val.size};
+	auto tok = cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected identifier", tok.as());
+	}
 
-	// auto type = current_scope->get_type_for_name(name);
+	auto tok_val = tok.as();
+	auto name = String{tok_val.start, tok_val.size};
 
-	// if( type == nullptr )
-	// {
-	// 	return ParseError(
-	// 		String("Could not find identifier ") + String(name.data()) + " in current scope.",
-	// 		tok.as());
-	// }
-	// else
-	// {
-	// 	return ValueIdentifier(name, *type);
-	// }
-	return ParseError("Not implemented.");
+	return ValueIdentifier(trail.mark(), name);
 }
 
-ParseResult<Vec<OwnPtr<IExpressionNode>>>
+ParseResult<ArgumentList>
 Parser::parse_value_list()
 {
-	// Vec<OwnPtr<IExpressionNode>> result;
+	auto trail = ParseTrail{cursor};
 
-	// Token curr_tok = cursor.peek();
-	// while( curr_tok.type != TokenType::close_paren )
-	// {
-	// 	auto expr = parse_expr();
-	// 	if( !expr.ok() )
-	// 	{
-	// 		return expr;
-	// 	}
+	Vec<OwnPtr<IExpressionNode>> result;
 
-	// 	result.emplace_back(expr.unwrap());
+	Token curr_tok = cursor.peek();
+	while( curr_tok.type != TokenType::close_paren )
+	{
+		auto expr = parse_expr();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
 
-	// 	// Also catches trailing comma.
-	// 	cursor.consume_if_expected(TokenType::comma);
-	// 	curr_tok = cursor.peek();
-	// }
+		result.emplace_back(expr.unwrap());
 
-	// return result;
-	return ParseError("Not implemented.");
+		// Also catches trailing comma.
+		cursor.consume_if_expected(TokenType::comma);
+		curr_tok = cursor.peek();
+	}
+
+	return ArgumentList{trail.mark(), result};
 }
 
 ParseResult<Call>
 Parser::parse_call(OwnPtr<IExpressionNode> base)
 {
-	// auto tok = cursor.consume(TokenType::open_paren);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected '('", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// auto args = parse_value_list();
-	// if( !args.ok() )
-	// {
-	// 	return args;
-	// }
+	auto tok = cursor.consume(TokenType::open_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '('", tok.as());
+	}
 
-	// tok = cursor.consume(TokenType::close_paren);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected ')'", tok.as());
-	// }
+	auto args = parse_value_list();
+	if( !args.ok() )
+	{
+		return args;
+	}
 
-	// auto type_identifier = TypeIdentifier{base->get_type().name};
-	// auto own = args.unwrap();
-	// auto own_ptr = own.get();
-	// own.release();
-	// return Call{type_identifier, *own_ptr};
-	return ParseError("Not implemented.");
+	tok = cursor.consume(TokenType::close_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ')'", tok.as());
+	}
+
+	auto own = args.unwrap();
+	auto own_ptr = own.get();
+	own.release();
+	return Call{trail.mark(), std::move(base), *own_ptr};
 }
 
 // TODO: Anything that takes an existing expr pointer by value and might fail will result
@@ -713,271 +716,257 @@ Parser::parse_call(OwnPtr<IExpressionNode> base)
 ParseResult<MemberReference>
 Parser::parse_member_reference(OwnPtr<IExpressionNode> base)
 {
-	// auto tok = cursor.consume(TokenType::dot);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected '.'", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// tok = cursor.consume(TokenType::identifier);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected identifier", tok.as());
-	// }
+	auto tok = cursor.consume(TokenType::dot);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '.'", tok.as());
+	}
 
-	// auto member_name = String{tok.as().start, tok.as().size};
-	// auto struct_type = &base->get_type();
+	auto identifier = parse_identifier();
+	if( !identifier.ok() )
+	{
+		return identifier;
+	}
 
-	// // TODO: This allows 1 free deref
-	// if( struct_type->is_pointer_type() )
-	// {
-	// 	struct_type = struct_type->base;
-	// }
+	auto member_name = String{tok.as().start, tok.as().size};
 
-	// auto type = struct_type->get_member_type(member_name);
-	// if( type == nullptr )
-	// {
-	// 	return ParseError(
-	// 		"Struct " + struct_type->name + " does not have member " + member_name, tok.as());
-	// }
-
-	// auto identifier = to_value_identifier(tok, *type);
-
-	// return MemberReference{std::move(base), identifier, *type};
-	return ParseError("Not implemented.");
+	return MemberReference{trail.mark(), std::move(base), identifier.unwrap()};
 }
 
 ParseResult<IExpressionNode>
 Parser::parse_simple_expr()
 {
-	// auto tok = cursor.peek();
-	// switch( tok.type )
-	// {
-	// case TokenType::literal:
-	// 	return parse_literal();
+	auto trail = ParseTrail{cursor};
 
-	// case TokenType::identifier:
-	// 	return parse_identifier();
+	auto result = OwnPtr<IExpressionNode>::null();
 
-	// case TokenType::open_paren:
-	// {
-	// 	cursor.consume(TokenType::open_paren);
-	// 	auto expr = parse_expr();
-	// 	if( !expr.ok() )
-	// 	{
-	// 		return expr;
-	// 	}
+	auto tok = cursor.peek();
+	switch( tok.type )
+	{
+	case TokenType::literal:
+	{
+		auto expr = parse_literal();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+		result = expr.unwrap();
+		break;
+	}
 
-	// 	auto ctok = cursor.consume(TokenType::close_paren);
-	// 	if( !ctok.ok() )
-	// 	{
-	// 		return ParseError("Expected ')'", ctok.as());
-	// 	}
+	case TokenType::identifier:
+	{
+		auto expr = parse_identifier();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+		result = expr.unwrap();
+		break;
+	}
 
-	// 	return expr.unwrap();
-	// }
+	case TokenType::open_paren:
+	{
+		cursor.consume(TokenType::open_paren);
+		auto expr = parse_expr();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
 
-	// default:
-	// 	return ParseError("Expected simple expression.");
-	// }
-	return ParseError("Not implemented.");
+		auto ctok = cursor.consume(TokenType::close_paren);
+		if( !ctok.ok() )
+		{
+			return ParseError("Expected ')'", ctok.as());
+		}
+
+		result = expr.unwrap();
+		break;
+	}
+
+	default:
+		return ParseError("Expected simple expression.");
+	}
+
+	return Expression{trail.mark(), std::move(result)};
 }
 
 ParseResult<IExpressionNode>
 Parser::parse_postfix_expr()
 {
-	// 	auto expr = parse_simple_expr();
-	// 	if( !expr.ok() )
-	// 	{
-	// 		return expr;
-	// 	}
+	auto trail = ParseTrail{cursor};
 
-	// 	while( true )
-	// 	{
-	// 		auto tok = cursor.peek();
+	auto expr = parse_simple_expr();
+	if( !expr.ok() )
+	{
+		return expr;
+	}
 
-	// 		switch( tok.type )
-	// 		{
-	// 		case TokenType::dot:
-	// 			// Member dereference
-	// 			expr = parse_member_reference(expr.unwrap());
-	// 			if( !expr.ok() )
-	// 			{
-	// 				return expr;
-	// 			}
-	// 			break;
-	// 		case TokenType::open_paren:
-	// 			expr = parse_call(expr.unwrap());
-	// 			if( !expr.ok() )
-	// 			{
-	// 				return expr;
-	// 			}
-	// 			break;
-	// 		default:
-	// 			goto done;
-	// 			break;
-	// 		}
-	// 	}
-	// done:
-	// 	return expr;
-	return ParseError("Not implemented.");
+	while( true )
+	{
+		auto tok = cursor.peek();
+
+		switch( tok.type )
+		{
+		case TokenType::dot:
+			// Member dereference
+			expr = parse_member_reference(expr.unwrap());
+			if( !expr.ok() )
+			{
+				return expr;
+			}
+			break;
+		case TokenType::open_paren:
+			expr = parse_call(expr.unwrap());
+			if( !expr.ok() )
+			{
+				return expr;
+			}
+			break;
+		default:
+			goto done;
+			break;
+		}
+	}
+done:
+	return Expression{trail.mark(), expr.unwrap()};
 }
 
 ParseResult<IExpressionNode>
 Parser::parse_expr()
 {
-	// auto LHS = parse_postfix_expr();
-	// if( !LHS.ok() )
-	// {
-	// 	return LHS;
-	// }
+	auto trail = ParseTrail{cursor};
+	auto LHS = parse_postfix_expr();
+	if( !LHS.ok() )
+	{
+		return LHS;
+	}
 
-	// auto OP = parse_bin_op(0, LHS.unwrap());
-	// if( !OP.ok() )
-	// {
-	// 	return OP;
-	// }
+	auto OP = parse_bin_op(0, LHS.unwrap());
+	if( !OP.ok() )
+	{
+		return OP;
+	}
 
-	// return OP;
-	return ParseError("Not implemented.");
+	return Expression{trail.mark(), OP.unwrap()};
 }
 
-ParseResult<Vec<OwnPtr<ParameterDeclaration>>>
+ParseResult<ParameterList>
 Parser::parse_function_parameter_list()
 {
-	// Vec<OwnPtr<ParameterDeclaration>> result;
+	auto trail = ParseTrail{cursor};
 
-	// Token curr_tok = cursor.peek();
-	// while( curr_tok.type != TokenType::close_paren )
-	// {
-	// 	auto tok = cursor.consume(TokenType::identifier);
-	// 	if( !tok.ok() )
-	// 	{
-	// 		return ParseError("Expected identifier", tok.as());
-	// 	}
+	Vec<OwnPtr<ParameterDeclaration>> result;
 
-	// 	auto name_tok = tok.as();
-	// 	tok = cursor.consume(TokenType::colon);
-	// 	if( !tok.ok() )
-	// 	{
-	// 		return ParseError("Expected ':'", tok.as());
-	// 	}
+	Token curr_tok = cursor.peek();
+	while( curr_tok.type != TokenType::close_paren )
+	{
+		auto param_trail = ParseTrail{cursor};
+		auto identifer = parse_identifier();
+		if( !identifer.ok() )
+		{
+			return identifer;
+		}
 
-	// 	auto type_decl = parse_type_decl(false);
-	// 	if( !type_decl.ok() )
-	// 	{
-	// 		return type_decl;
-	// 	}
-	// 	auto name = String{name_tok.start, name_tok.size};
-	// 	auto type_declarator = type_decl.unwrap();
-	// 	current_scope->add_name(name, &type_declarator->get_type());
+		auto tok = cursor.consume(TokenType::colon);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected ':'", tok.as());
+		}
 
-	// 	auto decl = ParameterDeclaration{
-	// 		ValueIdentifier(name, type_declarator->get_type()),
-	// 		std::move(type_declarator),
-	// 	};
+		auto type_decl = parse_type_decl(false);
+		if( !type_decl.ok() )
+		{
+			return type_decl;
+		}
 
-	// 	result.emplace_back(decl);
+		// Also catches trailing comma.
+		cursor.consume_if_expected(TokenType::comma);
 
-	// 	// Also catches trailing comma.
-	// 	cursor.consume_if_expected(TokenType::comma);
-	// 	curr_tok = cursor.peek();
-	// }
+		auto decl = ParameterDeclaration{
+			param_trail.mark(),
+			identifer.unwrap(),
+			type_decl.unwrap(),
+		};
 
-	// return result;
-	return ParseError("Not implemented.");
+		result.emplace_back(decl);
+		curr_tok = cursor.peek();
+	}
+
+	return ParameterList{trail.mark(), result};
 }
 
 ParseResult<Prototype>
 Parser::parse_function_proto()
 {
-	// auto tok = cursor.consume(TokenType::identifier);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected identifier", tok.as());
-	// }
+	auto trail = ParseTrail{cursor};
 
-	// auto tok_fn_name = tok.unwrap();
-	// auto fn_name_decl = TypeIdentifier{String{tok_fn_name.start, tok_fn_name.size}};
+	auto fn_identifier = parse_type_identifier();
+	if( !fn_identifier.ok() )
+	{
+		return fn_identifier;
+	}
 
-	// tok = cursor.consume(TokenType::open_paren);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected '('", tok.as());
-	// }
+	auto tok = cursor.consume(TokenType::open_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '('", tok.as());
+	}
 
-	// auto params = parse_function_parameter_list();
-	// if( !params.ok() )
-	// {
-	// 	return params;
-	// }
+	auto params = parse_function_parameter_list();
+	if( !params.ok() )
+	{
+		return params;
+	}
 
-	// tok = cursor.consume(TokenType::close_paren);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected ')'", tok.as());
-	// }
+	tok = cursor.consume(TokenType::close_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ')'", tok.as());
+	}
 
-	// tok = cursor.consume(TokenType::colon);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected ':'", tok.as());
-	// }
+	tok = cursor.consume(TokenType::colon);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ':'", tok.as());
+	}
 
-	// tok = cursor.consume(TokenType::identifier);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected function return type", tok.as());
-	// }
+	auto return_type_identifier = parse_type_decl(false);
+	if( !return_type_identifier.ok() )
+	{
+		return return_type_identifier;
+	}
 
-	// auto tok_fn_return_type = tok.unwrap();
-	// auto type_name = String{tok_fn_return_type.start, tok_fn_return_type.size};
-	// auto type = current_scope->get_type_for_name(type_name);
-	// if( type == nullptr )
-	// {
-	// 	return ParseError("Unrecognized typename " + type_name, tok.as());
-	// }
-
-	// auto fn_return_type_decl = TypeDeclarator(*type);
-
-	// auto own = params.unwrap();
-	// auto own_ptr = own.get();
-	// own.release();
-	// return Prototype{fn_name_decl, fn_return_type_decl, *own_ptr};
-	return ParseError("Not implemented.");
+	return Prototype{
+		trail.mark(), fn_identifier.unwrap(), return_type_identifier.unwrap(), params.unwrap()};
 }
 
 ParseResult<Function>
 Parser::parse_function()
 {
-	// new_scope();
+	auto trail = ParseTrail{cursor};
 
-	// auto tok = cursor.consume(TokenType::fn);
-	// if( !tok.ok() )
-	// {
-	// 	return ParseError("Expected 'fn'", tok.as());
-	// }
+	auto tok = cursor.consume(TokenType::fn);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'fn'", tok.as());
+	}
 
-	// auto proto = parse_function_proto();
+	auto proto = parse_function_proto();
+	if( !proto.ok() )
+	{
+		return proto;
+	}
 
-	// current_scope->get_parent()->add_name(
-	// 	proto.as()->Name->get_fqn(), &proto.as()->Name->get_type());
+	auto definition = parse_function_body();
+	if( !definition.ok() )
+	{
+		return definition;
+	}
 
-	// if( !proto.ok() )
-	// {
-	// 	return proto;
-	// }
-	// // TODO: Pass in proto to check return type
-	// auto definition = parse_function_body();
-	// if( !definition.ok() )
-	// {
-	// 	return definition;
-	// }
-
-	// pop_scope();
-
-	// return ast::Function(proto.unwrap(), definition.unwrap());
-	return ParseError("Not implemented.");
+	return ast::Function(trail.mark(), proto.unwrap(), definition.unwrap());
 }
 
 ParseResult<Block>
@@ -985,24 +974,3 @@ Parser::parse_function_body()
 {
 	return parse_block();
 }
-
-// void
-// Parser::pop_scope()
-// {
-// 	auto parent_scope = current_scope->get_parent();
-// 	if( !parent_scope )
-// 	{
-// 		// TODO: Error
-// 	}
-
-// 	delete current_scope;
-// 	current_scope = parent_scope;
-// }
-
-// void
-// Parser::new_scope()
-// {
-// 	ParseScope* scope = new ParseScope(current_scope);
-
-// 	current_scope = scope;
-// }

@@ -12,8 +12,9 @@ public:
 	OwnPtr<IExpressionNode> condition;
 	OwnPtr<IStatementNode> loop_block;
 
-	While(OwnPtr<IExpressionNode> condition, OwnPtr<IStatementNode> loop_block)
-		: condition(std::move(condition))
+	While(Span span, OwnPtr<IExpressionNode> condition, OwnPtr<IStatementNode> loop_block)
+		: IStatementNode(span)
+		, condition(std::move(condition))
 		, loop_block(std::move(loop_block)){};
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };

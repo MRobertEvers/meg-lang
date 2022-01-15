@@ -14,10 +14,12 @@ public:
 	OwnPtr<IStatementNode> then_block;
 	OwnPtr<IStatementNode> else_block;
 
-	If(OwnPtr<IExpressionNode> condition,
+	If(Span span,
+	   OwnPtr<IExpressionNode> condition,
 	   OwnPtr<IStatementNode> then_block,
 	   OwnPtr<IStatementNode> else_block)
-		: condition(std::move(condition))
+		: IStatementNode(span)
+		, condition(std::move(condition))
 		, then_block(std::move(then_block))
 		, else_block(std::move(else_block)){};
 

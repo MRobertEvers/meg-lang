@@ -52,13 +52,19 @@ add_executable(sushi
     src/parser/ParseResult.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
-    src/ast/type.h
-    src/ast/type.cpp
+    src/sema/Sema.h
+    src/sema/SemaResult.h
+    src/sema/SemaResult.cpp
+    src/hir/type.h
+    src/hir/type.cpp
+    src/ast/IAstNode.h
+    src/ast/expressions/Expression.h
     src/ast/expressions/BinOp.h
     src/ast/expressions/Identifier.h
     src/ast/expressions/MemberReference.h
-    src/ast/statements/Let.h
     src/ast/expressions/Number.h
+    src/ast/statements/Let.h
+    src/ast/statements/Statement.h
     src/ast/statements/If.h
     src/ast/statements/Block.h
     src/ast/statements/Function.h

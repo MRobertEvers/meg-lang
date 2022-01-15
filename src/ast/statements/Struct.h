@@ -12,11 +12,13 @@ namespace ast
 class MemberVariableDeclaration
 {
 public:
+	Span span;
 	OwnPtr<TypeDeclarator> Type;
 	OwnPtr<ValueIdentifier> Name;
 
-	MemberVariableDeclaration(OwnPtr<ValueIdentifier> Name, OwnPtr<TypeDeclarator> Type)
-		: Name(std::move(Name))
+	MemberVariableDeclaration(Span span, OwnPtr<ValueIdentifier> Name, OwnPtr<TypeDeclarator> Type)
+		: span(span)
+		, Name(std::move(Name))
 		, Type(std::move(Type)){};
 };
 
@@ -26,8 +28,12 @@ public:
 	Vec<OwnPtr<MemberVariableDeclaration>> MemberVariables;
 	OwnPtr<TypeIdentifier> TypeName;
 
-	Struct(OwnPtr<TypeIdentifier> TypeName, Vec<OwnPtr<MemberVariableDeclaration>> MemberVariables)
-		: MemberVariables(std::move(MemberVariables))
+	Struct(
+		Span span,
+		OwnPtr<TypeIdentifier> TypeName,
+		Vec<OwnPtr<MemberVariableDeclaration>> MemberVariables)
+		: IStatementNode(span)
+		, MemberVariables(std::move(MemberVariables))
 		, TypeName(std::move(TypeName))
 	{}
 

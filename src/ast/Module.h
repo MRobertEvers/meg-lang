@@ -11,8 +11,9 @@ class Module : public IAstNode
 public:
 	Vec<OwnPtr<IStatementNode>> statements;
 
-	Module(Vec<OwnPtr<IStatementNode>> statements)
-		: statements(std::move(statements)){};
+	Module(Span span, Vec<OwnPtr<IStatementNode>> statements)
+		: IAstNode(span)
+		, statements(std::move(statements)){};
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 };

@@ -2,7 +2,6 @@
 #define IEXPRESSION_NODE_H_
 
 #include "IStatementNode.h"
-#include "Type.h"
 #include <llvm/IR/Value.h>
 
 namespace ast
@@ -10,6 +9,8 @@ namespace ast
 class IExpressionNode : public IStatementNode
 {
 public:
+	IExpressionNode(Span span)
+		: IStatementNode(span){};
 	virtual ~IExpressionNode() = default;
 };
 } // namespace ast

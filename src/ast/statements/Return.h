@@ -12,8 +12,9 @@ class Return : public IStatementNode
 {
 public:
 	OwnPtr<IExpressionNode> ReturnExpr;
-	Return(OwnPtr<IExpressionNode> ReturnExpr)
-		: ReturnExpr(std::move(ReturnExpr))
+	Return(Span span, OwnPtr<IExpressionNode> ReturnExpr)
+		: IStatementNode(span)
+		, ReturnExpr(std::move(ReturnExpr))
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };

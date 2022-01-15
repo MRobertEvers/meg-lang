@@ -13,8 +13,9 @@ public:
 	OwnPtr<Prototype> Proto;
 	OwnPtr<Block> Body;
 
-	Function(OwnPtr<Prototype> Proto, OwnPtr<Block> Body)
-		: Proto(std::move(Proto))
+	Function(Span span, OwnPtr<Prototype> Proto, OwnPtr<Block> Body)
+		: IStatementNode(span)
+		, Proto(std::move(Proto))
 		, Body(std::move(Body))
 	{}
 

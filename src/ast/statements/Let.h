@@ -12,10 +12,12 @@ public:
 	OwnPtr<ValueIdentifier> Name;
 	OwnPtr<IExpressionNode> RHS;
 
-	Let(OwnPtr<ValueIdentifier> identifier,
+	Let(Span span,
+		OwnPtr<ValueIdentifier> identifier,
 		OwnPtr<TypeDeclarator> type,
 		OwnPtr<IExpressionNode> rhs)
-		: Name(std::move(identifier))
+		: IStatementNode(span)
+		, Name(std::move(identifier))
 		, Type(std::move(type))
 		, RHS(std::move(rhs)){};
 

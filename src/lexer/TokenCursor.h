@@ -42,6 +42,8 @@ public:
 		: _tokens(toks)
 		, _index(0){};
 
+	int get_index() const { return _index; }
+
 	bool has_tokens() const;
 	Token peek() const;
 

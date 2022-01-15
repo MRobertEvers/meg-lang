@@ -9,19 +9,17 @@
 namespace ast
 {
 /**
- * @brief a.b
+ * @brief Doesn't really do anything; used in parsing for faithful pretty printing.
  *
  */
-class MemberReference : public IExpressionNode
+class Expression : public IExpressionNode
 {
 public:
 	OwnPtr<IExpressionNode> base = nullptr;
-	OwnPtr<ValueIdentifier> name = nullptr;
 
-	MemberReference(Span span, OwnPtr<IExpressionNode> base, OwnPtr<ValueIdentifier> name)
+	Expression(Span span, OwnPtr<IExpressionNode> base)
 		: IExpressionNode(span)
 		, base(std::move(base))
-		, name(std::move(name))
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };

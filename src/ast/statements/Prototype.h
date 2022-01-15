@@ -14,12 +14,24 @@ namespace ast
 class ParameterDeclaration
 {
 public:
+	Span span;
 	OwnPtr<TypeDeclarator> Type;
 	OwnPtr<ValueIdentifier> Name;
 
-	ParameterDeclaration(OwnPtr<ValueIdentifier> Name, OwnPtr<TypeDeclarator> Type)
-		: Name(std::move(Name))
+	ParameterDeclaration(Span span, OwnPtr<ValueIdentifier> Name, OwnPtr<TypeDeclarator> Type)
+		: span(span)
+		, Name(std::move(Name))
 		, Type(std::move(Type)){};
+};
+
+class ParameterList
+{
+public:
+	Span span;
+	Vec<OwnPtr<ParameterDeclaration>> Parameters;
+	ParameterList(Span span, Vec<OwnPtr<ParameterDeclaration>>& Parms)
+		: span(span)
+		, Parameters(std::move(Parms)){};
 };
 
 /// PrototypeAST - This class represents the "prototype" for a function,
@@ -28,20 +40,22 @@ public:
 class Prototype : public IStatementNode
 {
 public:
-	Vec<OwnPtr<ParameterDeclaration>> Parameters;
+	OwnPtr<ParameterList> Parameters;
 	OwnPtr<TypeDeclarator> ReturnType;
 	OwnPtr<TypeIdentifier> Name;
 
 	Prototype(
+		Span span,
 		OwnPtr<TypeIdentifier> Name,
 		OwnPtr<TypeDeclarator> ReturnType,
-		Vec<OwnPtr<ParameterDeclaration>>& Parms)
-		: Name(std::move(Name))
+		OwnPtr<ParameterList> Parms)
+		: IStatementNode(span)
+		, Name(std::move(Name))
 		, Parameters(std::move(Parms))
 		, ReturnType(std::move(ReturnType)){};
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 
-	const Vec<OwnPtr<ParameterDeclaration>>& get_parameters() const { return Parameters; }
+	const ParameterList* get_parameters() const { return Parameters.get(); }
 };
 } // namespace ast

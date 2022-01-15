@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../IExpressionNode.h"
-#include "../Type.h"
 #include "common/OwnPtr.h"
 
 namespace ast
@@ -13,11 +12,13 @@ class TypeDeclarator : public IExpressionNode
 	String name;
 
 public:
-	TypeDeclarator(String& name)
-		: name(name)
+	TypeDeclarator(Span span, String& name)
+		: IExpressionNode(span)
+		, name(name)
 	{}
-	TypeDeclarator(String&& name)
-		: name(name)
+	TypeDeclarator(Span span, String&& name)
+		: IExpressionNode(span)
+		, name(name)
 	{}
 
 	bool is_pointer_type() const { return !base.is_null(); }
@@ -30,7 +31,7 @@ public:
 		}
 		else
 		{
-			return base->get_name();
+			return name;
 		}
 	}
 
@@ -41,18 +42,21 @@ public:
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 
 private:
-	TypeDeclarator() {}
+	TypeDeclarator()
+		: IExpressionNode(Span{})
+	{}
 
-	TypeDeclarator(OwnPtr<TypeDeclarator> base)
-		: base(std::move(base))
+	TypeDeclarator(Span span, OwnPtr<TypeDeclarator> base)
+		: IExpressionNode(span)
+		, base(std::move(base))
 	{}
 
 public:
 	static OwnPtr<TypeDeclarator> Empty() { return new TypeDeclarator(); }
 
-	static OwnPtr<TypeDeclarator> PointerToTy(OwnPtr<TypeDeclarator> base)
+	static OwnPtr<TypeDeclarator> PointerToTy(Span span, OwnPtr<TypeDeclarator> base)
 	{
-		return new TypeDeclarator(std::move(base));
+		return new TypeDeclarator(span, std::move(base));
 	}
 };
 } // namespace ast

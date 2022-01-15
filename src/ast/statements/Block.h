@@ -10,9 +10,11 @@ class Block : public IStatementNode
 {
 public:
 	Vec<OwnPtr<IStatementNode>> statements;
-	Block(){};
-	Block(Vec<OwnPtr<IStatementNode>> stmts)
-		: statements(std::move(stmts))
+	Block()
+		: IStatementNode(Span{}){};
+	Block(Span span, Vec<OwnPtr<IStatementNode>> stmts)
+		: IStatementNode(span)
+		, statements(std::move(stmts))
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
