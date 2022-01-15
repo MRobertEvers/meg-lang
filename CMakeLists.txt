@@ -55,21 +55,15 @@ add_executable(sushi
     src/ast/type.h
     src/ast/type.cpp
     src/ast/expressions/BinOp.h
-    src/ast/expressions/BinOp.cpp
     src/ast/expressions/Identifier.h
     src/ast/expressions/MemberReference.h
     src/ast/statements/Let.h
     src/ast/expressions/Number.h
-    src/ast/expressions/Number.cpp
     src/ast/statements/If.h
     src/ast/statements/Block.h
-    src/ast/statements/Block.cpp
     src/ast/statements/Function.h
-    src/ast/statements/Function.cpp
     src/ast/statements/Prototype.h
-    src/ast/statements/Prototype.cpp
     src/ast/statements/Return.h
-    src/ast/statements/Return.cpp
     src/ast/statements/Struct.h
 )
 
