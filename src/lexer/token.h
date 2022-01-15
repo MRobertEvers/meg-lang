@@ -35,6 +35,7 @@ enum class TokenType
 	struct_keyword,
 	if_keyword,
 	else_keyword,
+	while_keyword,
 
 	eof,
 	bad,

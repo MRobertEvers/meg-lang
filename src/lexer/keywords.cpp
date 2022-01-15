@@ -18,7 +18,8 @@ KeywordIdentifierTuple keywords[] =
 	{"let", TokenType::let},
 	{"struct", TokenType::struct_keyword},
 	{"if", TokenType::if_keyword},
-	{"else", TokenType::else_keyword}
+	{"else", TokenType::else_keyword},
+	{"while", TokenType::while_keyword}
 	// clang-format off
 };
 // clang-format on
@@ -61,7 +62,8 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::colon, "colon"},
 	{TokenType::comma, "comma"},
 	{TokenType::fn, "fn"},
-	{TokenType::return_keyword, "return_keyword"},
+	{TokenType::return_keyword, "return"},
+	{TokenType::while_keyword, "while"},
 	{TokenType::let, "let"},
 	{TokenType::equal, "equal"},
 	{TokenType::struct_keyword, "struct"},

@@ -647,6 +647,40 @@ Codegen::visit(ast::Assign const* node)
 }
 
 void
+Codegen::visit(ast::While const* node)
+{
+	auto Function = current_scope->get_function();
+
+	BasicBlock* LoopConditionCheckBB = BasicBlock::Create(*Context, "loop_condition", Function);
+	BasicBlock* LoopBB = BasicBlock::Create(*Context, "loop");
+	BasicBlock* AfterLoopBB = BasicBlock::Create(*Context, "after_loop");
+
+	// Insert an explicit fall through from the current block to the LoopBB.
+	// TODO: I'm not sure why this is needed, but LLVM segfaults if its not there.
+	// Maybe it is doing some sort of graph analysis and implicit fallthrough on blocks
+	// is not allowed?
+	Builder->CreateBr(LoopConditionCheckBB);
+
+	Builder->SetInsertPoint(LoopConditionCheckBB);
+	node->condition->visit(this);
+	auto CondV = last_expr;
+	last_expr = nullptr;
+	if( !CondV )
+		return;
+
+	// TODO: Just require boolean for CondV
+	Builder->CreateCondBr(CondV, LoopBB, AfterLoopBB);
+
+	Function->getBasicBlockList().push_back(LoopBB);
+	Builder->SetInsertPoint(LoopBB);
+	node->loop_block->visit(this);
+	Builder->CreateBr(LoopConditionCheckBB);
+
+	Function->getBasicBlockList().push_back(AfterLoopBB);
+	Builder->SetInsertPoint(AfterLoopBB);
+}
+
+void
 Codegen::pop_scope()
 {
 	auto parent_scope = current_scope->get_parent();

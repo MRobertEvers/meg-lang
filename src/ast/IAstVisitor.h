@@ -17,6 +17,7 @@ class Struct;
 class If;
 class MemberReference;
 class Assign;
+class While;
 } // namespace ast
 
 class IAstVisitor
@@ -37,4 +38,5 @@ public:
 	virtual void visit(ast::TypeDeclarator const*) = 0;
 	virtual void visit(ast::If const*) = 0;
 	virtual void visit(ast::Assign const*) = 0;
+	virtual void visit(ast::While const*) = 0;
 };

@@ -16,3 +16,4 @@
 #include "statements/Prototype.h"
 #include "statements/Return.h"
 #include "statements/Struct.h"
+#include "statements/While.h"

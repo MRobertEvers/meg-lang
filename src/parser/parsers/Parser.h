@@ -46,6 +46,7 @@ private:
 	ParseResult<IExpressionNode> parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS);
 	ParseResult<Assign> parse_assign(OwnPtr<IExpressionNode> lhs);
 	ParseResult<IStatementNode> parse_expr_statement();
+	ParseResult<While> parse_while();
 	ParseResult<IStatementNode> parse_statement();
 
 	ParseResult<If> parse_if();

@@ -14,5 +14,9 @@ fn func(s: my_struct*): i32 {
         a = 5;
     }
 
+    while (80 > a) {
+        a = a + 1;
+    }
+
     return (s.b.n + (a) * 5);
 }

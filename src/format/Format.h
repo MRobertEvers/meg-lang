@@ -19,4 +19,5 @@ public:
 	virtual void visit(ast::TypeDeclarator const*) override;
 	virtual void visit(ast::If const*) override;
 	virtual void visit(ast::Assign const*) override;
+	virtual void visit(ast::While const*) override;
 };

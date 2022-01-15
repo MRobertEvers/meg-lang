@@ -405,6 +405,41 @@ Parser::parse_expr_statement()
 	}
 }
 
+ParseResult<While>
+Parser::parse_while()
+{
+	auto tok = cursor.consume(TokenType::while_keyword);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected while keyword", tok.as());
+	}
+
+	auto open_paren_tok = cursor.consume_if_expected(TokenType::open_paren);
+
+	auto condition = parse_expr();
+	if( !condition.ok() )
+	{
+		return condition;
+	}
+
+	if( open_paren_tok.ok() )
+	{
+		tok = cursor.consume(TokenType::close_paren);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected ')'", tok.as());
+		}
+	}
+
+	auto loop_block = parse_statement();
+	if( !loop_block.ok() )
+	{
+		return loop_block;
+	}
+
+	return While{condition.unwrap(), loop_block.unwrap()};
+}
+
 ParseResult<IStatementNode>
 Parser::parse_statement()
 {
@@ -427,6 +462,19 @@ Parser::parse_statement()
 		stmt = Return{return_expr.unwrap()};
 		break;
 	}
+	case TokenType::while_keyword:
+	{
+		auto expr = parse_while();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+
+		goto no_semi;
+	}
+	break;
 	case TokenType::let:
 	{
 		auto expr = parse_let();

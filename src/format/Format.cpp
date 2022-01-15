@@ -155,3 +155,7 @@ Format::visit(ast::If const* node)
 void
 Format::visit(ast::Assign const* node)
 {}
+
+void
+Format::visit(ast::While const* node)
+{}
