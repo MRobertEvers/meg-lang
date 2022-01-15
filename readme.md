@@ -17,7 +17,7 @@ postfix_expr_tail := "[" expr "]"
                     | "--"
 ```
 
-In this branch, only '.' is implemented. 
+In this branch, only '.' and function call is implemented. 
 
 Additionally handling parenthized expressions was added.
 
@@ -86,6 +86,7 @@ LValueness is a property of the expression, not the type. In addition to types, 
 
 For now lets ignore this.
 
+In this branch, function call expressions and while loops are added.
 
 
 # Building
