@@ -173,6 +173,14 @@ clang++ test.cpp output.o -o test
 
 >>> 3
 ```
+## TODO
+
+1. Move type checking out of parser
+2. Pretty print from AST
+3. Code generation only on HIR
+4. Add debug information
+5. Add syntax highlighting in vscode
+6. Compiler explorer addon
 
 # Notes
 

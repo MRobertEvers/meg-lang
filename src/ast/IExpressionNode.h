@@ -11,8 +11,6 @@ class IExpressionNode : public IStatementNode
 {
 public:
 	virtual ~IExpressionNode() = default;
-
-	virtual Type const& get_type() const = 0;
 };
 } // namespace ast
 

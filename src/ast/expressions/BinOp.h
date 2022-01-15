@@ -16,8 +16,5 @@ public:
 	{}
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
-
-	// TODO: RHS and LHS must have same type.
-	Type const& get_type() const override { return RHS->get_type(); }
 };
 } // namespace ast

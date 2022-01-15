@@ -6,29 +6,28 @@
 
 using namespace ast;
 
-class ParseScope
-{
-	ParseScope* parent = nullptr;
+// class ParseScope
+// {
+// 	ParseScope* parent = nullptr;
 
-	std::map<String, Type const*> names;
+// 	std::map<String, Type const*> names;
 
-public:
-	ParseScope(){};
-	ParseScope(ParseScope* parent)
-		: parent(parent){};
+// public:
+// 	ParseScope(){};
+// 	ParseScope(ParseScope* parent)
+// 		: parent(parent){};
 
-	void add_name(String const& name, Type const* type);
-	Type const* get_type_for_name(String const& name);
+// 	void add_name(String const& name, Type const* type);
+// 	Type const* get_type_for_name(String const& name);
 
-	ParseScope* get_parent() { return parent; }
+// 	ParseScope* get_parent() { return parent; }
 
-	static ParseScope* CreateDefault();
-};
+// 	static ParseScope* CreateDefault();
+// };
 
 class Parser
 {
 	TokenCursor& cursor;
-	ParseScope* current_scope = nullptr;
 
 public:
 	Parser(TokenCursor& cursor);
@@ -65,6 +64,6 @@ private:
 	ParseResult<Function> parse_function();
 	ParseResult<Block> parse_function_body();
 
-	void pop_scope();
-	void new_scope();
+	// void pop_scope();
+	// void new_scope();
 };

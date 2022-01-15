@@ -15,8 +15,6 @@ namespace ast
  */
 class Call : public IExpressionNode
 {
-	Type const& type;
-
 public:
 	Vec<OwnPtr<IExpressionNode>> args;
 	OwnPtr<TypeIdentifier> name = nullptr;
@@ -24,10 +22,7 @@ public:
 	Call(OwnPtr<TypeIdentifier> name, Vec<OwnPtr<IExpressionNode>>& args)
 		: name(std::move(name))
 		, args(std::move(args))
-		, type(name->get_type())
 	{}
-
-	Type const& get_type() const override { return type; }
 
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 };

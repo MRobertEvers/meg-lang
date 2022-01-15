@@ -86,13 +86,13 @@ Format::visit(ast::Prototype const* node)
 void
 Format::visit(ast::ValueIdentifier const* node)
 {
-	std::cout << node->get_fqn();
+	std::cout << node->get_name();
 }
 
 void
 Format::visit(ast::TypeIdentifier const* node)
 {
-	std::cout << node->get_fqn();
+	std::cout << node->get_name();
 }
 
 void
@@ -145,7 +145,7 @@ Format::visit(ast::TypeDeclarator const* node)
 	{
 		base->visit(this);
 	}
-	std::cout << node->get_fqn();
+	std::cout << node->get_name();
 }
 
 void
