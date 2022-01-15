@@ -4,6 +4,7 @@
 #include "IStatementNode.h"
 #include "Module.h"
 #include "expressions/BinOp.h"
+#include "expressions/Call.h"
 #include "expressions/Identifier.h"
 #include "expressions/MemberReference.h"
 #include "expressions/Number.h"

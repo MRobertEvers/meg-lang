@@ -52,6 +52,8 @@ private:
 	ParseResult<If> parse_if();
 	ParseResult<IExpressionNode> parse_literal();
 	ParseResult<ValueIdentifier> parse_identifier();
+	ParseResult<Vec<OwnPtr<IExpressionNode>>> parse_value_list();
+	ParseResult<Call> parse_call(OwnPtr<IExpressionNode> base);
 	ParseResult<MemberReference> parse_member_reference(OwnPtr<IExpressionNode> base);
 	// ParseResult<MemberReference> parse_function_call();
 	ParseResult<IExpressionNode> parse_simple_expr();

@@ -15,10 +15,17 @@ class IdentifierValue
 public:
 	ast::Identifier* identifier = nullptr;
 
-	bool is_type_name = false;
+	enum class IdentifierType
+	{
+		struct_type,
+		function_type,
+		value
+	} type = IdentifierType::value;
 	union Data
 	{
 		llvm::AllocaInst* Value;
+
+		llvm::Function* Function;
 
 		// Accompanys TypeTy;
 		struct TypeIdentifierValue
@@ -31,6 +38,9 @@ public:
 				, type_struct(type_struct){};
 		} type;
 
+		Data(llvm::Function* Function)
+			: Function(Function)
+		{}
 		Data(llvm::AllocaInst* Value)
 			: Value(Value)
 		{}
@@ -45,8 +55,13 @@ public:
 
 	IdentifierValue(ast::Identifier* identifier, llvm::Type* TypeTy, ast::Struct const* type_struct)
 		: identifier(identifier)
-		, is_type_name(true)
+		, type(IdentifierType::struct_type)
 		, data(TypeTy, type_struct){};
+
+	IdentifierValue(ast::Identifier* identifier, llvm::Function* Function)
+		: identifier(identifier)
+		, type(IdentifierType::function_type)
+		, data(Function){};
 };
 
 class Scope
@@ -103,6 +118,7 @@ public:
 	virtual void visit(ast::If const*) override;
 	virtual void visit(ast::Assign const*) override;
 	virtual void visit(ast::While const*) override;
+	virtual void visit(ast::Call const*) override;
 
 private:
 	void pop_scope();

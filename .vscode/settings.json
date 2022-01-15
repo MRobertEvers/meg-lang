@@ -80,7 +80,8 @@
         "iomanip": "cpp",
         "filesystem": "cpp",
         "fstream": "cpp",
-        "__functional_base_03": "cpp"
+        "__functional_base_03": "cpp",
+        "unordered_set": "cpp"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

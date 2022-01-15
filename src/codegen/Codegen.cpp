@@ -119,7 +119,8 @@ Codegen::get_type(ast::Type const& type)
 	if( !BaseType )
 	{
 		auto type_identifier = current_scope->get_identifier(base_type->name);
-		if( !type_identifier || !type_identifier->is_type_name )
+		if( !type_identifier ||
+			type_identifier->type != IdentifierValue::IdentifierType::struct_type )
 		{
 			std::cout << "Expected type name but got value name" << std::endl;
 			return nullptr;
@@ -364,6 +365,8 @@ Codegen::visit(ast::Prototype const* node)
 		Arg.setName(node->Parameters[Idx++]->Name->get_fqn());
 
 	Functions.insert(std::make_pair(Name, F));
+
+	current_scope->add_named_value(Name, IdentifierValue{node->Name.get(), F});
 }
 
 void
@@ -389,7 +392,7 @@ Codegen::visit(ast::ValueIdentifier const* node)
 
 	auto value_identifier = current_scope->get_identifier(node->get_fqn());
 
-	if( value_identifier->is_type_name )
+	if( value_identifier->type != IdentifierValue::IdentifierType::value )
 	{
 		std::cout << "Unexpected type name" << std::endl;
 		return;
@@ -514,7 +517,7 @@ Codegen::visit(ast::MemberReference const* node)
 	auto StructName = PointedToType->getStructName();
 	auto struct_name_str = String{StructName.data()};
 	auto as_struct_id_val = current_scope->get_identifier(struct_name_str);
-	if( !as_struct_id_val->is_type_name )
+	if( as_struct_id_val->type != IdentifierValue::IdentifierType::struct_type )
 	{
 		std::cout << "???" << std::endl;
 		return;
@@ -678,6 +681,58 @@ Codegen::visit(ast::While const* node)
 
 	Function->getBasicBlockList().push_back(AfterLoopBB);
 	Builder->SetInsertPoint(AfterLoopBB);
+}
+
+void
+Codegen::visit(ast::Call const* node)
+{
+	auto name = node->name->get_fqn();
+	auto function = current_scope->get_identifier(name);
+
+	if( !function || function->type != IdentifierValue::IdentifierType::function_type )
+	{
+		std::cout << "Expected function name" << std::endl;
+		return;
+	}
+
+	auto Function = function->data.Function;
+	if( node->args.size() != Function->arg_size() )
+	{
+		std::cout << "Wrong no args" << std::endl;
+		return;
+	}
+
+	unsigned int idx = 0;
+	for( auto& Param : Function->args() )
+	{
+		auto ParamType = Param.getType();
+
+		auto ArgType = get_type(node->args[idx]->get_type());
+		if( ArgType == nullptr || ArgType != ParamType )
+		{
+			std::cout << "Unknown arg type" << std::endl;
+			return;
+		}
+		idx++;
+	}
+
+	std::vector<Value*> ArgsV;
+	for( unsigned i = 0, e = node->args.size(); i != e; ++i )
+	{
+		node->args[i]->visit(this);
+		auto Expr = last_expr;
+		last_expr = nullptr;
+		if( !Expr )
+		{
+			std::cout << "Expected expr in arg" << std::endl;
+			return;
+		}
+
+		Expr = promote_to_value(Expr);
+		ArgsV.push_back(Expr);
+	}
+
+	last_expr = Builder->CreateCall(Function, ArgsV, "call");
 }
 
 void

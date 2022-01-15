@@ -650,6 +650,58 @@ Parser::parse_identifier()
 	}
 }
 
+ParseResult<Vec<OwnPtr<IExpressionNode>>>
+Parser::parse_value_list()
+{
+	Vec<OwnPtr<IExpressionNode>> result;
+
+	Token curr_tok = cursor.peek();
+	while( curr_tok.type != TokenType::close_paren )
+	{
+		auto expr = parse_expr();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		result.emplace_back(expr.unwrap());
+
+		// Also catches trailing comma.
+		cursor.consume_if_expected(TokenType::comma);
+		curr_tok = cursor.peek();
+	}
+
+	return result;
+}
+
+ParseResult<Call>
+Parser::parse_call(OwnPtr<IExpressionNode> base)
+{
+	auto tok = cursor.consume(TokenType::open_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '('", tok.as());
+	}
+
+	auto args = parse_value_list();
+	if( !args.ok() )
+	{
+		return args;
+	}
+
+	tok = cursor.consume(TokenType::close_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ')'", tok.as());
+	}
+
+	auto type_identifier = TypeIdentifier{base->get_type().name};
+	auto own = args.unwrap();
+	auto own_ptr = own.get();
+	own.release();
+	return Call{type_identifier, *own_ptr};
+}
+
 // TODO: Anything that takes an existing expr pointer by value and might fail will result
 // in that node getting deleted... which is not what we want.
 ParseResult<MemberReference>
@@ -747,7 +799,11 @@ Parser::parse_postfix_expr()
 			}
 			break;
 		case TokenType::open_paren:
-			// Function call
+			expr = parse_call(expr.unwrap());
+			if( !expr.ok() )
+			{
+				return expr;
+			}
 			break;
 		default:
 			goto done;
@@ -891,11 +947,14 @@ Parser::parse_function()
 	}
 
 	auto proto = parse_function_proto();
+
+	current_scope->get_parent()->add_name(
+		proto.as()->Name->get_fqn(), &proto.as()->Name->get_type());
+
 	if( !proto.ok() )
 	{
 		return proto;
 	}
-
 	// TODO: Pass in proto to check return type
 	auto definition = parse_function_body();
 	if( !definition.ok() )
