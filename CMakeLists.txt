@@ -44,10 +44,14 @@ add_executable(sushi
     src/common/OwnPtr.h
     src/common/Vec.h
     src/common/String.h
-    src/format/Format.h
-    src/format/Format.cpp
-    src/format/FormatLine.h
-    src/format/FormatLine.cpp
+    src/format/FormatParser.h
+    src/format/FormatParser.cpp
+    src/format/NodeFormatter.h
+    src/format/NodeFormatter.cpp
+    src/format/NodeSpan.h
+    src/format/NodeSpan.cpp
+    src/format/pretty_print_ast.h
+    src/format/pretty_print_ast.cpp
     # src/codegen/Codegen.h
     # src/codegen/Codegen.cpp
     src/parser/ParseResult.h

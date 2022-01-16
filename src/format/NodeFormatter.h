@@ -1,24 +1,22 @@
 #pragma once
-#include "FormatLine.h"
+#include "NodeSpan.h"
+#include "ast/IAstNode.h"
 #include "ast/IAstVisitor.h"
+#include "common/String.h"
+#include "common/Vec.h"
 #include "lexer/token.h"
 
-/**
- * @brief Performs formatting on AST
- *
- * Internally, this breaks the AST into a separate Span representation
- * then outputs the lines.
- *
- */
-class Format : public IAstVisitor
+class NodeFormatter : public IAstVisitor
 {
-	Vec<Token> const& source;
-
-	Vec<LineSpan> lines;
+	Vec<Vec<NodeSpan>> result;
+	Vec<Token> const* source = nullptr;
 
 public:
-	Format(Vec<Token> const& source);
-	~Format();
+	NodeFormatter(Vec<Token> const* source)
+		: source(source){};
+
+	Vec<Vec<NodeSpan>> break_node(ast::IAstNode const* node);
+
 	virtual void visit(ast::Module const*) override;
 	virtual void visit(ast::Function const*) override;
 	virtual void visit(ast::Block const*) override;

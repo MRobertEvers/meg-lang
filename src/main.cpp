@@ -1,6 +1,6 @@
 #include "ast/ast.h"
 #include "common/OwnPtr.h"
-#include "format/Format.h"
+#include "format/pretty_print_ast.h"
 #include "lexer/Lexer.h"
 #include "lexer/TokenCursor.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -29,12 +29,10 @@ gen_code(std::vector<Token> const& tokens)
 	Parser parse{cursor};
 	auto mod_result = parse.parse_module();
 
-	Format fm{tokens};
-
 	if( mod_result.ok() )
 	{
 		auto mod = mod_result.unwrap();
-		mod->visit(&fm);
+		pretty_print_ast(tokens, mod.get());
 		// mod->visit(&cg);
 	}
 	else
