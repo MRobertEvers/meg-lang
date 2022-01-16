@@ -46,6 +46,8 @@ add_executable(sushi
     src/common/String.h
     src/format/Format.h
     src/format/Format.cpp
+    src/format/FormatLine.h
+    src/format/FormatLine.cpp
     # src/codegen/Codegen.h
     # src/codegen/Codegen.cpp
     src/parser/ParseResult.h

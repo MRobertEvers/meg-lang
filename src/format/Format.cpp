@@ -1,6 +1,7 @@
 #include "Format.h"
 
 #include "../ast/ast.h"
+#include "FormatLine.h"
 
 #include <iomanip>
 #include <iostream>
@@ -9,13 +10,16 @@ Format::Format(Vec<Token> const& source)
 	: source(source)
 {}
 
+Format::~Format()
+{}
+
 void
 Format::visit(ast::Module const* node)
 {
-	for( auto const& s : node->statements )
-	{
-		s->visit(this);
-	}
+	GatherIntoLines g;
+	auto lines = g.gather_into_lines(node);
+
+	std::cout << lines.size() << std::endl;
 }
 
 void

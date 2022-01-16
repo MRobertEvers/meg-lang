@@ -35,7 +35,7 @@ public:
 		}
 	}
 
-	bool is_empty() const { return !name.empty(); }
+	bool is_empty() const { return name.empty(); }
 
 	TypeDeclarator const* get_base() const { return base.get(); }
 

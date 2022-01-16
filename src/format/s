@@ -1,0 +1,245 @@
+
+void
+BreakNode::visit(ast::Module const* node)
+{
+	OpaqueScope scope{*this, node};
+
+	for( auto const& s : node->statements )
+	{
+		s->visit(this);
+	}
+}
+
+void
+BreakNode::visit(ast::Function const* node)
+{
+	OpaqueScope scope{*this, node};
+
+	node->Proto->visit(this);
+
+	node->Body->visit(this);
+}
+
+void
+BreakNode::visit(ast::Block const* node)
+{
+	OpaqueScope scope{*this, node};
+
+	append_span(LineSpan{0, "{\n"});
+
+	for( auto& stmt : node->statements )
+	{
+		stmt->visit(this);
+	}
+}
+
+void
+BreakNode::visit(ast::BinaryOperation const* node)
+{
+	OpaqueScope scope{*this, node};
+	node->LHS->visit(this);
+
+	append_span(LineSpan{0, "*"});
+	node->RHS->visit(this);
+}
+
+void
+BreakNode::visit(ast::Number const* node)
+{
+	OpaqueScope scope{*this, node};
+	append_span(LineSpan{0, std::to_string(node->Val)});
+}
+
+void
+BreakNode::visit(ast::Return const* node)
+{
+	OpaqueScope scope{*this, node};
+	append_span(LineSpan{0, "return "});
+
+	node->ReturnExpr->visit(this);
+	append_span(LineSpan{0, ";\n"});
+}
+
+void
+BreakNode::visit(ast::Prototype const* node)
+{
+	OpaqueScope scope{*this, node, 3};
+
+	append_span(LineSpan{0, "fn"});
+	node->Name->visit(this);
+	append_span(LineSpan{0, "("});
+
+	auto& args = node->get_parameters()->Parameters;
+
+	for( int i = 0; i < args.size(); i++ )
+	{
+		auto& arg = args[i];
+
+		arg->Name->visit(this);
+
+		append_span(LineSpan{0, ": "});
+
+		arg->Type->visit(this);
+
+		if( i != args.size() - 1 )
+		{
+			append_span(LineSpan{0, ", "});
+		}
+	}
+
+	append_span(LineSpan{0, "): "});
+
+	node->ReturnType->visit(this);
+}
+
+void
+BreakNode::visit(ast::ValueIdentifier const* node)
+{
+	OpaqueScope scope{*this, node};
+	append_span(LineSpan{0, node->get_name()});
+}
+
+void
+BreakNode::visit(ast::TypeIdentifier const* node)
+{
+	OpaqueScope scope{*this, node};
+	append_span(LineSpan{0, node->get_name()});
+}
+
+void
+BreakNode::visit(ast::Let const* node)
+{
+	OpaqueScope scope{*this, node, 2};
+	append_span(LineSpan{0, "let "});
+
+	node->Name->visit(this);
+	if( !node->Type->is_empty() )
+	{
+		append_span(LineSpan{0, ": "});
+		node->Type->visit(this);
+	}
+
+	append_span(LineSpan{0, " = "});
+
+	node->RHS->visit(this);
+
+	append_span(LineSpan{0, ";\n"});
+}
+
+void
+BreakNode::visit(ast::Struct const* node)
+{
+	OpaqueScope scope{*this, node};
+	append_span(LineSpan{0, "struct "});
+
+	node->TypeName->visit(this);
+	append_span(LineSpan{0, " {\n"});
+
+	for( auto& m : node->MemberVariables )
+	{
+		m->Name->visit(this);
+
+		append_span(LineSpan{0, ": "});
+
+		m->Type->visit(this);
+
+		append_span(LineSpan{0, ";\n"});
+	}
+
+	append_span(LineSpan{0, "}"});
+}
+
+void
+BreakNode::visit(ast::MemberReference const* node)
+{
+	OpaqueScope scope{*this, node, 1};
+	node->base->visit(this);
+	append_span(LineSpan{0, "."});
+	node->name->visit(this);
+}
+
+void
+BreakNode::visit(ast::TypeDeclarator const* node)
+{
+	OpaqueScope scope{*this, node};
+	auto base = node->get_base();
+	if( base )
+	{
+		base->visit(this);
+	}
+	append_span(LineSpan{0, node->get_name()});
+}
+
+void
+BreakNode::visit(ast::If const* node)
+{
+	OpaqueScope scope{*this, node};
+	append_span(LineSpan{0, "if "});
+
+	node->condition->visit(this);
+	node->then_block->visit(this);
+
+	if( !node->else_block.is_null() )
+	{
+		append_span(LineSpan{0, "else "});
+
+		node->else_block->visit(this);
+	}
+}
+
+void
+BreakNode::visit(ast::Assign const* node)
+{
+	OpaqueScope scope{*this, node};
+	node->lhs->visit(this);
+	append_span(LineSpan{0, " = "});
+
+	node->rhs->visit(this);
+	append_span(LineSpan{0, ";\n"});
+}
+
+void
+BreakNode::visit(ast::While const* node)
+{
+	OpaqueScope scope{*this, node};
+	append_span(LineSpan{0, "while "});
+
+	node->condition->visit(this);
+	node->loop_block->visit(this);
+}
+
+void
+BreakNode::visit(ast::Call const* node)
+{
+	OpaqueScope scope{*this, node};
+	node->call_target->visit(this);
+	append_span(LineSpan{0, "("});
+
+	auto& args = node->args.args;
+	for( int i = 0; i < args.size(); i++ )
+	{
+		auto& arg = args[i];
+		arg->visit(this);
+
+		if( i != args.size() - 1 )
+		{
+			append_span(LineSpan{0, ","});
+		}
+	}
+
+	append_span(LineSpan{0, ")"});
+}
+
+void
+BreakNode::visit(ast::Statement const* node)
+{
+	OpaqueScope scope{*this, node};
+	node->stmt->visit(this);
+}
+
+void
+BreakNode::visit(ast::Expression const* node)
+{
+	OpaqueScope scope{*this, node};
+	node->base->visit(this);
+}

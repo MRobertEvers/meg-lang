@@ -145,12 +145,11 @@ Parser::parse_let()
 		return ParseError("Expected 'let'", tok.as());
 	}
 
-	tok = cursor.consume(TokenType::identifier);
-	if( !tok.ok() )
+	auto identifier = parse_identifier();
+	if( !identifier.ok() )
 	{
-		return ParseError("Expected identifier", tok.as());
+		return identifier;
 	}
-	auto name_tok = tok;
 
 	tok = cursor.consume(TokenType::colon, TokenType::equal);
 	if( !tok.ok() )
@@ -159,30 +158,26 @@ Parser::parse_let()
 	}
 
 	auto type_decl = TypeDeclarator::Empty();
-	if( tok.as().type == TokenType::colon )
+	if( tok.unwrap().type == TokenType::colon )
 	{
-		auto type_result = parse_type_decl(true);
-		if( !type_result.ok() )
+		auto type_decl_result = parse_type_decl(true);
+		if( !type_decl_result.ok() )
 		{
-			return type_result;
+			return type_decl_result;
 		}
 
-		type_decl = type_result.unwrap();
+		type_decl = type_decl_result.unwrap();
 	}
 
 	cursor.consume_if_expected(TokenType::equal);
 
-	auto expr_result = parse_expr();
-	if( !expr_result.ok() )
+	auto expr = parse_expr();
+	if( !expr.ok() )
 	{
-		return expr_result;
+		return expr;
 	}
 
-	auto expr = expr_result.unwrap();
-
-	auto name = to_value_identifier(name_tok, trail.mark());
-
-	return ast::Let{trail.mark(), std::move(name), std::move(type_decl), std::move(expr)};
+	return ast::Let{trail.mark(), identifier.unwrap(), std::move(type_decl), expr.unwrap()};
 }
 
 ParseResult<Block>
@@ -589,10 +584,13 @@ Parser::parse_if()
 			return else_block_result;
 		}
 
-		else_block = else_block_result.unwrap();
+		return If{
+			trail.mark(), condition.unwrap(), then_block.unwrap(), else_block_result.unwrap()};
 	}
-
-	return If{trail.mark(), condition.unwrap(), then_block.unwrap(), std::move(else_block)};
+	else
+	{
+		return If{trail.mark(), condition.unwrap(), then_block.unwrap()};
+	}
 }
 
 ParseResult<IExpressionNode>
@@ -787,7 +785,7 @@ Parser::parse_simple_expr()
 	}
 
 	default:
-		return ParseError("Expected simple expression.");
+		return ParseError("Expected simple expression.", tok);
 	}
 
 	return Expression{trail.mark(), std::move(result)};
