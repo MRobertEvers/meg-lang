@@ -254,6 +254,19 @@ GatherIntoLines::visit(ast::Function const* node)
 	node->Proto->visit(this);
 
 	node->Body->visit(this);
+
+	if( source )
+	{
+		auto ast_span = node->get_span();
+		if( ast_span.size > 0 )
+		{
+			auto token = source->at(ast_span.start + ast_span.size - 1);
+			if( token.num_trailing_newlines != 0 )
+			{
+				append_span(LineSpan{0, "\n"});
+			}
+		}
+	}
 }
 
 void
@@ -392,6 +405,8 @@ GatherIntoLines::visit(ast::Struct const* node)
 	}
 
 	append_span(LineSpan{0, "}\n"});
+
+	append_newline_if_source(node);
 }
 
 void
@@ -470,7 +485,7 @@ GatherIntoLines::visit(ast::Call const* node)
 
 		if( i != args.size() - 1 )
 		{
-			append_span(LineSpan{0, ","});
+			append_span(LineSpan{0, ", "});
 		}
 	}
 
@@ -482,6 +497,8 @@ GatherIntoLines::visit(ast::Statement const* node)
 {
 	OpaqueScope scope{*this, node};
 	node->stmt->visit(this);
+
+	append_newline_if_source(node);
 }
 
 void
@@ -494,6 +511,7 @@ GatherIntoLines::visit(ast::Expression const* node)
 void
 GatherIntoLines::append_span(LineSpan span)
 {
+	printed_source_newline = false;
 	if( need_indent )
 	{
 		current_line.append_span(LineSpan{0, String(current_indentation * 4, ' ')});
@@ -508,10 +526,37 @@ GatherIntoLines::append_span(LineSpan span)
 	}
 }
 
+/**
+ * @brief
+ * Depending on where this is called, a new line is already expected to be emitted,
+ * so we only need to respect additional source line new lines
+ *
+ * @param node
+ * @param threshold
+ */
+void
+GatherIntoLines::append_newline_if_source(ast::IAstNode const* node, int threshold)
+{
+	if( source && !printed_source_newline )
+	{
+		auto ast_span = node->get_span();
+		if( ast_span.size > 0 )
+		{
+			auto token = source->at(ast_span.start + ast_span.size - 1);
+			if( token.num_trailing_newlines > threshold )
+			{
+				append_span(LineSpan{0, "\n"});
+				printed_source_newline = true;
+			}
+		}
+	}
+}
+
 LineSpan
 GatherIntoLines::get_span(ast::IAstNode const* node, int indentation)
 {
 	GatherIntoLines g{indentation};
+	g.need_indent = indentation != 0;
 	node->visit(&g);
 
 	return g.current_line.children[0];

@@ -233,9 +233,15 @@ class GatherIntoLines : public IAstVisitor
 	LineSpan current_line{0, nullptr};
 
 	int current_indentation = 0;
-	bool need_indent;
+	bool need_indent = false;
+	Vec<Token> const* source = nullptr;
+
+	bool printed_source_newline = false;
 
 public:
+	GatherIntoLines(Vec<Token> const* source)
+		: source(source){};
+
 	GatherIntoLines(int current_indentation = 0)
 		: current_indentation(current_indentation){};
 
@@ -262,6 +268,8 @@ public:
 	virtual void visit(ast::Expression const*) override;
 
 	void append_span(LineSpan span);
+
+	void append_newline_if_source(ast::IAstNode const* node, int threshold = 1);
 
 	static LineSpan get_span(ast::IAstNode const* node, int indentation = 0);
 };

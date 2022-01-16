@@ -16,7 +16,7 @@ Format::~Format()
 void
 Format::visit(ast::Module const* node)
 {
-	GatherIntoLines g;
+	GatherIntoLines g{&source};
 	auto lines = g.gather_into_lines(node);
 
 	std::cout << lines.size() << std::endl;
