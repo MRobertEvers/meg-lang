@@ -117,12 +117,17 @@ pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
 {
 	int max_line_len = 5;
 
+	// This span is the owning span.
 	auto span = FormatParser::get_span(&source, node);
 
 	Vec<Vec<NodeSpan*>> next_lines = break_into_lines(&span);
 
 	NodeFormatter fmt{&source};
 
+	// This contains a list of spans created in the process
+	// of breaking up lines. TODO: Clean this whole thing up
+	// so we don't have to do this.
+	Vec<NodeSpan> gc_spans;
 	Vec<Vec<NodeSpan*>> current_lines{};
 	bool did_break = false;
 	do
@@ -177,7 +182,8 @@ pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
 						Vec<NodeSpan*> follow;
 						for( ; iter != broken_node_lines[0].end(); ++iter )
 						{
-							line_partial_front.push_back(new NodeSpan{*iter});
+							gc_spans.emplace_back(*iter);
+							line_partial_front.push_back(&gc_spans.back());
 						}
 					}
 
@@ -192,7 +198,8 @@ pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
 							Vec<NodeSpan*> ll;
 							for( auto& sp : *iter )
 							{
-								ll.push_back(new NodeSpan{sp});
+								gc_spans.emplace_back(sp);
+								ll.push_back(&gc_spans.back());
 							}
 							next_lines.push_back(ll);
 						}
