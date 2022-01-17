@@ -24,14 +24,6 @@ NodeSpan::is_break() const
 	}
 }
 
-int
-NodeSpan::get_length() const
-{
-	int len = 0;
-
-	return len;
-}
-
 NodeSpan
 NodeSpan::Text(String text)
 {
@@ -69,15 +61,10 @@ NodeSpan::Indent()
 }
 
 NodeSpan
-NodeSpan::Dedent()
-{
-	return SpanType::dedent;
-}
-
-NodeSpan
 NodeSpan::LineSuffix(String text)
 {
 	NodeSpan line_suffix = SpanType::line_suffix;
+	line_suffix.append_span(" ");
 	line_suffix.append_span(text);
 	return line_suffix;
 }

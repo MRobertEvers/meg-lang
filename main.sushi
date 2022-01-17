@@ -11,7 +11,9 @@ fn callable(a: i32, b: i32): i32 {
     return a + b;
 }
 
-fn func(s: my_struct*): i32 {
+fn func(s:
+ my_struct*): i32 // This is my comment
+{
     let a = s.a;
 
     if (a > 5) {

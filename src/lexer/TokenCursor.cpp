@@ -9,9 +9,16 @@ TokenCursor::has_tokens() const
 }
 
 Token
-TokenCursor::peek() const
+TokenCursor::peek(int index) const
 {
-	return _tokens[_index];
+	if( index != -1 )
+	{
+		return _tokens[index];
+	}
+	else
+	{
+		return _tokens[_index];
+	}
 }
 
 ConsumeResult
@@ -59,11 +66,20 @@ TokenCursor::consume(std::initializer_list<TokenType> expecteds)
 }
 
 Token const*
-TokenCursor::next_token() const
+TokenCursor::next_token()
 {
 	if( _index >= _tokens.size() )
 	{
 		return nullptr;
+	}
+
+	while( _tokens[_index].type == TokenType::line_comment )
+	{
+		_index++;
+		if( _index >= _tokens.size() )
+		{
+			return nullptr;
+		}
 	}
 
 	return &_tokens[_index];

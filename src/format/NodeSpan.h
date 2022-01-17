@@ -3,6 +3,10 @@
 #include "common/String.h"
 #include "common/Vec.h"
 
+/**
+ * @brief Represents a single node in the "Formatting AST".
+ *
+ */
 class NodeSpan
 {
 	bool contains_break = false;
@@ -45,7 +49,6 @@ public:
 	void append_span(NodeSpan span);
 
 	bool is_break() const;
-	int get_length() const;
 
 public:
 	static NodeSpan Text(String text);
@@ -54,7 +57,6 @@ public:
 	static NodeSpan HardLine();
 	static NodeSpan Document();
 	static NodeSpan Indent();
-	static NodeSpan Dedent();
 	static NodeSpan LineSuffix(String text);
 	static NodeSpan Group();
 };

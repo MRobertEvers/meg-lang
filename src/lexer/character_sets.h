@@ -2,7 +2,7 @@
 
 // clang-format off
 #define CHAR_WHITESPACE_CASES \
-    ' ': \ 
+    ' ':  \
     case '\n': \
     case '\r': \
     case '\t'

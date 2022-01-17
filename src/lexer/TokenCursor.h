@@ -35,7 +35,7 @@ class TokenCursor
 	int _index;
 
 private:
-	Token const* next_token() const;
+	Token const* next_token();
 
 public:
 	TokenCursor(std::vector<Token> const& toks)
@@ -45,7 +45,7 @@ public:
 	int get_index() const { return _index; }
 
 	bool has_tokens() const;
-	Token peek() const;
+	Token peek(int index = -1) const;
 
 	ConsumeResult consume_if_expected(TokenType expected);
 

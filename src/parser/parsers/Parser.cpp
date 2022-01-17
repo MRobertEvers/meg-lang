@@ -34,56 +34,6 @@ to_type_identifier(ConsumeResult const& tok_res, Span span)
 	return TypeIdentifier{span, String{tok.start, tok.size}};
 }
 
-Span
-ParseTrail::mark()
-{
-	size = cursor.get_index() - start;
-
-	return Span{start, size};
-}
-
-// void
-// ParseScope::add_name(String const& name, Type const* type)
-// {
-// 	// names.insert(std::make_pair(name, type));
-// }
-
-// Type const*
-// ParseScope::get_type_for_name(String const& name)
-// {
-// 	// auto find_iter = names.find(name);
-// 	// if( find_iter == names.end() )
-// 	// {
-// 	// 	if( parent != nullptr )
-// 	// 	{
-// 	// 		return parent->get_type_for_name(name);
-// 	// 	}
-// 	// 	else
-// 	// 	{
-// 	// 		return nullptr;
-// 	// 	}
-// 	// }
-// 	// else
-// 	// {
-// 	// 	return find_iter->second;
-// 	// }
-// }
-
-// ParseScope*
-// ParseScope::CreateDefault()
-// {
-// 	// auto base_scope = new ParseScope();
-
-// 	// base_scope->add_name(i8_type.name, &i8_type);
-// 	// base_scope->add_name(i16_type.name, &i16_type);
-// 	// base_scope->add_name(i32_type.name, &i32_type);
-// 	// base_scope->add_name(u8_type.name, &u8_type);
-// 	// base_scope->add_name(u16_type.name, &u16_type);
-// 	// base_scope->add_name(u32_type.name, &i32_type);
-
-// 	// return base_scope;
-// }
-
 Parser::Parser(TokenCursor& cursor)
 	: cursor(cursor)
 {
@@ -100,7 +50,7 @@ Parser::Parser(TokenCursor& cursor)
 ParseResult<ast::Module>
 Parser::parse_module()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	Vec<OwnPtr<IStatementNode>> nodes;
 
@@ -137,7 +87,7 @@ Parser::parse_module_top_level_item()
 ParseResult<Let>
 Parser::parse_let()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::let);
 	if( !tok.ok() )
@@ -183,7 +133,7 @@ Parser::parse_let()
 ParseResult<Block>
 Parser::parse_block()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	Vec<OwnPtr<IStatementNode>> stmts;
 
@@ -215,7 +165,7 @@ Parser::parse_block()
 ParseResult<TypeDeclarator>
 Parser::parse_type_decl(bool allow_empty)
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume_if_expected(TokenType::identifier);
 	if( !tok.ok() )
@@ -247,7 +197,7 @@ Parser::parse_type_decl(bool allow_empty)
 ParseResult<Struct>
 Parser::parse_struct()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	Vec<OwnPtr<ast::MemberVariableDeclaration>> members;
 
@@ -274,7 +224,7 @@ Parser::parse_struct()
 	auto tok = cursor.peek();
 	while( tok.type != TokenType::close_curly )
 	{
-		auto member_trail = ParseTrail{cursor};
+		auto member_trail = get_parse_trail();
 
 		consume_tok = cursor.consume(TokenType::identifier);
 		if( !consume_tok.ok() )
@@ -316,7 +266,7 @@ Parser::parse_struct()
 ParseResult<IExpressionNode>
 Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 	// If this is a binop, find its precedence.
 	while( true )
 	{
@@ -359,7 +309,7 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 ParseResult<Assign>
 Parser::parse_assign(OwnPtr<IExpressionNode> lhs)
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 	auto tok = cursor.consume(TokenType::equal);
 	if( !tok.ok() )
 	{
@@ -405,7 +355,7 @@ Parser::parse_expr_statement()
 ParseResult<While>
 Parser::parse_while()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::while_keyword);
 	if( !tok.ok() )
@@ -442,7 +392,7 @@ Parser::parse_while()
 ParseResult<IStatementNode>
 Parser::parse_statement()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.peek();
 
@@ -542,7 +492,7 @@ no_semi:
 ParseResult<If>
 Parser::parse_if()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::if_keyword);
 	if( !tok.ok() )
@@ -596,7 +546,7 @@ Parser::parse_if()
 ParseResult<IExpressionNode>
 Parser::parse_literal()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::literal);
 	if( !tok.ok() )
@@ -623,7 +573,7 @@ Parser::parse_literal()
 ParseResult<TypeIdentifier>
 Parser::parse_type_identifier()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::identifier);
 	if( !tok.ok() )
@@ -640,7 +590,7 @@ Parser::parse_type_identifier()
 ParseResult<ValueIdentifier>
 Parser::parse_identifier()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::identifier);
 	if( !tok.ok() )
@@ -657,7 +607,7 @@ Parser::parse_identifier()
 ParseResult<ArgumentList>
 Parser::parse_value_list()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	Vec<OwnPtr<IExpressionNode>> result;
 
@@ -683,7 +633,7 @@ Parser::parse_value_list()
 ParseResult<Call>
 Parser::parse_call(OwnPtr<IExpressionNode> base)
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::open_paren);
 	if( !tok.ok() )
@@ -714,7 +664,7 @@ Parser::parse_call(OwnPtr<IExpressionNode> base)
 ParseResult<MemberReference>
 Parser::parse_member_reference(OwnPtr<IExpressionNode> base)
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::dot);
 	if( !tok.ok() )
@@ -736,7 +686,7 @@ Parser::parse_member_reference(OwnPtr<IExpressionNode> base)
 ParseResult<IExpressionNode>
 Parser::parse_simple_expr()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto result = OwnPtr<IExpressionNode>::null();
 
@@ -794,7 +744,7 @@ Parser::parse_simple_expr()
 ParseResult<IExpressionNode>
 Parser::parse_postfix_expr()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto expr = parse_simple_expr();
 	if( !expr.ok() )
@@ -835,7 +785,7 @@ done:
 ParseResult<IExpressionNode>
 Parser::parse_expr()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 	auto LHS = parse_postfix_expr();
 	if( !LHS.ok() )
 	{
@@ -854,14 +804,14 @@ Parser::parse_expr()
 ParseResult<ParameterList>
 Parser::parse_function_parameter_list()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	Vec<OwnPtr<ParameterDeclaration>> result;
 
 	Token curr_tok = cursor.peek();
 	while( curr_tok.type != TokenType::close_paren )
 	{
-		auto param_trail = ParseTrail{cursor};
+		auto param_trail = get_parse_trail();
 		auto identifer = parse_identifier();
 		if( !identifer.ok() )
 		{
@@ -899,7 +849,7 @@ Parser::parse_function_parameter_list()
 ParseResult<Prototype>
 Parser::parse_function_proto()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto fn_identifier = parse_type_identifier();
 	if( !fn_identifier.ok() )
@@ -944,7 +894,7 @@ Parser::parse_function_proto()
 ParseResult<Function>
 Parser::parse_function()
 {
-	auto trail = ParseTrail{cursor};
+	auto trail = get_parse_trail();
 
 	auto tok = cursor.consume(TokenType::fn);
 	if( !tok.ok() )
@@ -971,4 +921,10 @@ ParseResult<Block>
 Parser::parse_function_body()
 {
 	return parse_block();
+}
+
+ParseTrail
+Parser::get_parse_trail()
+{
+	return ParseTrail{cursor, meta};
 }

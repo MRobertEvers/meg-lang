@@ -10,6 +10,9 @@ enum class TokenType
 	// Int or string
 	literal,
 
+	// Comment
+	line_comment,
+
 	// One character tokens
 	star,
 	plus,

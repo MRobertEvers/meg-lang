@@ -50,12 +50,15 @@ add_executable(sushi
     src/format/NodeSpan.cpp
     src/format/pretty_print_ast.h
     src/format/pretty_print_ast.cpp
+    src/format/reverse.h
     # src/codegen/Codegen.h
     # src/codegen/Codegen.cpp
     src/parser/ParseResult.h
     src/parser/ParseResult.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
+    src/parser/parsers/ParseTrail.h
+    src/parser/parsers/ParseTrail.cpp
     src/sema/Sema.h
     src/sema/SemaResult.h
     src/sema/SemaResult.cpp

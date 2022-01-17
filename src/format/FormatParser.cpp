@@ -54,7 +54,7 @@ FormatParser::visit(ast::Module const* node)
 
 	for( auto const& s : node->statements )
 	{
-		s->visit(this);
+		visit_node(s.get());
 	}
 }
 
@@ -62,9 +62,9 @@ void
 FormatParser::visit(ast::Function const* node)
 {
 	DocumentScope st{*this};
-	node->Proto->visit(this);
+	visit_node(node->Proto.get());
 
-	node->Body->visit(this);
+	visit_node(node->Body.get());
 
 	// if( source )
 	// {
@@ -94,7 +94,7 @@ FormatParser::visit(ast::Block const* node)
 		int idx = 0;
 		for( auto& stmt : node->statements )
 		{
-			stmt->visit(this);
+			visit_node(stmt.get());
 
 			if( idx != node->statements.size() - 1 )
 			{
@@ -112,11 +112,12 @@ FormatParser::visit(ast::Block const* node)
 void
 FormatParser::visit(ast::BinaryOperation const* node)
 {
-	node->LHS->visit(this);
+	visit_node(node->LHS.get());
 
 	append_span(NodeSpan{" "});
 	append_span(NodeSpan{String{node->Op} + " "});
-	node->RHS->visit(this);
+
+	visit_node(node->RHS.get());
 }
 
 void
@@ -130,7 +131,7 @@ FormatParser::visit(ast::Return const* node)
 {
 	append_span(NodeSpan{"return "});
 
-	node->ReturnExpr->visit(this);
+	visit_node(node->ReturnExpr.get());
 	append_span(NodeSpan{";"});
 }
 
@@ -138,7 +139,7 @@ void
 FormatParser::visit(ast::Prototype const* node)
 {
 	append_span("fn ");
-	node->Name->visit(this);
+	visit_node(node->Name.get());
 	append_span("(");
 
 	{
@@ -153,11 +154,11 @@ FormatParser::visit(ast::Prototype const* node)
 			{
 				auto& arg = args[i];
 
-				arg->Name->visit(this);
+				visit_node(arg->Name.get());
 
 				append_span(": ");
 
-				arg->Type->visit(this);
+				visit_node(arg->Type.get());
 
 				if( i != args.size() - 1 )
 				{
@@ -170,7 +171,7 @@ FormatParser::visit(ast::Prototype const* node)
 	}
 
 	append_span("): ");
-	node->ReturnType->visit(this);
+	visit_node(node->ReturnType.get());
 	append_span(" ");
 }
 
@@ -191,18 +192,18 @@ FormatParser::visit(ast::Let const* node)
 {
 	append_span(NodeSpan{"let "});
 
-	node->Name->visit(this);
+	visit_node(node->Name.get());
 	if( !node->Type->is_empty() )
 	{
 		append_span(NodeSpan{": "});
-		node->Type->visit(this);
+		visit_node(node->Type.get());
 	}
 
 	append_span(NodeSpan{" ="});
 	append_span(NodeSpan::Line());
 	{
 		IndentScope ind{*this};
-		node->RHS->visit(this);
+		visit_node(node->RHS.get());
 		append_span(NodeSpan{";"});
 	}
 }
@@ -213,7 +214,7 @@ FormatParser::visit(ast::Struct const* node)
 	DocumentScope st{*this};
 	append_span(NodeSpan{"struct "});
 
-	node->TypeName->visit(this);
+	visit_node(node->TypeName.get());
 	append_span(NodeSpan{" {"});
 
 	{
@@ -225,11 +226,11 @@ FormatParser::visit(ast::Struct const* node)
 		int idx = 0;
 		for( auto& m : node->MemberVariables )
 		{
-			m->Name->visit(this);
+			visit_node(m->Name.get());
 
 			append_span(NodeSpan{": "});
 
-			m->Type->visit(this);
+			visit_node(m->Type.get());
 
 			append_span(NodeSpan{";"});
 			if( idx != node->MemberVariables.size() - 1 )
@@ -244,16 +245,14 @@ FormatParser::visit(ast::Struct const* node)
 	append_span(NodeSpan::HardLine());
 	append_span(NodeSpan{"}"});
 	append_span(NodeSpan::HardLine());
-
-	append_newline_if_source(node);
 }
 
 void
 FormatParser::visit(ast::MemberReference const* node)
 {
-	node->base->visit(this);
+	visit_node(node->base.get());
 	append_span(NodeSpan{"."});
-	node->name->visit(this);
+	visit_node(node->name.get());
 }
 
 void
@@ -262,7 +261,7 @@ FormatParser::visit(ast::TypeDeclarator const* node)
 	auto base = node->get_base();
 	if( base )
 	{
-		base->visit(this);
+		visit_node(base);
 	}
 	append_span(NodeSpan{node->get_name()});
 }
@@ -277,29 +276,29 @@ FormatParser::visit(ast::If const* node)
 		GroupScope g{*this};
 		IndentScope ind{*this};
 		append_span(NodeSpan::SoftLine());
-		node->condition->visit(this);
+		visit_node(node->condition.get());
 		append_span(NodeSpan::SoftLine());
 	}
 	append_span(")");
 	append_span(NodeSpan{" "});
-	node->then_block->visit(this);
+	visit_node(node->then_block.get());
 
 	if( !node->else_block.is_null() )
 	{
 		append_span(NodeSpan{"else "});
 
-		node->else_block->visit(this);
+		visit_node(node->else_block.get());
 	}
 }
 
 void
 FormatParser::visit(ast::Assign const* node)
 {
-	node->lhs->visit(this);
+	visit_node(node->lhs.get());
 	append_span(NodeSpan{" ="});
 	append_span(NodeSpan::Line());
 
-	node->rhs->visit(this);
+	visit_node(node->rhs.get());
 	append_span(NodeSpan{";"});
 }
 
@@ -308,15 +307,16 @@ FormatParser::visit(ast::While const* node)
 {
 	append_span(NodeSpan{"while "});
 
-	node->condition->visit(this);
+	visit_node(node->condition.get());
 	append_span(NodeSpan{" "});
-	node->loop_block->visit(this);
+	visit_node(node->loop_block.get());
 }
 
 void
 FormatParser::visit(ast::Call const* node)
 {
-	node->call_target->visit(this);
+	visit_node(node->call_target.get());
+
 	append_span(NodeSpan{"("});
 
 	{
@@ -329,7 +329,7 @@ FormatParser::visit(ast::Call const* node)
 			for( int i = 0; i < args.size(); i++ )
 			{
 				auto& arg = args[i];
-				arg->visit(this);
+				visit_node(arg.get());
 
 				if( i != args.size() - 1 )
 				{
@@ -347,21 +347,39 @@ FormatParser::visit(ast::Call const* node)
 void
 FormatParser::visit(ast::Statement const* node)
 {
-	node->stmt->visit(this);
-
-	append_newline_if_source(node);
+	visit_node(node->stmt.get());
 }
 
 void
 FormatParser::visit(ast::Expression const* node)
 {
-	node->base->visit(this);
+	visit_node(node->base.get());
+}
+
+void
+FormatParser::visit_node(ast::IAstNode const* node)
+{
+	node->visit(this);
+	append_comments(node);
 }
 
 void
 FormatParser::append_span(NodeSpan span)
 {
 	current_line.append_span(span);
+}
+
+void
+FormatParser::append_comments(ast::IAstNode const* node)
+{
+	if( source && node->get_span().trailing_comments.size() != 0 )
+	{
+		for( auto& comment : node->get_span().trailing_comments )
+		{
+			auto token = source->at(comment);
+			current_line.append_span(NodeSpan::LineSuffix(String(token.start, token.size)));
+		}
+	}
 }
 
 /**

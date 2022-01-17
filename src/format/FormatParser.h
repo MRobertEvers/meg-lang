@@ -6,6 +6,10 @@
 #include "common/Vec.h"
 #include "lexer/token.h"
 
+/**
+ * @brief Create the "Formatting AST".
+ *
+ */
 class FormatParser : public IAstVisitor
 {
 	struct GroupScope
@@ -62,9 +66,12 @@ public:
 	virtual void visit(ast::Statement const*) override;
 	virtual void visit(ast::Expression const*) override;
 
+private:
+	void visit_node(ast::IAstNode const* node);
 	void append_span(NodeSpan span);
-
+	void append_comments(ast::IAstNode const* node);
 	void append_newline_if_source(ast::IAstNode const* node, int threshold = 1);
 
+public:
 	static NodeSpan get_span(Vec<Token> const* source, ast::IAstNode const* node);
 };

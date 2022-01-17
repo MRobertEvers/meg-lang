@@ -2,27 +2,16 @@
 #include "../../ast/ast.h"
 #include "../../lexer/TokenCursor.h"
 #include "../ParseResult.h"
+#include "ParseTrail.h"
 #include "common/OwnPtr.h"
 
 using namespace ast;
 
-class ParseTrail
-{
-	TokenCursor& cursor;
-	int start = 0;
-	int size = 0;
-
-public:
-	ParseTrail(TokenCursor& cursor)
-		: cursor(cursor)
-		, start(cursor.get_index()){};
-
-	Span mark();
-};
-
 class Parser
 {
 	TokenCursor& cursor;
+
+	ParserMetaInformation meta;
 
 public:
 	Parser(TokenCursor& cursor);
@@ -59,4 +48,6 @@ private:
 	ParseResult<Prototype> parse_function_proto();
 	ParseResult<Function> parse_function();
 	ParseResult<Block> parse_function_body();
+
+	ParseTrail get_parse_trail();
 };

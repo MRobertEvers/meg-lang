@@ -37,8 +37,11 @@ private:
 	Token lex_consume_identifier();
 	Token lex_consume_number();
 	Token lex_consume_single();
+	Token lex_consume_line_comment();
 
 	void track_newline(std::vector<Token>& tokens);
+
+	bool peek(char const* seq);
 
 public:
 	static void print_tokens(std::vector<Token> const& tokens);

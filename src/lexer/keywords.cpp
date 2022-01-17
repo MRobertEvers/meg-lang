@@ -52,6 +52,7 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::plus, "plus"},
 	{TokenType::minus, "minus"},
 	{TokenType::slash, "slash"},
+	{TokenType::line_comment, "comment"},
 	{TokenType::if_keyword, "if"},
 	{TokenType::else_keyword, "else"},
 	{TokenType::open_paren, "open_paren"},

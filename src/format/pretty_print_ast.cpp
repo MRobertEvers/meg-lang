@@ -4,112 +4,9 @@
 #include "NodeSpan.h"
 #include "common/String.h"
 #include "common/Vec.h"
+#include "reverse.h"
 
 #include <iostream>
-
-static void
-print_span(NodeSpan* span)
-{
-	Vec<NodeSpan*> stack;
-	stack.push_back(span);
-
-	while( stack.size() != 0 )
-	{
-		auto span = stack.back();
-		stack.pop_back();
-
-		// if( span->is_raw() )
-		// {
-		// 	std::cout << span->get_raw();
-		// }
-		// else
-		// {
-		// 	auto iter = span->children.rbegin();
-		// 	for( ; iter != span->children.rend(); ++iter )
-		// 	{
-		// 		stack.push_back(&*iter);
-		// 	}
-		// }
-	}
-
-	std::cout << std::flush;
-}
-
-static void
-print(Vec<Vec<NodeSpan>>& lines)
-{
-	for( auto& line : lines )
-	{
-		for( auto& span : line )
-		{
-			print_span(&span);
-		}
-
-		std::cout << std::flush;
-	}
-}
-static void
-print(Vec<Vec<NodeSpan*>>& lines)
-{
-	for( auto& line : lines )
-	{
-		for( auto& span : line )
-		{
-			print_span(span);
-		}
-
-		std::cout << std::flush;
-	}
-}
-
-Vec<Vec<NodeSpan*>>
-break_into_lines(NodeSpan* root)
-{
-	Vec<Vec<NodeSpan*>> lines;
-
-	// Break any mandatory line breaks;
-	Vec<NodeSpan*> current_line;
-	Vec<NodeSpan*> stack;
-	stack.push_back(root);
-
-	while( stack.size() != 0 )
-	{
-		auto span = stack.back();
-		stack.pop_back();
-
-		// if( span->is_raw() )
-		// {
-		// 	current_line.push_back(span);
-		// 	// if( span->is_terminator() )
-		// 	// {
-		// 	// 	lines.push_back(current_line);
-		// 	// 	current_line.clear();
-		// 	// }
-		// }
-		// else
-		// {
-		// 	// if( (span->is_terminator()) )
-		// 	// {
-		// 	// 	auto iter = span->children.rbegin();
-		// 	// 	for( ; iter != span->children.rend(); ++iter )
-		// 	// 	{
-		// 	// 		stack.push_back(&*iter);
-		// 	// 	}
-		// 	// }
-		// 	// else
-		// 	// {
-		// 	// 	current_line.push_back(span);
-		// 	// }
-		// }
-	}
-
-	if( current_line.size() != 0 )
-	{
-		lines.push_back(current_line);
-	}
-
-	return lines;
-}
 
 enum class PrintMode
 {
@@ -129,28 +26,21 @@ struct AstCallIteration
 		, doc(doc){};
 };
 
-// Performs look ahead to calculate the length of a group node.
-static int
-calc_len(AstCallIteration const& span_mode)
-{
-	int len = 0;
+static int calc_len(NodeSpan& root_doc);
 
-	Vec<AstCallIteration> stack;
-}
-
-int
-pretty_print_format_ast(NodeSpan& span, bool print)
+template<typename Callback>
+static void
+traverse_format_ast(NodeSpan& root_doc, Callback out)
 {
 	int max_line_len = 27;
 
 	Vec<AstCallIteration> stack;
-	Vec<String> out;
 
 	// Line suffixes are defered and printed at the nearest line break.
 	Vec<AstCallIteration> line_suffixes;
 	int current_line_len = 0;
 
-	stack.emplace_back(0, PrintMode::line, &span);
+	stack.emplace_back(0, PrintMode::line, &root_doc);
 
 	while( !stack.empty() )
 	{
@@ -165,26 +55,15 @@ pretty_print_format_ast(NodeSpan& span, bool print)
 		{
 		case NodeSpan::SpanType::text:
 		{
-			out.push_back(doc->content);
+			out(doc->content);
 			current_line_len += doc->content.length();
 		}
 		break;
 		case NodeSpan::SpanType::document:
 		{
-			auto group_mode = mode;
-			// if( !doc->is_break() ) // Check if line fits
-			// {
-			// 	group_mode = PrintMode::line;
-			// }
-			// else
-			// {
-			// 	group_mode = PrintMode::break_line;
-			// }
-
-			auto child_node_iter = doc->children.rbegin();
-			for( ; child_node_iter != doc->children.rend(); ++child_node_iter )
+			for( auto& node : reverse(doc->children) )
 			{
-				stack.emplace_back(ind, group_mode, &*child_node_iter);
+				stack.emplace_back(ind, mode, &node);
 			}
 		}
 		break;
@@ -193,15 +72,14 @@ pretty_print_format_ast(NodeSpan& span, bool print)
 			auto group_mode = PrintMode::line;
 			// If the group wants to be printed on a single line, then allow it
 			// to do so if it fits.
-
 			if( !doc->is_break() )
 			{
 				auto size = current_line_len;
-				auto child_node_iter = doc->children.rbegin();
-				for( ; child_node_iter != doc->children.rend(); ++child_node_iter )
+				for( auto& node : doc->children )
 				{
-					size += pretty_print_format_ast(*child_node_iter, false);
+					size += calc_len(node);
 				}
+
 				if( size > max_line_len )
 				{
 					group_mode = PrintMode::break_line;
@@ -216,27 +94,17 @@ pretty_print_format_ast(NodeSpan& span, bool print)
 				group_mode = PrintMode::break_line;
 			}
 
-			auto child_node_iter = doc->children.rbegin();
-			for( ; child_node_iter != doc->children.rend(); ++child_node_iter )
+			for( auto& node : reverse(doc->children) )
 			{
-				stack.emplace_back(ind, group_mode, &*child_node_iter);
+				stack.emplace_back(ind, group_mode, &node);
 			}
 		}
 		break;
 
 		case NodeSpan::SpanType::hard_line:
-			if( mode == PrintMode::line )
-			{
-				// hard_line is nothing in line mode.
-
-				mode = PrintMode::break_line;
-
-				// Fallthrough
-			}
-			else
-			{
-				// Fallthrough!
-			}
+			// hard_line is always break.
+			mode = PrintMode::break_line;
+			// Fallthrough
 		case NodeSpan::SpanType::soft_line:
 			if( mode == PrintMode::line )
 			{
@@ -254,7 +122,7 @@ pretty_print_format_ast(NodeSpan& span, bool print)
 		{
 			if( mode == PrintMode::line )
 			{
-				out.push_back(" ");
+				out(" ");
 				current_line_len += 1;
 			}
 			else
@@ -264,18 +132,19 @@ pretty_print_format_ast(NodeSpan& span, bool print)
 				if( line_suffixes.size() != 0 )
 				{
 					stack.emplace_back(ind, mode, doc);
-					auto l_iter = line_suffixes.rbegin();
-					for( ; l_iter != line_suffixes.rend(); ++l_iter )
+
+					for( auto& suffix : reverse(line_suffixes) )
 					{
-						stack.emplace_back(*l_iter);
+						stack.emplace_back(suffix);
 					}
+
 					line_suffixes.clear();
 					break;
 				}
 				else
 				{
-					out.push_back("\n");
-					out.push_back(String(ind, ' '));
+					out("\n");
+					out(String(ind, ' '));
 					current_line_len = ind;
 				}
 			}
@@ -284,10 +153,9 @@ pretty_print_format_ast(NodeSpan& span, bool print)
 
 		case NodeSpan::SpanType::indent:
 		{
-			auto child_node_iter = doc->children.rbegin();
-			for( ; child_node_iter != doc->children.rend(); ++child_node_iter )
+			for( auto& node : reverse(doc->children) )
 			{
-				stack.emplace_back(ind + 4, mode, &*child_node_iter);
+				stack.emplace_back(ind + 4, mode, &node);
 			}
 		}
 		break;
@@ -304,18 +172,31 @@ pretty_print_format_ast(NodeSpan& span, bool print)
 			break;
 		}
 	}
+}
 
-	int out_len = 0;
+// Performs look ahead to calculate the length of a group node.
+static int
+calc_len(NodeSpan& root_doc)
+{
+	int len = 0;
+
+	traverse_format_ast(root_doc, [&len](String s) { len += s.length(); });
+
+	return len;
+}
+
+static int
+pretty_print_ast_stdout(NodeSpan& span)
+{
+	Vec<String> out;
+	traverse_format_ast(span, [&out](String s) { out.emplace_back(s); });
+
 	for( auto& s : out )
 	{
-		out_len += s.length();
-		if( print )
-			std::cout << s;
+		std::cout << s;
 	}
-
-	std::cout << std::endl;
-
-	return out_len;
+	std::cout << std::flush;
+	return 0;
 }
 
 void
@@ -323,112 +204,5 @@ pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
 {
 	auto root_doc = FormatParser::get_span(&source, node);
 
-	pretty_print_format_ast(root_doc, true);
-	// // This span is the owning span.
-	// auto span = FormatParser::get_span(&source, node);
-
-	// Vec<Vec<NodeSpan*>> next_lines = break_into_lines(&span);
-
-	// // NodeFormatter fmt{&source};
-
-	// // This contains a list of spans created in the process
-	// // of breaking up lines. TODO: Clean this whole thing up
-	// // so we don't have to do this.
-	// Vec<NodeSpan> gc_spans;
-	// Vec<Vec<NodeSpan*>> current_lines{};
-	// bool did_break = false;
-	// do
-	// {
-	// 	did_break = false;
-	// 	if( current_lines.size() == 0 )
-	// 	{
-	// 		current_lines = next_lines;
-	// 		next_lines.clear();
-	// 	}
-
-	// 	for( auto& line : current_lines )
-	// 	{
-	// 		int line_len = 0;
-
-	// 		int max_prio = 0;
-	// 		for( auto& span : line )
-	// 		{
-	// 			line_len += span->get_length();
-	// 			// if( span->priority > max_prio )
-	// 			// {
-	// 			// 	max_prio = span->priority;
-	// 			// }
-	// 		}
-
-	// 		if( line_len <= max_line_len || max_prio == 0 )
-	// 		{
-	// 			next_lines.push_back(line);
-	// 			continue;
-	// 		}
-
-	// 		Vec<NodeSpan*> line_partial_front;
-	// 		int i;
-	// 		for( i = 0; i < line.size(); ++i )
-	// 		{
-	// 			auto& span = line[i];
-	// 			// if( span->priority >= max_prio )
-	// 			// {
-	// 			// 	did_break = true;
-
-	// 			// 	// print_span(span);
-	// 			// 	// std::cout << std::endl;
-	// 			// 	// auto broken_node_lines = fmt.break_node(span->get_opaque());
-	// 			// 	// // print(broken_node_lines);
-	// 			// 	// // std::cout << std::endl;
-
-	// 			// 	// // TODO: this leaks
-	// 			// 	// if( broken_node_lines.size() > 0 )
-	// 			// 	// {
-	// 			// 	// 	auto iter = broken_node_lines[0].begin();
-
-	// 			// 	// 	Vec<NodeSpan*> follow;
-	// 			// 	// 	for( ; iter != broken_node_lines[0].end(); ++iter )
-	// 			// 	// 	{
-	// 			// 	// 		gc_spans.emplace_back(*iter);
-	// 			// 	// 		line_partial_front.push_back(&gc_spans.back());
-	// 			// 	// 	}
-	// 			// 	// }
-
-	// 			// 	// next_lines.push_back(line_partial_front);
-
-	// 			// 	// if( broken_node_lines.size() > 1 )
-	// 			// 	// {
-	// 			// 	// 	auto iter = broken_node_lines.begin();
-	// 			// 	// 	iter++;
-	// 			// 	// 	for( ; iter != broken_node_lines.end(); ++iter )
-	// 			// 	// 	{
-	// 			// 	// 		Vec<NodeSpan*> ll;
-	// 			// 	// 		for( auto& sp : *iter )
-	// 			// 	// 		{
-	// 			// 	// 			gc_spans.emplace_back(sp);
-	// 			// 	// 			ll.push_back(&gc_spans.back());
-	// 			// 	// 		}
-	// 			// 	// 		next_lines.push_back(ll);
-	// 			// 	// 	}
-	// 			// 	// }
-
-	// 			// 	i++;
-	// 			// 	break;
-	// 			// }
-	// 			// else
-	// 			// {
-	// 			// 	line_partial_front.push_back(span);
-	// 			// }
-	// 		}
-
-	// 		for( ; i < line.size(); ++i )
-	// 		{
-	// 			auto& span = line[i];
-	// 			next_lines.back().push_back(span);
-	// 		}
-	// 	}
-	// 	current_lines.clear();
-	// } while( did_break );
-
-	// print(next_lines);
+	pretty_print_ast_stdout(root_doc);
 }

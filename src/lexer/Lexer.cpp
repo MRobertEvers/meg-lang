@@ -60,10 +60,20 @@ Lexer::lex()
 			tokens.push_back(lex_consume_number());
 			break;
 
+		case '/':
+			// Could be '/' (division) or '//' (a comment)
+			if( peek("/") )
+			{
+				tokens.push_back(lex_consume_line_comment());
+				break;
+			}
+			else
+			{
+				// Fall through
+			}
 		case '*':
 		case '+':
 		case '-':
-		case '/':
 		case '(':
 		case ')':
 		case '{':
@@ -181,15 +191,6 @@ Lexer::lex_consume_single()
 	return token;
 }
 
-void
-Lexer::track_newline(std::vector<Token>& tokens)
-{
-	if( tokens.size() != 0 )
-	{
-		tokens.back().num_trailing_newlines += 1;
-	}
-}
-
 Token
 Lexer::lex_consume_identifier()
 {
@@ -218,4 +219,59 @@ done:
 	cursor_--;
 
 	return token;
+}
+
+Token
+Lexer::lex_consume_line_comment()
+{
+	Token token{};
+	token.type = TokenType::line_comment;
+	token.start = &input_[cursor_];
+	token.size = 1;
+	token.neighborhood.line_num = curr_line_;
+
+	char c = input_[++cursor_];
+	while( c != '\n' )
+	{
+		token.size += 1;
+		c = input_[++cursor_];
+	}
+
+	--cursor_;
+
+	return token;
+}
+
+void
+Lexer::track_newline(std::vector<Token>& tokens)
+{
+	if( tokens.size() != 0 )
+	{
+		tokens.back().num_trailing_newlines += 1;
+	}
+}
+
+bool
+Lexer::peek(char const* seq)
+{
+	auto len = strlen(seq);
+
+	for( int i = 0; i < len; ++i )
+	{
+		int look_ahead = cursor_ + i + 1;
+		if( look_ahead < input_len_ )
+		{
+			auto c = input_[look_ahead];
+			if( c != seq[i] )
+			{
+				return true;
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
