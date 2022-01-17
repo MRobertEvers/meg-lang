@@ -1,78 +1,60 @@
 #pragma once
-#include "ast/IAstNode.h"
+
 #include "common/String.h"
 #include "common/Vec.h"
 
-struct //
-	bl
-{};
-
 class NodeSpan
 {
-	enum class SpanType
-	{
-		span,
-		opaque
-	} type;
-
-	String raw;
-	ast::IAstNode const* opaque = nullptr;
-
-	bool				  //
-		contains_terminal //
-		= false;
+	bool contains_break = false;
 
 public:
-	unsigned int priority = 0; // Max of all children.
-	Vec<NodeSpan> children;
+	enum class SpanType
+	{
+		text,
+		document,  // A list of concatenated nodes.
+		line,	   // Line break or space if group fits on line.
+		soft_line, // Line break or space if fits on line
+		hard_line, // Always line break,
+		indent,
+		dedent,
+		line_suffix, // Use for line-end comments
+		group
+	} type;
 
-	NodeSpan(int prio, String raw)
-		: priority(prio)
-		, raw(raw)
-		, type(SpanType::span){};
-	NodeSpan(int prio, ast::IAstNode const* opaque)
-		: priority(prio)
-		, opaque(opaque)
-		, type(SpanType::opaque){};
+public:
+	// used in TEXT node only
+	String content;
+	Vec<NodeSpan> children;
+	NodeSpan()
+		: type(SpanType::text)
+		, content(""){};
+	NodeSpan(char const* content)
+		: type(SpanType::text)
+		, content(content){};
+	NodeSpan(String content)
+		: type(SpanType::text)
+		, content(content){};
+
+	NodeSpan(SpanType type)
+		: type(type){};
+
+	NodeSpan(SpanType type, String content)
+		: type(type)
+		, content(content){};
 
 	void append_span(NodeSpan span);
 
-	ast::IAstNode const* get_opaque() const { return opaque; }
-	String get_raw() const { return raw; }
+	bool is_break() const;
+	int get_length() const;
 
-	bool is_raw() const { return type == SpanType::span; }
-	bool is_terminator() const
-	{
-		if( type == SpanType::opaque )
-		{
-			return contains_terminal;
-		}
-		else
-		{
-			return raw.find("\n") != String::npos;
-		}
-	}
-
-	int get_length() const
-	{
-		int len = 0;
-		if( type == SpanType::opaque )
-		{
-			for( auto& child : children )
-			{
-				len += child.get_length();
-			}
-		}
-		else
-		{
-			len += raw.length();
-
-			if( is_terminator() )
-			{
-				len -= 1;
-			}
-		}
-
-		return len;
-	}
+public:
+	static NodeSpan Text(String text);
+	static NodeSpan Line();
+	static NodeSpan SoftLine();
+	static NodeSpan HardLine();
+	static NodeSpan Document();
+	static NodeSpan Indent();
+	static NodeSpan Dedent();
+	static NodeSpan LineSuffix(String text);
+	static NodeSpan Group();
 };

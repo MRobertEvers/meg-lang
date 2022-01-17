@@ -8,57 +8,37 @@
 
 class FormatParser : public IAstVisitor
 {
-	struct OpaqueScope
+	struct GroupScope
 	{
 		FormatParser& ctx;
 		NodeSpan previous;
-		bool has_previous = false;
+		GroupScope(FormatParser& ctx);
+		~GroupScope();
+	};
 
-		OpaqueScope(FormatParser& ctx, ast::IAstNode const* node, int prio)
-			: ctx(ctx)
-			, previous(0, nullptr)
-		{
-			previous = ctx.current_line;
-
-			ctx.current_line = NodeSpan{prio, node};
-		}
-		OpaqueScope(FormatParser& ctx, ast::IAstNode const* node)
-			: OpaqueScope(ctx, node, 0){};
-
-		~OpaqueScope()
-		{
-			previous.append_span(ctx.current_line);
-
-			ctx.current_line = previous;
-		}
+	struct DocumentScope
+	{
+		FormatParser& ctx;
+		NodeSpan previous;
+		DocumentScope(FormatParser& ctx);
+		~DocumentScope();
 	};
 
 	struct IndentScope
 	{
 		FormatParser& ctx;
-
-		IndentScope(FormatParser& ctx)
-			: ctx(ctx)
-		{
-			ctx.current_indentation += 1;
-		}
-
-		~IndentScope() { ctx.current_indentation -= 1; }
+		NodeSpan previous;
+		IndentScope(FormatParser& ctx);
+		~IndentScope();
 	};
 
-	NodeSpan current_line{0, nullptr};
+	NodeSpan current_line{};
 
-	int current_indentation = 0;
-	bool need_indent = false;
-	bool printed_source_newline = false;
 	Vec<Token> const* source = nullptr;
 
 public:
 	FormatParser(Vec<Token> const* source)
 		: source(source){};
-
-	FormatParser(int current_indentation = 0)
-		: current_indentation(current_indentation){};
 
 	// Vec<NodeSpan> gather_into_lines(ast::IAstNode const* node);
 
@@ -86,6 +66,5 @@ public:
 
 	void append_newline_if_source(ast::IAstNode const* node, int threshold = 1);
 
-	static NodeSpan
-	get_span(Vec<Token> const* source, ast::IAstNode const* node, int indentation = 0);
+	static NodeSpan get_span(Vec<Token> const* source, ast::IAstNode const* node);
 };

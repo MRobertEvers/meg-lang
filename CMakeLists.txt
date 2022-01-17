@@ -46,8 +46,6 @@ add_executable(sushi
     src/common/String.h
     src/format/FormatParser.h
     src/format/FormatParser.cpp
-    src/format/NodeFormatter.h
-    src/format/NodeFormatter.cpp
     src/format/NodeSpan.h
     src/format/NodeSpan.cpp
     src/format/pretty_print_ast.h
