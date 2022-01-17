@@ -2,15 +2,7 @@
 
 Sushi is my cat.
 
-In this branch I did some more exploration of how pretty printing works. I spent some time thinking about it and then I took a look at prettier (the js pretty printer). One problem I was having was how to handle comments, and generally things that don't appear in the AST. 
-
-I looked at Prettier (the JS formatter) and found out that they use a published algorithm.
-
-Prettier linked this paper, `https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf`, which describes the implementation of a pretty printing algorithm and how the formatting ast can be constructed.
-
-In general, prettier is fairly well documented, https://github.com/prettier/prettier/blob/main/commands.md.
-
-The pretty printer in this branch is implemented in a similar manner.
+In the branch, I look at a more structured approach to semantic analysis, i.e. Type checking.
 
 
 # Building
@@ -508,3 +500,15 @@ LValueness is a property of the expression, not the type. In addition to types, 
 For now lets ignore this.
 
 In this branch, function call expressions and while loops are added.
+
+# Exploration 9
+
+In this branch I did some more exploration of how pretty printing works. I spent some time thinking about it and then I took a look at prettier (the js pretty printer). One problem I was having was how to handle comments, and generally things that don't appear in the AST. 
+
+I looked at Prettier (the JS formatter) and found out that they use a published algorithm.
+
+Prettier linked this paper, `https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf`, which describes the implementation of a pretty printing algorithm and how the formatting ast can be constructed.
+
+In general, prettier is fairly well documented, https://github.com/prettier/prettier/blob/main/commands.md.
+
+The pretty printer in this branch is implemented in a similar manner.

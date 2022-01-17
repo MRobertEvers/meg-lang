@@ -6,6 +6,8 @@
 #include "lexer/token.h"
 
 #include <iostream>
+namespace sema
+{
 
 class SemaError
 {
@@ -154,3 +156,4 @@ public:
 	T const* as() const { return result.get(); }
 	bool ok() const { return error.is_null(); }
 };
+} // namespace sema

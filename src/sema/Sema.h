@@ -1,6 +1,12 @@
 #pragma once
-#include "../ast/IAstVisitor.h"
 #include "SemaResult.h"
+#include "Type.h"
+#include "ast/IAstNode.h"
+#include "ast/IAstVisitor.h"
+#include "common/Vec.h"
+
+namespace sema
+{
 
 /**
  * @brief Performs semantic analysis on the AST produced by parser and produces HIR
@@ -17,7 +23,51 @@
  */
 class Sema : public IAstVisitor
 {
+	class Scope;
+	struct ScopedType
+	{
+		Type* expr = nullptr;
+		Scope* scope = nullptr;
+		ScopedType(){};
+		ScopedType(Type* expr, Scope* scope)
+			: expr(expr)
+			, scope(scope){};
+
+		void clear()
+		{
+			expr = nullptr;
+			scope = nullptr;
+		}
+		bool is_null() { return expr == nullptr; }
+	};
+
+	class Scope
+	{
+		Scope* parent = nullptr;
+
+		std::map<String, Type> names;
+
+	public:
+		bool is_in_scope = true;
+
+		Scope();
+		Scope(Scope* parent);
+		~Scope();
+
+		ScopedType add_named_value(String const& name, Type id);
+		Type const* lookup(String const& name) const;
+
+		Scope* get_parent();
+	};
+
+	Vec<Scope> scopes;
+	Scope* current_scope = nullptr;
+
+	SemaResult<ScopedType> last_expr;
+
 public:
+	Sema();
+	~Sema();
 	virtual void visit(ast::Module const*) override;
 	virtual void visit(ast::Function const*) override;
 	virtual void visit(ast::Block const*) override;
@@ -36,4 +86,13 @@ public:
 	virtual void visit(ast::While const*) override;
 	virtual void visit(ast::Call const*) override;
 	virtual void visit(ast::Statement const*) override;
-}
+	virtual void visit(ast::Expression const*) override;
+
+private:
+	void visit_node(ast::IAstNode const* node);
+	ScopedType add_named_value(String const& name, Type id);
+	Type const* lookup(String const& name);
+	void new_scope();
+	void pop_scope();
+};
+} // namespace sema

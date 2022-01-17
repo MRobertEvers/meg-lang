@@ -2,7 +2,7 @@
 #include "common/String.h"
 
 #include <map>
-namespace hir
+namespace sema
 {
 
 static char const* infer_type_name = "@_infer";
@@ -22,6 +22,7 @@ class Type
 {
 private:
 	std::map<String, Type const*> members;
+	Type const* return_type = nullptr;
 
 	// TODO: Cant have both base and members
 	Type const* base = nullptr;
@@ -37,6 +38,9 @@ public:
 		: name(name){};
 	explicit Type(char const* name)
 		: name(name){};
+
+	explicit Type(Type const* return_type)
+		: return_type(return_type){};
 
 	// Copy constructor
 	Type(Type const& other)
@@ -70,4 +74,4 @@ static Type u8_type{"u8"};
 static Type u16_type{"u16"};
 static Type u32_type{"u32"};
 
-} // namespace hir
+} // namespace sema

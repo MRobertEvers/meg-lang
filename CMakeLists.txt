@@ -61,11 +61,12 @@ add_executable(sushi
     src/parser/parsers/Parser.cpp
     src/parser/parsers/ParseTrail.h
     src/parser/parsers/ParseTrail.cpp
+    src/sema/Sema.cpp
     src/sema/Sema.h
     src/sema/SemaResult.h
     src/sema/SemaResult.cpp
-    src/hir/type.h
-    src/hir/type.cpp
+    src/sema/Type.h
+    src/sema/Type.cpp
     src/ast/IAstNode.h
     src/ast/expressions/Expression.h
     src/ast/expressions/BinOp.h

@@ -13,6 +13,7 @@
 #include "llvm/Target/TargetOptions.h"
 #include "parser/ParseResult.h"
 #include "parser/parsers/Parser.h"
+#include "sema/Sema.h"
 
 #include <fstream>
 #include <iostream>
@@ -29,11 +30,14 @@ gen_code(std::vector<Token> const& tokens)
 	Parser parse{cursor};
 	auto mod_result = parse.parse_module();
 
+	sema::Sema sema;
+
 	if( mod_result.ok() )
 	{
 		auto mod = mod_result.unwrap();
 		pretty_print_ast(tokens, mod.get());
 		// mod->visit(&cg);
+		mod->visit(&sema);
 	}
 	else
 	{

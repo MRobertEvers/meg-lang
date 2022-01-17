@@ -2,7 +2,7 @@
 
 #include "Type.h"
 
-using namespace hir;
+using namespace sema;
 
 Type const*
 Type::get_member_type(String const& name) const

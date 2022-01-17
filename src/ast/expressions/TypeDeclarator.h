@@ -35,6 +35,18 @@ public:
 		}
 	}
 
+	String get_type_name() const
+	{
+		if( is_pointer_type() )
+		{
+			return base->get_type_name();
+		}
+		else
+		{
+			return name;
+		}
+	}
+
 	bool is_empty() const { return name.empty(); }
 
 	TypeDeclarator const* get_base() const { return base.get(); }
