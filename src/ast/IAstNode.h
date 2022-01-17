@@ -1,7 +1,6 @@
 #pragma once
 #include "IAstVisitor.h"
 #include "Span.h"
-#include "ast_node_type.h"
 
 namespace ast
 {

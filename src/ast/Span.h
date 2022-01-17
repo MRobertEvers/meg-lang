@@ -8,7 +8,7 @@ namespace ast
 {
 
 /**
- * @brief Used to keep track of the appears of a node in the source code for pretty printing.
+ * @brief Used to keep track of meta-information in the AST.
  *
  * Tracks information for elements of the input source that are valid syntax, but otherwise
  * not represented in the AST. E.g. Comments
@@ -16,6 +16,7 @@ namespace ast
  */
 struct Span
 {
+	// The first token used to produce the AST node.
 	int start = 0;
 	int size = 0;
 
@@ -24,6 +25,7 @@ struct Span
 	Vec<int> leading_comments;
 
 	// Trailing comments are commends that ar not on their own line.
+	// E.g. if (my_bool) // trailing comment
 	Vec<int> trailing_comments;
 
 	Span(){};
