@@ -20,7 +20,8 @@ public:
 		soft_line, // Line break or space if fits on line
 		hard_line, // Always line break,
 		indent,
-		min_padding, // Add spacing between non-newline/whitespace elements
+		min_padding, // Add minimum spacing between non-newline/whitespace elements
+		min_newline, // Similar to min_padding.
 		line_suffix, // Use for line-end comments
 		group
 	} type;
@@ -46,9 +47,12 @@ public:
 		: type(SpanType::text)
 		, content(content){};
 
-	NodeSpan(int min_spacing)
-		: type(SpanType::min_padding)
-		, min_spacing(min_spacing){};
+	NodeSpan(SpanType type, int num)
+		: type(type)
+		, min_spacing(num)
+	{
+		assert(type == SpanType::min_padding || type == SpanType::min_newline);
+	};
 
 	NodeSpan(SpanType type)
 		: type(type){};
@@ -69,6 +73,7 @@ public:
 	static NodeSpan Document();
 	static NodeSpan Indent();
 	static NodeSpan MinSpacing(int spacing);
+	static NodeSpan MinNewLine(int spacing);
 	static NodeSpan LineSuffix(String text);
 	static NodeSpan Group();
 };

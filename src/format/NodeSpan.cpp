@@ -14,7 +14,7 @@ NodeSpan::append_span(NodeSpan span)
 bool
 NodeSpan::is_break() const
 {
-	if( type == SpanType::hard_line )
+	if( type == SpanType::hard_line || type == SpanType::min_newline )
 	{
 		return true;
 	}
@@ -63,7 +63,13 @@ NodeSpan::Indent()
 NodeSpan
 NodeSpan::MinSpacing(int spacing)
 {
-	return spacing;
+	return NodeSpan{SpanType::min_padding, spacing};
+}
+
+NodeSpan
+NodeSpan::MinNewLine(int spacing)
+{
+	return NodeSpan{SpanType::min_newline, spacing};
 }
 
 NodeSpan

@@ -7,6 +7,8 @@ ParseTrail::mark()
 
 	auto span = Span{start, size};
 
+	bool leading_mode = true;
+
 	// TODO: Flag on this.
 	// Check for comments.
 	for( int i = 0; i < size; ++i )
@@ -18,9 +20,21 @@ ParseTrail::mark()
 			auto already_captured = meta.comments.find(ind);
 			if( already_captured == meta.comments.end() )
 			{
-				span.trailing_comments.push_back(ind);
-				meta.comments.insert(ind);
+				if( leading_mode )
+				{
+					span.leading_comments.push_back(ind);
+					meta.comments.insert(ind);
+				}
+				else
+				{
+					span.trailing_comments.push_back(ind);
+					meta.comments.insert(ind);
+				}
 			}
+		}
+		else
+		{
+			leading_mode = false;
 		}
 	}
 

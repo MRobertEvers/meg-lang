@@ -17,6 +17,9 @@
  * The complexity comes in how the AST is traversed. Some nodes require look ahead
  * and back-tracking (i.e. a group node), to calculate if it can fit on a line.
  *
+ * Bug: Line suffixes sometimes don't get accounted for when determining the length of a
+ * line.
+ *
  * @param source
  * @param node
  */

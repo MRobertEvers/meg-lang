@@ -2,6 +2,7 @@
 #include "NodeSpan.h"
 #include "ast/IAstNode.h"
 #include "ast/IAstVisitor.h"
+#include "ast/Span.h"
 #include "common/String.h"
 #include "common/Vec.h"
 #include "lexer/token.h"
@@ -70,7 +71,10 @@ private:
 	void visit_node(ast::IAstNode const* node);
 	void append_span(NodeSpan span);
 	void append_comments(ast::IAstNode const* node);
+
 	void append_newline_if_source(ast::IAstNode const* node, int threshold = 1);
+	void append_newline_if_source(ast::Span& span, int threshold = 1);
+	void append_newline_if_source(Token& token, int threshold = 1);
 
 public:
 	static NodeSpan get_span(Vec<Token> const* source, ast::IAstNode const* node);

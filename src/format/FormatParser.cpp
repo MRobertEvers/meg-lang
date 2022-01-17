@@ -66,18 +66,7 @@ FormatParser::visit(ast::Function const* node)
 
 	visit_node(node->Body.get());
 
-	// if( source )
-	// {
-	// 	auto ast_span = node->get_span();
-	// 	if( ast_span.size > 0 )
-	// 	{
-	// 		auto token = source->at(ast_span.start + ast_span.size - 1);
-	// 		if( token.num_trailing_newlines != 0 )
-	// 		{
-	// 			append_span(NodeSpan{"\n"});
-	// 		}
-	// 	}
-	// }
+	append_newline_if_source(node);
 }
 
 void
@@ -98,13 +87,13 @@ FormatParser::visit(ast::Block const* node)
 
 			if( idx != node->statements.size() - 1 )
 			{
-				append_span(NodeSpan::HardLine());
+				append_span(NodeSpan::MinNewLine(1));
 			}
 			idx += 1;
 		}
 	}
 
-	append_span(NodeSpan::HardLine());
+	append_span(NodeSpan::MinNewLine(1));
 	append_span(NodeSpan{"}"});
 	append_span(NodeSpan::HardLine());
 }
@@ -245,6 +234,8 @@ FormatParser::visit(ast::Struct const* node)
 	append_span(NodeSpan::HardLine());
 	append_span(NodeSpan{"}"});
 	append_span(NodeSpan::HardLine());
+
+	append_newline_if_source(node);
 }
 
 void
@@ -274,9 +265,11 @@ FormatParser::visit(ast::If const* node)
 	append_span("(");
 	{
 		GroupScope g{*this};
-		IndentScope ind{*this};
-		append_span(NodeSpan::SoftLine());
-		visit_node(node->condition.get());
+		{
+			IndentScope ind{*this};
+			append_span(NodeSpan::SoftLine());
+			visit_node(node->condition.get());
+		}
 		append_span(NodeSpan::SoftLine());
 	}
 	append_span(")");
@@ -307,7 +300,17 @@ FormatParser::visit(ast::While const* node)
 {
 	append_span(NodeSpan{"while "});
 
-	visit_node(node->condition.get());
+	append_span("(");
+	{
+		GroupScope g{*this};
+		{
+			IndentScope ind{*this};
+			append_span(NodeSpan::SoftLine());
+			visit_node(node->condition.get());
+		}
+		append_span(NodeSpan::SoftLine());
+	}
+	append_span(")");
 	append_span(NodeSpan{" "});
 	visit_node(node->loop_block.get());
 }
@@ -348,6 +351,8 @@ void
 FormatParser::visit(ast::Statement const* node)
 {
 	visit_node(node->stmt.get());
+
+	append_newline_if_source(node);
 }
 
 void
@@ -359,8 +364,8 @@ FormatParser::visit(ast::Expression const* node)
 void
 FormatParser::visit_node(ast::IAstNode const* node)
 {
-	node->visit(this);
 	append_comments(node);
+	node->visit(this);
 }
 
 void
@@ -372,9 +377,18 @@ FormatParser::append_span(NodeSpan span)
 void
 FormatParser::append_comments(ast::IAstNode const* node)
 {
-	if( source && node->get_span().trailing_comments.size() != 0 )
+	auto span = node->get_span();
+	if( source )
 	{
-		for( auto& comment : node->get_span().trailing_comments )
+		for( auto& comment : span.leading_comments )
+		{
+			auto token = source->at(comment);
+			current_line.append_span(NodeSpan::Text(String(token.start, token.size)));
+			current_line.append_span(NodeSpan::HardLine());
+			append_newline_if_source(token);
+		}
+
+		for( auto& comment : span.trailing_comments )
 		{
 			auto token = source->at(comment);
 			current_line.append_span(NodeSpan::LineSuffix(String(token.start, token.size)));
@@ -392,7 +406,32 @@ FormatParser::append_comments(ast::IAstNode const* node)
  */
 void
 FormatParser::append_newline_if_source(ast::IAstNode const* node, int threshold)
-{}
+{
+	auto ast_span = node->get_span();
+	append_newline_if_source(ast_span, threshold);
+}
+
+void
+FormatParser::append_newline_if_source(ast::Span& ast_span, int threshold)
+{
+	if( source )
+	{
+		if( ast_span.size > 0 )
+		{
+			auto token = source->at(ast_span.start + ast_span.size - 1);
+			append_newline_if_source(token, threshold);
+		}
+	}
+}
+
+void
+FormatParser::append_newline_if_source(Token& token, int threshold)
+{
+	if( token.num_trailing_newlines > threshold )
+	{
+		append_span(NodeSpan::MinNewLine(2));
+	}
+}
 
 NodeSpan
 FormatParser::get_span(Vec<Token> const* source, ast::IAstNode const* node)
