@@ -3,6 +3,10 @@
 #include "common/String.h"
 #include "common/Vec.h"
 
+struct //
+	bl
+{};
+
 class NodeSpan
 {
 	enum class SpanType
@@ -14,7 +18,9 @@ class NodeSpan
 	String raw;
 	ast::IAstNode const* opaque = nullptr;
 
-	bool contains_terminal = false;
+	bool				  //
+		contains_terminal //
+		= false;
 
 public:
 	unsigned int priority = 0; // Max of all children.
