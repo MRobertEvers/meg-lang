@@ -143,27 +143,30 @@ FormatParser::visit(ast::Prototype const* node)
 
 	{
 		GroupScope g{*this};
-		IndentScope ind{*this};
-		append_span(NodeSpan::SoftLine());
-
-		auto& args = node->get_parameters()->Parameters;
-
-		for( int i = 0; i < args.size(); i++ )
 		{
-			auto& arg = args[i];
+			IndentScope ind{*this};
+			append_span(NodeSpan::SoftLine());
 
-			arg->Name->visit(this);
+			auto& args = node->get_parameters()->Parameters;
 
-			append_span(": ");
-
-			arg->Type->visit(this);
-
-			if( i != args.size() - 1 )
+			for( int i = 0; i < args.size(); i++ )
 			{
-				append_span(",");
-				append_span(NodeSpan::Line());
+				auto& arg = args[i];
+
+				arg->Name->visit(this);
+
+				append_span(": ");
+
+				arg->Type->visit(this);
+
+				if( i != args.size() - 1 )
+				{
+					append_span(",");
+					append_span(NodeSpan::SoftLine());
+				}
 			}
 		}
+		append_span(NodeSpan::SoftLine());
 	}
 
 	append_span("): ");
@@ -317,21 +320,25 @@ FormatParser::visit(ast::Call const* node)
 	append_span(NodeSpan{"("});
 
 	{
-		IndentScope indent{*this};
-		append_span(NodeSpan::SoftLine());
-
-		auto& args = node->args.args;
-		for( int i = 0; i < args.size(); i++ )
+		GroupScope grp{*this};
 		{
-			auto& arg = args[i];
-			arg->visit(this);
+			IndentScope indent{*this};
+			append_span(NodeSpan::SoftLine());
 
-			if( i != args.size() - 1 )
+			auto& args = node->args.args;
+			for( int i = 0; i < args.size(); i++ )
 			{
-				append_span(NodeSpan{","});
-				append_span(NodeSpan::Line());
+				auto& arg = args[i];
+				arg->visit(this);
+
+				if( i != args.size() - 1 )
+				{
+					append_span(NodeSpan{","});
+					append_span(NodeSpan::Line());
+				}
 			}
 		}
+		append_span(NodeSpan::SoftLine());
 	}
 
 	append_span(NodeSpan{")"});

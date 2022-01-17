@@ -129,12 +129,19 @@ struct AstCallIteration
 		, doc(doc){};
 };
 
-void
-pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
+// Performs look ahead to calculate the length of a group node.
+static int
+calc_len(AstCallIteration const& span_mode)
 {
-	int max_line_len = 5;
+	int len = 0;
 
-	auto root_doc = FormatParser::get_span(&source, node);
+	Vec<AstCallIteration> stack;
+}
+
+int
+pretty_print_format_ast(NodeSpan& span, bool print)
+{
+	int max_line_len = 27;
 
 	Vec<AstCallIteration> stack;
 	Vec<String> out;
@@ -143,7 +150,7 @@ pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
 	Vec<AstCallIteration> line_suffixes;
 	int current_line_len = 0;
 
-	stack.emplace_back(0, PrintMode::line, &root_doc);
+	stack.emplace_back(0, PrintMode::line, &span);
 
 	while( !stack.empty() )
 	{
@@ -184,9 +191,25 @@ pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
 		case NodeSpan::SpanType::group:
 		{
 			auto group_mode = PrintMode::line;
-			if( !doc->is_break() ) // Check if line fits
+			// If the group wants to be printed on a single line, then allow it
+			// to do so if it fits.
+
+			if( !doc->is_break() )
 			{
-				group_mode = PrintMode::line;
+				auto size = current_line_len;
+				auto child_node_iter = doc->children.rbegin();
+				for( ; child_node_iter != doc->children.rend(); ++child_node_iter )
+				{
+					size += pretty_print_format_ast(*child_node_iter, false);
+				}
+				if( size > max_line_len )
+				{
+					group_mode = PrintMode::break_line;
+				}
+				else
+				{
+					group_mode = PrintMode::line;
+				}
 			}
 			else
 			{
@@ -282,12 +305,25 @@ pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
 		}
 	}
 
+	int out_len = 0;
 	for( auto& s : out )
 	{
-		std::cout << s;
+		out_len += s.length();
+		if( print )
+			std::cout << s;
 	}
 
 	std::cout << std::endl;
+
+	return out_len;
+}
+
+void
+pretty_print_ast(Vec<Token> const& source, ast::IAstNode const* node)
+{
+	auto root_doc = FormatParser::get_span(&source, node);
+
+	pretty_print_format_ast(root_doc, true);
 	// // This span is the owning span.
 	// auto span = FormatParser::get_span(&source, node);
 
