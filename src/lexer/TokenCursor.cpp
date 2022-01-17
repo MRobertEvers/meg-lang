@@ -17,7 +17,16 @@ TokenCursor::peek(int index) const
 	}
 	else
 	{
-		return _tokens[_index];
+		int ind = _index;
+		while( _tokens[ind].type == TokenType::line_comment )
+		{
+			ind++;
+			if( ind >= _tokens.size() )
+			{
+				return Token{};
+			}
+		}
+		return _tokens[ind];
 	}
 }
 

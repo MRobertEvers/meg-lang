@@ -45,6 +45,15 @@ public:
 	int get_index() const { return _index; }
 
 	bool has_tokens() const;
+
+	/**
+	 * @brief Peeks at next non-whitespace/ignored token
+	 *
+	 * If index is specified, ignored tokens can be peeked.
+	 *
+	 * @param index
+	 * @return Token
+	 */
 	Token peek(int index = -1) const;
 
 	ConsumeResult consume_if_expected(TokenType expected);

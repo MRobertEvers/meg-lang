@@ -5,6 +5,7 @@
 #include "common/String.h"
 #include "common/Vec.h"
 #include "reverse.h"
+#include "utils.h"
 
 #include <iostream>
 
@@ -40,6 +41,29 @@ traverse_format_ast(NodeSpan& root_doc, Callback out)
 	Vec<AstCallIteration> line_suffixes;
 	int current_line_len = 0;
 
+	// this value is used to support the 'min_spacing' node.
+	int distance_to_non_empty = -1;
+
+	auto emit_string = [&current_line_len, &distance_to_non_empty, &out](String s) {
+		if( s.back() == '\n' )
+		{
+			current_line_len = 0;
+			distance_to_non_empty = -1;
+		}
+		else
+		{
+			auto ending_whitespace = count_end_whitespace(s);
+			if( ending_whitespace != s.length() && distance_to_non_empty == -1 )
+				distance_to_non_empty = 0;
+
+			distance_to_non_empty = ending_whitespace;
+
+			current_line_len += s.length();
+		}
+
+		out(s);
+	};
+
 	stack.emplace_back(0, PrintMode::line, &root_doc);
 
 	while( !stack.empty() )
@@ -55,8 +79,7 @@ traverse_format_ast(NodeSpan& root_doc, Callback out)
 		{
 		case NodeSpan::SpanType::text:
 		{
-			out(doc->content);
-			current_line_len += doc->content.length();
+			emit_string(doc->content);
 		}
 		break;
 		case NodeSpan::SpanType::document:
@@ -64,6 +87,14 @@ traverse_format_ast(NodeSpan& root_doc, Callback out)
 			for( auto& node : reverse(doc->children) )
 			{
 				stack.emplace_back(ind, mode, &node);
+			}
+		}
+		break;
+		case NodeSpan::SpanType::min_padding:
+		{
+			if( distance_to_non_empty != -1 && distance_to_non_empty < doc->min_spacing )
+			{
+				emit_string(String(doc->min_spacing - distance_to_non_empty, ' '));
 			}
 		}
 		break;
@@ -122,8 +153,7 @@ traverse_format_ast(NodeSpan& root_doc, Callback out)
 		{
 			if( mode == PrintMode::line )
 			{
-				out(" ");
-				current_line_len += 1;
+				emit_string(" ");
 			}
 			else
 			{
@@ -143,9 +173,8 @@ traverse_format_ast(NodeSpan& root_doc, Callback out)
 				}
 				else
 				{
-					out("\n");
-					out(String(ind, ' '));
-					current_line_len = ind;
+					emit_string("\n");
+					emit_string(String(ind, ' '));
 				}
 			}
 		}

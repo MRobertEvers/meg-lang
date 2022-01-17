@@ -16,6 +16,8 @@ fn func(s:
 {
     let a = s.a;
 
+
+// Another comment
     if (a > 5) {
         a = 5;
     }

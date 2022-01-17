@@ -61,10 +61,16 @@ NodeSpan::Indent()
 }
 
 NodeSpan
+NodeSpan::MinSpacing(int spacing)
+{
+	return spacing;
+}
+
+NodeSpan
 NodeSpan::LineSuffix(String text)
 {
 	NodeSpan line_suffix = SpanType::line_suffix;
-	line_suffix.append_span(" ");
+	line_suffix.append_span(MinSpacing(1));
 	line_suffix.append_span(text);
 	return line_suffix;
 }

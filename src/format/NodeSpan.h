@@ -20,7 +20,7 @@ public:
 		soft_line, // Line break or space if fits on line
 		hard_line, // Always line break,
 		indent,
-		dedent,
+		min_padding, // Add spacing between non-newline/whitespace elements
 		line_suffix, // Use for line-end comments
 		group
 	} type;
@@ -28,7 +28,14 @@ public:
 public:
 	// used in TEXT node only
 	String content;
+
+	// used in MIN_PADDING_NODE only
+	int min_spacing = 0;
+
 	Vec<NodeSpan> children;
+
+	// TODO: Use asserts to verify nodes are constructed correctly.
+	// TEXT Node helpers
 	NodeSpan()
 		: type(SpanType::text)
 		, content(""){};
@@ -38,6 +45,10 @@ public:
 	NodeSpan(String content)
 		: type(SpanType::text)
 		, content(content){};
+
+	NodeSpan(int min_spacing)
+		: type(SpanType::min_padding)
+		, min_spacing(min_spacing){};
 
 	NodeSpan(SpanType type)
 		: type(type){};
@@ -57,6 +68,7 @@ public:
 	static NodeSpan HardLine();
 	static NodeSpan Document();
 	static NodeSpan Indent();
+	static NodeSpan MinSpacing(int spacing);
 	static NodeSpan LineSuffix(String text);
 	static NodeSpan Group();
 };
