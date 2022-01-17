@@ -227,12 +227,26 @@ traverse_format_ast(NodeSpan& root_doc, Callback out)
 }
 
 // Performs look ahead to calculate the length of a group node.
+// And returns the length of the first line.
 static int
 calc_len(NodeSpan& root_doc)
 {
 	int len = 0;
+	bool done = false;
 
-	traverse_format_ast(root_doc, [&len](String s) { len += s.length(); });
+	// TODO: Way to stop traversal?
+	traverse_format_ast(root_doc, [&len, &done](String s) {
+		if( done )
+			return;
+		auto break_line = s.find("\n");
+		if( break_line == String::npos )
+			len += s.length();
+		else
+		{
+			len += break_line;
+			done = true;
+		}
+	});
 
 	return len;
 }
