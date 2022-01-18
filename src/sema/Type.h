@@ -1,5 +1,6 @@
 #pragma once
 #include "common/String.h"
+#include "common/Vec.h"
 
 #include <map>
 namespace sema
@@ -21,57 +22,92 @@ static char const* infer_type_name = "@_infer";
 class Type
 {
 private:
+	enum class TypeClassification
+	{
+		function,
+		struct_cls,
+		primitive,
+		pointer
+	};
+
+	// For structs, this is the members
+	// For functions, this is the arguments
 	std::map<String, Type const*> members;
+
+	// For functions return type
 	Type const* return_type = nullptr;
 
-	// TODO: Cant have both base and members
+	// For pointer
 	Type const* base = nullptr;
 
+	// For all types except pointer
+	String name;
+
 	Type(Type const& base, bool dummy)
-		: base(&base){};
+		: base(&base)
+		, cls(TypeClassification::pointer){};
+
+	Type(String name)
+		: name(name)
+		, cls(TypeClassification::primitive){};
+
+	Type(String name, std::map<String, Type const*> members)
+		: name(name)
+		, members(members)
+		, cls(TypeClassification::struct_cls){};
+
+	Type(String name, Vec<Type const*> args, Type const* return_type)
+		: name(name)
+		, return_type(return_type)
+		, cls(TypeClassification::function)
+	{
+		for( auto arg : args )
+		{
+			members.emplace(arg->get_name(), arg);
+		}
+	};
 
 public:
-	String name;
-	explicit Type(String&& name)
-		: name(name){};
-	explicit Type(String const& name)
-		: name(name){};
-	explicit Type(char const* name)
-		: name(name){};
-
-	explicit Type(Type const* return_type)
-		: return_type(return_type){};
+	TypeClassification cls = TypeClassification::primitive;
 
 	// Copy constructor
 	Type(Type const& other)
 		: base(other.base)
 		, name(other.name)
-		, members(other.members){};
+		, members(other.members)
+		, return_type(other.return_type)
+		, cls(other.cls){};
 
 	Type(Type&& other)
 		: base(std::move(other.base))
 		, name(std::move(other.name))
 		, members(std::move(other.members))
+		, return_type(other.return_type)
+		, cls(other.cls)
 	{
 		other.base = nullptr;
 	};
 
 	bool is_infer_type() const { return name == infer_type_name; }
-	bool is_pointer_type() const { return base != nullptr; }
+	bool is_pointer_type() const { return cls == TypeClassification::pointer; }
+	String get_name() const;
 
 	Type const* get_member_type(String const& name) const;
 	void add_member(String const& name, Type const& type);
 
-	static Type PointerTo(Type const& base) { return Type(base, true); }
+	static Type PointerTo(Type const& base);
+	static Type Function(String const& name, Vec<Type const*> args, Type const* return_type);
+	static Type Struct(String const& name, std::map<String, Type const*> members);
+	static Type Primitive(String name);
 };
 
-static Type void_type{"void"};
-static Type infer_type{infer_type_name};
-static Type i8_type{"i8"};
-static Type i16_type{"i16"};
-static Type i32_type{"i32"};
-static Type u8_type{"u8"};
-static Type u16_type{"u16"};
-static Type u32_type{"u32"};
+static Type void_type = Type::Primitive("void");
+static Type infer_type = Type::Primitive(infer_type_name);
+static Type i8_type = Type::Primitive("i8");
+static Type i16_type = Type::Primitive("i16");
+static Type i32_type = Type::Primitive("i32");
+static Type u8_type = Type::Primitive("u8");
+static Type u16_type = Type::Primitive("u16");
+static Type u32_type = Type::Primitive("u32");
 
 } // namespace sema

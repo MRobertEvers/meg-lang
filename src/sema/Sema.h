@@ -5,6 +5,8 @@
 #include "ast/IAstVisitor.h"
 #include "common/Vec.h"
 
+#include <map>
+
 namespace sema
 {
 
@@ -23,10 +25,15 @@ namespace sema
  */
 class Sema : public IAstVisitor
 {
+	// Global types. All types are unique and stored here.
+	std::map<String, Type*> types;
+
 	class Scope;
 	struct ScopedType
 	{
 		Type* expr = nullptr;
+		// Scope may be nullptr if the type is
+		// a pointer type.
 		Scope* scope = nullptr;
 		ScopedType(){};
 		ScopedType(Type* expr, Scope* scope)
@@ -45,7 +52,7 @@ class Sema : public IAstVisitor
 	{
 		Scope* parent = nullptr;
 
-		std::map<String, Type> names;
+		std::map<String, Type*> names;
 
 	public:
 		bool is_in_scope = true;
@@ -54,16 +61,20 @@ class Sema : public IAstVisitor
 		Scope(Scope* parent);
 		~Scope();
 
-		ScopedType add_named_value(String const& name, Type id);
+		ScopedType add_named_value(String const& name, Type* id);
 		Type const* lookup(String const& name) const;
 
 		Scope* get_parent();
 	};
 
+	// TODO: This is shaky
 	Vec<Scope> scopes;
 	Scope* current_scope = nullptr;
 
 	SemaResult<ScopedType> last_expr;
+	// SemaResult<ScopedType> last_err;
+
+	Sema::ScopedType create_type(Type ty);
 
 public:
 	Sema();
@@ -90,7 +101,8 @@ public:
 
 private:
 	void visit_node(ast::IAstNode const* node);
-	ScopedType add_named_value(String const& name, Type id);
+	void add_type(Type type);
+	ScopedType add_named_value(String const& name, Type* id);
 	Type const* lookup(String const& name);
 	void new_scope();
 	void pop_scope();
