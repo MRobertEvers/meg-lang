@@ -38,6 +38,7 @@ gen_code(std::vector<Token> const& tokens)
 		pretty_print_ast(tokens, mod.get());
 		// mod->visit(&cg);
 		mod->visit(&sema);
+		sema.print_err();
 	}
 	else
 	{

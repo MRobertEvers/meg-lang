@@ -42,9 +42,10 @@ Sema::Scope::~Scope()
 }
 
 Sema::ScopedType
-Sema::Scope::add_named_value(String const& name, Type* id)
+Sema::Scope::add_named_value(String const& name, Type const* id)
 {
-	auto iter = names.emplace(name, id);
+	// auto pair = std::make_pair<String, Type const*>(String{name}, id);
+	auto iter = names.emplace(String{name}, id);
 
 	return ScopedType{iter.first->second, this};
 }
@@ -68,6 +69,53 @@ Sema::Scope::lookup(String const& name) const
 	{
 		return me->second;
 	}
+}
+
+Sema::ScopedType
+Sema::Scope::lookup2(String const& name) const
+{
+	auto me = names.find(name);
+	if( me == names.end() )
+	{
+		if( parent == nullptr )
+		{
+			return ScopedType{};
+		}
+		else
+		{
+			return parent->lookup2(name);
+		}
+	}
+	else
+	{
+		return ScopedType(me->second, this);
+	}
+}
+
+Type const*
+Sema::Scope::get_expected_return() const
+{
+	if( !expected_return )
+	{
+		if( parent == nullptr )
+		{
+			return nullptr;
+		}
+		else
+		{
+			return parent->get_expected_return();
+		}
+	}
+	else
+	{
+		return expected_return;
+	}
+}
+
+void
+Sema::Scope::set_expected_return(Type const* n)
+{
+	expected_return = n;
 }
 
 Sema::Scope*
@@ -164,7 +212,19 @@ Sema::visit(ast::Number const* node)
 void
 Sema::visit(ast::Return const* node)
 {
-	//
+	visit_node(node->ReturnExpr.get());
+	if( !ok() )
+	{
+		return;
+	}
+
+	auto expr = last_expr.unwrap();
+
+	if( expr->expr != current_scope->get_expected_return() )
+	{
+		last_expr = SemaError("Wrong return type.");
+		return;
+	}
 }
 
 void
@@ -195,6 +255,7 @@ Sema::visit(ast::Prototype const* node)
 		}
 
 		args.push_back(type);
+		current_scope->add_named_value(name_identifier->get_name(), type);
 	}
 
 	auto return_type_declarator = node->ReturnType.get();
@@ -207,6 +268,9 @@ Sema::visit(ast::Prototype const* node)
 
 	auto function_type_def = Type::Function(node->Name->get_name(), args, return_type);
 	create_type(function_type_def);
+
+	// TODO: this should be in function visit
+	current_scope->set_expected_return(return_type);
 }
 
 void
@@ -219,12 +283,48 @@ void
 Sema::visit(ast::ValueIdentifier const* node)
 {
 	//
+	auto type = lookup2(node->get_name());
+	if( !type.expr )
+	{
+		last_expr = SemaError("Unkown variable");
+		return;
+	}
+
+	last_expr = type;
 }
 
 void
 Sema::visit(ast::Let const* node)
 {
-	//
+	auto name_identifier = node->Name.get();
+	auto type_declarator = node->Type.get();
+
+	auto existing = lookup(name_identifier->get_name());
+	if( existing )
+	{
+		last_expr = SemaError("Name already defined");
+		return;
+	}
+
+	auto base_type = lookup(type_declarator->get_type_name());
+	if( !base_type )
+	{
+		last_expr = SemaError("Unknown type");
+		return;
+	}
+
+	auto type = base_type;
+	ast::TypeDeclarator const* p_type = type_declarator;
+	while( p_type->is_pointer_type() )
+	{
+		auto scoped = create_type(Type::PointerTo(*type));
+
+		type = scoped.expr;
+
+		p_type = p_type->get_base();
+	}
+
+	last_expr = add_named_value(name_identifier->get_name(), type);
 }
 
 void
@@ -301,13 +401,26 @@ Sema::visit(ast::Call const* node)
 void
 Sema::visit(ast::Statement const* node)
 {
-	//
+	visit_node(node->stmt.get());
 }
 
 void
 Sema::visit(ast::Expression const* node)
 {
 	//
+	visit_node(node->base.get());
+}
+
+void
+Sema::print_err()
+{
+	if( last_expr.ok() )
+		return;
+	else
+	{
+		std::cout << "Semantic Error" << std::endl;
+		std::cout << last_expr.unwrap_error()->error << std::endl;
+	}
 }
 
 void
@@ -317,7 +430,7 @@ Sema::visit_node(ast::IAstNode const* node)
 }
 
 Sema::ScopedType
-Sema::add_named_value(String const& name, Type* id)
+Sema::add_named_value(String const& name, Type const* id)
 {
 	return current_scope->add_named_value(name, id);
 }
@@ -326,6 +439,12 @@ Type const*
 Sema::lookup(String const& name)
 {
 	return current_scope->lookup(name);
+}
+
+Sema::ScopedType
+Sema::lookup2(String const& name)
+{
+	return current_scope->lookup2(name);
 }
 
 void
@@ -340,4 +459,23 @@ Sema::pop_scope()
 {
 	current_scope->is_in_scope = false;
 	current_scope = current_scope->get_parent();
+}
+
+bool
+Sema::ok()
+{
+	if( !last_expr.ok() )
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+SemaResult<Sema::ScopedType>
+Sema::consume()
+{
+	return std::move(last_expr);
 }

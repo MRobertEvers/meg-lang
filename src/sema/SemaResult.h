@@ -42,6 +42,10 @@ class SemaResult
 	OwnPtr<T> result = OwnPtr<T>::null();
 
 public:
+	SemaResult<T>(T& val)
+		: result(std::move(val)){
+			  // std::cout << "SemaResult: " << std::hex << &val << std::endl;
+		  };
 	SemaResult<T>(T&& val)
 		: result(std::move(val)){
 			  // std::cout << "SemaResult: " << std::hex << &val << std::endl;

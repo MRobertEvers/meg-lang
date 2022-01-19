@@ -31,12 +31,12 @@ class Sema : public IAstVisitor
 	class Scope;
 	struct ScopedType
 	{
-		Type* expr = nullptr;
+		Type const* expr = nullptr;
 		// Scope may be nullptr if the type is
 		// a pointer type.
-		Scope* scope = nullptr;
+		Scope const* scope = nullptr;
 		ScopedType(){};
-		ScopedType(Type* expr, Scope* scope)
+		ScopedType(Type const* expr, Scope const* scope)
 			: expr(expr)
 			, scope(scope){};
 
@@ -52,7 +52,8 @@ class Sema : public IAstVisitor
 	{
 		Scope* parent = nullptr;
 
-		std::map<String, Type*> names;
+		std::map<String, Type const*> names;
+		Type const* expected_return;
 
 	public:
 		bool is_in_scope = true;
@@ -61,9 +62,11 @@ class Sema : public IAstVisitor
 		Scope(Scope* parent);
 		~Scope();
 
-		ScopedType add_named_value(String const& name, Type* id);
+		ScopedType add_named_value(String const& name, Type const* id);
 		Type const* lookup(String const& name) const;
-
+		ScopedType lookup2(String const& name) const;
+		Type const* get_expected_return() const;
+		void set_expected_return(Type const* n);
 		Scope* get_parent();
 	};
 
@@ -99,12 +102,20 @@ public:
 	virtual void visit(ast::Statement const*) override;
 	virtual void visit(ast::Expression const*) override;
 
+	void print_err();
+
 private:
 	void visit_node(ast::IAstNode const* node);
 	void add_type(Type type);
-	ScopedType add_named_value(String const& name, Type* id);
+	ScopedType add_named_value(String const& name, Type const* id);
 	Type const* lookup(String const& name);
+	ScopedType lookup2(String const& name);
 	void new_scope();
 	void pop_scope();
+
+	// Returns false if the result of the last visit
+	// resulted in an error.
+	bool ok();
+	SemaResult<ScopedType> consume();
 };
 } // namespace sema
