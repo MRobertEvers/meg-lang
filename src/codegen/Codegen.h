@@ -119,6 +119,8 @@ public:
 	virtual void visit(ast::Assign const*) override;
 	virtual void visit(ast::While const*) override;
 	virtual void visit(ast::Call const*) override;
+	virtual void visit(ast::Statement const*) override;
+	virtual void visit(ast::Expression const*) override;
 
 private:
 	void pop_scope();
@@ -126,7 +128,7 @@ private:
 
 	llvm::Type* get_builtin_type(std::string const& name);
 
-	llvm::Type* get_type(ast::Type const& name);
+	llvm::Type* get_type(ast::TypeDeclarator& type);
 
 	llvm::Value* promote_to_value(llvm::Value* val);
 };

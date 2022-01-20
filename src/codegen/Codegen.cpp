@@ -10,7 +10,7 @@ get_element_index_in_struct(ast::Struct const* st, std::string const& name)
 	unsigned int idx = 0;
 	for( auto& mem : st->MemberVariables )
 	{
-		if( mem->Name->get_fqn() == name )
+		if( mem->Name->get_name() == name )
 		{
 			return idx;
 		}
@@ -25,7 +25,7 @@ get_member_of_struct(ast::Struct const* st, std::string const& name)
 {
 	for( auto& mem : st->MemberVariables )
 	{
-		if( mem->Name->get_fqn() == name )
+		if( mem->Name->get_name() == name )
 		{
 			return mem.get();
 		}
@@ -101,12 +101,12 @@ Codegen::promote_to_value(llvm::Value* Val)
  * @return llvm::llvm::Type*
  */
 llvm::Type*
-Codegen::get_type(ast::Type const& type)
+Codegen::get_type(ast::TypeDeclarator& type)
 {
 	// Need to iterate over type in reverse
-	Vec<ast::Type const*> stack;
+	Vec<ast::TypeDeclarator const*> stack;
 
-	for( auto ty = &type; ty != nullptr; ty = ty->base )
+	for( auto const* ty = &type; ty != nullptr; ty = ty->get_base() )
 	{
 		stack.push_back(ty);
 	}
@@ -115,10 +115,10 @@ Codegen::get_type(ast::Type const& type)
 	auto base_type = *iter;
 	iter++;
 
-	auto BaseType = get_builtin_type(base_type->name);
+	auto BaseType = get_builtin_type(base_type->get_type_name());
 	if( !BaseType )
 	{
-		auto type_identifier = current_scope->get_identifier(base_type->name);
+		auto type_identifier = current_scope->get_identifier(base_type->get_type_name());
 		if( !type_identifier ||
 			type_identifier->type != IdentifierValue::IdentifierType::struct_type )
 		{
@@ -165,7 +165,7 @@ Codegen::visit(ast::Function const* node)
 	// reference to it for use below.
 	node->Proto->visit(this);
 
-	auto TheFunctionIter = Functions.find(node->Proto->Name->get_fqn());
+	auto TheFunctionIter = Functions.find(node->Proto->Name->get_name());
 	if( TheFunctionIter == Functions.end() )
 		return;
 
@@ -186,9 +186,9 @@ Codegen::visit(ast::Function const* node)
 		Builder->CreateStore(&Arg, Alloca);
 
 		// Add arguments to variable symbol table.
-		auto id = node->Proto->Parameters[idx]->Name.get();
+		auto id = node->Proto->Parameters->Parameters[idx]->Name.get();
 		// auto ty = node->Proto->Parameters[idx]->llvm::Type.get();
-		current_scope->add_named_value(id->get_fqn(), IdentifierValue{id, Alloca});
+		current_scope->add_named_value(id->get_name(), IdentifierValue{id, Alloca});
 		idx++;
 	}
 
@@ -324,18 +324,18 @@ Codegen::get_builtin_type(std::string const& name)
 void
 Codegen::visit(ast::Prototype const* node)
 {
-	auto Name = node->Name->get_fqn();
+	auto Name = node->Name->get_name();
 	auto& Args = node->Parameters;
 
 	std::vector<llvm::Type*> IRArguments;
-	for( auto& arg : Args )
+	for( auto& arg : Args.get()->Parameters )
 	{
 		/**
 		 * We do a special hack here. Since llvm can't pass structures by value,
 		 * we just pass an array of
 		 *
 		 */
-		auto ty = get_type(arg->Type->get_type());
+		auto ty = get_type(*arg->Type.get());
 		if( ty == nullptr )
 		{
 			std::cout << "Unknown type" << std::endl;
@@ -346,7 +346,7 @@ Codegen::visit(ast::Prototype const* node)
 		IRArguments.push_back(ty);
 	}
 
-	auto ret_ty = get_type(node->ReturnType->get_type());
+	auto ret_ty = get_type(*node->ReturnType.get());
 	if( ret_ty == nullptr )
 	{
 		std::cout << "Unknown type" << std::endl;
@@ -362,7 +362,7 @@ Codegen::visit(ast::Prototype const* node)
 	// Set names for all arguments.
 	unsigned Idx = 0;
 	for( auto& Arg : F->args() )
-		Arg.setName(node->Parameters[Idx++]->Name->get_fqn());
+		Arg.setName(node->Parameters->Parameters[Idx++]->Name->get_name());
 
 	Functions.insert(std::make_pair(Name, F));
 
@@ -372,10 +372,10 @@ Codegen::visit(ast::Prototype const* node)
 void
 Codegen::visit(ast::TypeIdentifier const* node)
 {
-	auto Var = current_scope->get_identifier(node->get_fqn());
+	auto Var = current_scope->get_identifier(node->get_name());
 	if( !Var )
 	{
-		std::cout << "Unrecognized type identifier: " << node->get_fqn() << std::endl;
+		std::cout << "Unrecognized type identifier: " << node->get_name() << std::endl;
 	}
 	return;
 }
@@ -390,7 +390,7 @@ Codegen::visit(ast::ValueIdentifier const* node)
 	// 	return;
 	// }
 
-	auto value_identifier = current_scope->get_identifier(node->get_fqn());
+	auto value_identifier = current_scope->get_identifier(node->get_name());
 
 	if( value_identifier->type != IdentifierValue::IdentifierType::value )
 	{
@@ -422,15 +422,25 @@ Codegen::visit(ast::Let const* node)
 	R = promote_to_value(R);
 
 	// Create an alloca for this variable.
-	auto& type = node->Type->get_type();
-	llvm::Type* Type = get_type(type);
+
+	llvm::Type* Type = nullptr;
+
+	if( !node->Type->is_empty() )
+	{
+		Type = get_type(*node->Type.get());
+	}
+	else
+	{
+		Type = R->getType();
+	}
+
 	if( Type == nullptr )
 	{
-		std::cout << "Unknown type " << type.name << std::endl;
+		std::cout << "Unknown type " << node->Type->get_name() << std::endl;
 		return;
 	}
 
-	auto variable_name = node->Name->get_fqn();
+	auto variable_name = node->Name->get_name();
 	AllocaInst* Alloca = Builder->CreateAlloca(Type, nullptr, variable_name);
 
 	// Add the value to the named scope AFTER the expression is genned.
@@ -446,7 +456,7 @@ Codegen::visit(ast::Struct const* node)
 	Vec<llvm::Type*> members;
 	for( auto& mem : node->MemberVariables )
 	{
-		auto ty = get_type(mem->Type->get_type());
+		auto ty = get_type(*mem->Type.get());
 		if( !ty )
 		{
 			std::cout << "Type name unknown" << std::endl;
@@ -457,10 +467,10 @@ Codegen::visit(ast::Struct const* node)
 	}
 
 	llvm::StructType* StructTy =
-		llvm::StructType::create(*Context, members, node->TypeName->get_fqn());
+		llvm::StructType::create(*Context, members, node->TypeName->get_name());
 
 	current_scope->add_named_value(
-		node->TypeName->get_fqn(), IdentifierValue{node->TypeName.get(), StructTy, node});
+		node->TypeName->get_name(), IdentifierValue{node->TypeName.get(), StructTy, node});
 }
 
 void
@@ -477,12 +487,11 @@ Codegen::visit(ast::MemberReference const* node)
 	auto BaseValue = last_expr;
 	last_expr = nullptr;
 
-	auto& ast_type = node->get_type();
-	auto MemberType = get_type(ast_type);
-	if( !MemberType )
-	{
-		return;
-	}
+	// auto MemberType = get_type(node->);
+	// if( !MemberType )
+	// {
+	// 	return;
+	// }
 
 	auto BaseType = BaseValue->getType();
 
@@ -523,7 +532,7 @@ Codegen::visit(ast::MemberReference const* node)
 		return;
 	}
 
-	auto member_name = node->name->get_fqn();
+	auto member_name = node->name->get_name();
 	auto ast_struct_definition = as_struct_id_val->data.type.type_struct;
 	auto idx = get_element_index_in_struct(ast_struct_definition, member_name);
 	if( idx == -1 )
@@ -686,40 +695,53 @@ Codegen::visit(ast::While const* node)
 void
 Codegen::visit(ast::Call const* node)
 {
-	auto name = node->name->get_fqn();
-	auto function = current_scope->get_identifier(name);
-
-	if( !function || function->type != IdentifierValue::IdentifierType::function_type )
+	node->call_target->visit(this);
+	if( !last_expr )
 	{
-		std::cout << "Expected function name" << std::endl;
 		return;
 	}
 
-	auto Function = function->data.Function;
-	if( node->args.size() != Function->arg_size() )
+	if( !last_expr->getType()->isFunctionTy() )
 	{
-		std::cout << "Wrong no args" << std::endl;
+		std::cout << "Expected function type" << std::endl;
 		return;
 	}
 
-	unsigned int idx = 0;
-	for( auto& Param : Function->args() )
-	{
-		auto ParamType = Param.getType();
+	llvm::Function* Function = static_cast<llvm::Function*>(last_expr);
+	// auto name = node->name->get_fqn();
+	// auto function = current_scope->get_identifier(name);
 
-		auto ArgType = get_type(node->args[idx]->get_type());
-		if( ArgType == nullptr || ArgType != ParamType )
-		{
-			std::cout << "Unknown arg type" << std::endl;
-			return;
-		}
-		idx++;
-	}
+	// if( !function || function->type != IdentifierValue::IdentifierType::function_type )
+	// {
+	// 	std::cout << "Expected function name" << std::endl;
+	// 	return;
+	// }
+
+	// auto Function = function->data.Function;
+	// if( node->args.args.size() != Function->arg_size() )
+	// {
+	// 	std::cout << "Wrong no args" << std::endl;
+	// 	return;
+	// }
+
+	// unsigned int idx = 0;
+	// for( auto& Param : Function->args() )
+	// {
+	// 	auto ParamType = Param.getType();
+
+	// 	auto ArgType = get_type(node->args.args[idx]->get_type());
+	// 	if( ArgType == nullptr || ArgType != ParamType )
+	// 	{
+	// 		std::cout << "Unknown arg type" << std::endl;
+	// 		return;
+	// 	}
+	// 	idx++;
+	// }
 
 	std::vector<Value*> ArgsV;
-	for( unsigned i = 0, e = node->args.size(); i != e; ++i )
+	for( unsigned i = 0, e = node->args.args.size(); i != e; ++i )
 	{
-		node->args[i]->visit(this);
+		node->args.args[i]->visit(this);
 		auto Expr = last_expr;
 		last_expr = nullptr;
 		if( !Expr )
@@ -733,6 +755,18 @@ Codegen::visit(ast::Call const* node)
 	}
 
 	last_expr = Builder->CreateCall(Function, ArgsV, "call");
+}
+
+void
+Codegen::visit(ast::Statement const* node)
+{
+	node->stmt->visit(this);
+}
+
+void
+Codegen::visit(ast::Expression const* node)
+{
+	node->base->visit(this);
 }
 
 void

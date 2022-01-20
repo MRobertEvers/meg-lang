@@ -1,4 +1,5 @@
 #include "ast/ast.h"
+#include "codegen/Codegen.h"
 #include "common/OwnPtr.h"
 #include "format/pretty_print_ast.h"
 #include "lexer/Lexer.h"
@@ -24,7 +25,7 @@ using namespace ast;
 using namespace llvm;
 
 void
-gen_code(std::vector<Token> const& tokens)
+gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 {
 	TokenCursor cursor{tokens};
 	Parser parse{cursor};
@@ -36,9 +37,16 @@ gen_code(std::vector<Token> const& tokens)
 	{
 		auto mod = mod_result.unwrap();
 		pretty_print_ast(tokens, mod.get());
-		// mod->visit(&cg);
+
 		mod->visit(&sema);
-		sema.print_err();
+		if( sema.is_errored() )
+		{
+			sema.print_err();
+		}
+		else
+		{
+			mod->visit(&cg);
+		}
 	}
 	else
 	{
@@ -70,7 +78,7 @@ main(int argc, char* argv[])
 
 	std::cout << filedata << std::endl;
 
-	// codegen::Codegen cg;
+	codegen::Codegen cg;
 
 	Lexer lex{filedata.c_str()};
 
@@ -78,66 +86,66 @@ main(int argc, char* argv[])
 
 	Lexer::print_tokens(lex_result.tokens);
 
-	gen_code(lex_result.tokens);
+	gen_code(cg, lex_result.tokens);
 
-	// std::string Str;
-	// raw_string_ostream OS(Str);
+	std::string Str;
+	raw_string_ostream OS(Str);
 
-	// cg.Module->print(OS, nullptr);
+	cg.Module->print(OS, nullptr);
 
-	// std::cout << Str;
+	std::cout << Str;
 
-	// auto& Mod = *cg.Module;
+	auto& Mod = *cg.Module;
 
-	// auto CPU = "generic";
-	// auto Features = "";
+	auto CPU = "generic";
+	auto Features = "";
 
-	// InitializeNativeTarget();
-	// InitializeNativeTargetAsmParser();
-	// InitializeNativeTargetAsmPrinter();
-	// TargetOptions opt;
-	// auto RM = Optional<Reloc::Model>();
+	InitializeNativeTarget();
+	InitializeNativeTargetAsmParser();
+	InitializeNativeTargetAsmPrinter();
+	TargetOptions opt;
+	auto RM = Optional<Reloc::Model>();
 
-	// // auto TargetTriple = sys::getDefaultTargetTriple();
-	// std::string TargetTriple = "aarch64-app-darwin";
-	// std::cout << "Target: " << TargetTriple << std::endl;
+	// auto TargetTriple = sys::getDefaultTargetTriple();
+	std::string TargetTriple = "aarch64-app-darwin";
+	std::cout << "Target: " << TargetTriple << std::endl;
 
-	// std::string Error;
-	// auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
-	// if( !Target )
-	// {
-	// 	errs() << Error;
-	// 	return 1;
-	// }
+	std::string Error;
+	auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
+	if( !Target )
+	{
+		errs() << Error;
+		return 1;
+	}
 
-	// auto TheTargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+	auto TheTargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
 
-	// Mod.setDataLayout(TheTargetMachine->createDataLayout());
-	// Mod.setTargetTriple(TargetTriple);
+	Mod.setDataLayout(TheTargetMachine->createDataLayout());
+	Mod.setTargetTriple(TargetTriple);
 
-	// auto Filename = "output.o";
-	// std::error_code EC;
-	// raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
+	auto Filename = "output.o";
+	std::error_code EC;
+	raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
 
-	// if( EC )
-	// {
-	// 	errs() << "Could not open file: " << EC.message();
-	// 	return 1;
-	// }
+	if( EC )
+	{
+		errs() << "Could not open file: " << EC.message();
+		return 1;
+	}
 
-	// legacy::PassManager pass;
-	// auto FileType = CGFT_ObjectFile;
+	legacy::PassManager pass;
+	auto FileType = CGFT_ObjectFile;
 
-	// if( TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType) )
-	// {
-	// 	errs() << "TheTargetMachine can't emit a file of this type";
-	// 	return 1;
-	// }
+	if( TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType) )
+	{
+		errs() << "TheTargetMachine can't emit a file of this type";
+		return 1;
+	}
 
-	// pass.run(Mod);
-	// dest.flush();
+	pass.run(Mod);
+	dest.flush();
 
-	// outs() << "Wrote " << Filename << "\n";
+	outs() << "Wrote " << Filename << "\n";
 
 	return 0;
 }

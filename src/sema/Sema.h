@@ -102,6 +102,7 @@ public:
 	virtual void visit(ast::Statement const*) override;
 	virtual void visit(ast::Expression const*) override;
 
+	bool is_errored() const;
 	void print_err();
 
 private:

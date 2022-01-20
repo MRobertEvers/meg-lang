@@ -540,6 +540,12 @@ Sema::visit(ast::Expression const* node)
 	visit_node(node->base.get());
 }
 
+bool
+Sema::is_errored() const
+{
+	return !last_expr.ok();
+}
+
 void
 Sema::print_err()
 {

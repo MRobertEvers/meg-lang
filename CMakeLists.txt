@@ -53,8 +53,8 @@ add_executable(sushi
     src/format/reverse.h
     src/format/utils.h
     src/format/utils.cpp
-    # src/codegen/Codegen.h
-    # src/codegen/Codegen.cpp
+    src/codegen/Codegen.h
+    src/codegen/Codegen.cpp
     src/parser/ParseResult.h
     src/parser/ParseResult.cpp
     src/parser/parsers/Parser.h
