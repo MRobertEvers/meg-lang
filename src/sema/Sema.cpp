@@ -157,7 +157,17 @@ Sema::visit(ast::Function const* node)
 {
 	new_scope();
 	visit_node(node->Proto.get());
+	if( !ok() )
+	{
+		return;
+	}
+
 	visit_node(node->Body.get());
+	if( !ok() )
+	{
+		return;
+	}
+
 	pop_scope();
 }
 
@@ -168,6 +178,10 @@ Sema::visit(ast::Block const* node)
 	for( auto& stmt : node->statements )
 	{
 		visit_node(stmt.get());
+		if( !ok() )
+		{
+			return;
+		}
 	}
 	pop_scope();
 }
@@ -176,20 +190,18 @@ void
 Sema::visit(ast::BinaryOperation const* node)
 {
 	visit_node(node->LHS.get());
-	auto lhs_type = std::move(last_expr);
-	last_expr = SemaError("");
-	if( !lhs_type.ok() )
+	if( !ok() )
 	{
 		return;
 	}
+	auto lhs_type = std::move(last_expr);
 
 	visit_node(node->RHS.get());
-	auto rhs_type = std::move(last_expr);
-	last_expr = SemaError("");
-	if( !rhs_type.ok() )
+	if( !ok() )
 	{
 		return;
 	}
+	auto rhs_type = std::move(last_expr);
 
 	auto lhs_expr_type = lhs_type.unwrap();
 	auto rhs_expr_type = rhs_type.unwrap();
@@ -206,7 +218,7 @@ Sema::visit(ast::BinaryOperation const* node)
 void
 Sema::visit(ast::Number const* node)
 {
-	//
+	last_expr = current_scope->lookup2("i32");
 }
 
 void
@@ -286,7 +298,7 @@ Sema::visit(ast::ValueIdentifier const* node)
 	auto type = lookup2(node->get_name());
 	if( !type.expr )
 	{
-		last_expr = SemaError("Unkown variable");
+		last_expr = SemaError("Unknown variable '" + node->get_name() + "'");
 		return;
 	}
 
@@ -297,7 +309,6 @@ void
 Sema::visit(ast::Let const* node)
 {
 	auto name_identifier = node->Name.get();
-	auto type_declarator = node->Type.get();
 
 	auto existing = lookup(name_identifier->get_name());
 	if( existing )
@@ -306,25 +317,35 @@ Sema::visit(ast::Let const* node)
 		return;
 	}
 
-	auto base_type = lookup(type_declarator->get_type_name());
-	if( !base_type )
+	Type const* type_decl = nullptr;
+	if( !node->Type->is_empty() )
 	{
-		last_expr = SemaError("Unknown type");
+		visit_node(node->Type.get());
+		if( !ok() )
+		{
+			return;
+		}
+		type_decl = consume().unwrap()->expr;
+	}
+
+	visit_node(node->RHS.get());
+	if( !ok() )
+	{
+		return;
+	}
+	auto rhs_type = consume().unwrap();
+
+	if( type_decl == nullptr )
+	{
+		type_decl = rhs_type->expr;
+	}
+	else if( rhs_type->expr != type_decl )
+	{
+		last_expr = SemaError("Incorrect type in RHS.");
 		return;
 	}
 
-	auto type = base_type;
-	ast::TypeDeclarator const* p_type = type_declarator;
-	while( p_type->is_pointer_type() )
-	{
-		auto scoped = create_type(Type::PointerTo(*type));
-
-		type = scoped.expr;
-
-		p_type = p_type->get_base();
-	}
-
-	last_expr = add_named_value(name_identifier->get_name(), type);
+	last_expr = add_named_value(name_identifier->get_name(), type_decl);
 }
 
 void
@@ -334,27 +355,15 @@ Sema::visit(ast::Struct const* node)
 	for( auto& member : node->MemberVariables )
 	{
 		auto& name_identifier = member->Name;
-		auto& type_declarator = member->Type;
 
-		auto base_type = lookup(type_declarator->get_type_name());
-		if( !base_type )
+		visit_node(member->Type.get());
+		if( !ok() )
 		{
-			last_expr = SemaError("Unknown type");
 			return;
 		}
 
-		auto type = base_type;
-		ast::TypeDeclarator const* p_type = type_declarator.get();
-		while( p_type->is_pointer_type() )
-		{
-			auto scoped = create_type(Type::PointerTo(*type));
-
-			type = scoped.expr;
-
-			p_type = p_type->get_base();
-		}
-
-		members.emplace(name_identifier->get_name(), type);
+		auto type = consume().unwrap();
+		members.emplace(name_identifier->get_name(), type->expr);
 	}
 
 	// TODO: Check if struct already exists
@@ -365,37 +374,157 @@ Sema::visit(ast::Struct const* node)
 void
 Sema::visit(ast::MemberReference const* node)
 {
-	//
+	visit_node(node->base.get());
+	if( !ok() )
+	{
+		return;
+	}
+
+	auto base = last_expr.unwrap();
+
+	auto base_type = base->expr;
+
+	// One free dereference
+	if( base_type->is_pointer_type() )
+	{
+		base_type = base_type->get_base();
+	}
+
+	if( !base_type->is_struct_type() )
+	{
+		last_expr = SemaError(base_type->get_name() + " is not a struct");
+		return;
+	}
+
+	auto member_type = base_type->get_member_type(node->name->get_name());
+	if( !member_type )
+	{
+		last_expr =
+			SemaError(node->name->get_name() + " does not exist in type " + base_type->get_name());
+		return;
+	}
+
+	// TODO: Need to know if type is in scope.
+	last_expr = ScopedType{member_type, nullptr};
 }
 
 void
 Sema::visit(ast::TypeDeclarator const* node)
 {
+	auto base_type = lookup(node->get_type_name());
+	if( !base_type )
+	{
+		last_expr = SemaError("Unknown type");
+		return;
+	}
+
 	//
+	auto type = base_type;
+	ast::TypeDeclarator const* p_type = node;
+	while( p_type->is_pointer_type() )
+	{
+		auto scoped = create_type(Type::PointerTo(*type));
+
+		type = scoped.expr;
+
+		p_type = p_type->get_base();
+	}
+
+	last_expr = ScopedType{type, nullptr};
 }
 
 void
 Sema::visit(ast::If const* node)
 {
-	//
+	// TODO: How to enforce condition to be boolean?
+	// node->condition
+
+	visit_node(node->then_block.get());
+	if( !ok() )
+	{
+		return;
+	}
+
+	visit_node(node->else_block.get());
+	if( !ok() )
+	{
+		return;
+	}
 }
 
 void
 Sema::visit(ast::Assign const* node)
 {
-	//
+	visit_node(node->lhs.get());
+	if( !ok() )
+	{
+		return;
+	}
+
+	auto lhs = consume().unwrap();
+
+	visit_node(node->rhs.get());
+	if( !ok() )
+	{
+		return;
+	}
+
+	auto rhs = consume().unwrap();
+
+	if( rhs->expr != lhs->expr )
+	{
+		last_expr = SemaError("LHS and RHS must be same type.");
+		return;
+	}
 }
 
 void
 Sema::visit(ast::While const* node)
 {
 	//
+	visit_node(node->loop_block.get());
+	if( !ok() )
+	{
+		return;
+	}
 }
 
 void
 Sema::visit(ast::Call const* node)
 {
-	//
+	visit_node(node->call_target.get());
+	if( !ok() )
+	{
+		return;
+	}
+
+	auto func_type = consume().unwrap();
+	if( !func_type->expr->is_function_type() )
+	{
+		last_expr = SemaError(func_type->expr->get_name() + " is not a function");
+		return;
+	}
+
+	int idx = 0;
+	for( auto& arg : node->args.args )
+	{
+		visit_node(arg.get());
+		if( !ok() )
+		{
+			return;
+		}
+
+		auto arg_type = consume().unwrap();
+		if( arg_type->expr != func_type->expr->get_member_type(idx) )
+		{
+			last_expr = SemaError("Argument parameter type mismatch");
+			return;
+		}
+
+		idx++;
+	}
+
+	last_expr = ScopedType{func_type->expr->get_return_type(), nullptr};
 }
 
 void

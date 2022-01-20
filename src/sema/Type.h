@@ -34,6 +34,9 @@ private:
 	// For functions, this is the arguments
 	std::map<String, Type const*> members;
 
+	// Used for functions. TODO: this is ugly.
+	Vec<String> members_order;
+
 	// For functions return type
 	Type const* return_type = nullptr;
 
@@ -90,9 +93,14 @@ public:
 
 	bool is_infer_type() const { return name == infer_type_name; }
 	bool is_pointer_type() const { return cls == TypeClassification::pointer; }
+	bool is_function_type() const { return cls == TypeClassification::function; }
+	bool is_struct_type() const { return cls == TypeClassification::struct_cls; }
 	String get_name() const;
 
+	Type const* get_base() const;
 	Type const* get_member_type(String const& name) const;
+	Type const* get_member_type(int idx) const;
+	Type const* get_return_type() const;
 	void add_member(String const& name, Type const& type);
 
 	static Type PointerTo(Type const& base);
@@ -109,5 +117,6 @@ static Type i32_type = Type::Primitive("i32");
 static Type u8_type = Type::Primitive("u8");
 static Type u16_type = Type::Primitive("u16");
 static Type u32_type = Type::Primitive("u32");
+static Type bool_type = Type::Primitive("bool");
 
 } // namespace sema

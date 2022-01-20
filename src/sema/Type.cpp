@@ -18,6 +18,12 @@ Type::get_name() const
 }
 
 Type const*
+Type::get_base() const
+{
+	return base;
+}
+
+Type const*
 Type::get_member_type(String const& name) const
 {
 	auto member = members.find(name);
@@ -31,10 +37,31 @@ Type::get_member_type(String const& name) const
 	}
 }
 
+Type const*
+Type::get_member_type(int idx) const
+{
+	if( idx < members_order.size() )
+	{
+		return get_member_type(members_order.at(idx));
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+Type const*
+Type::get_return_type() const
+{
+	return return_type;
+}
+
 void
 Type::add_member(String const& name, Type const& type)
 {
 	members.insert(std::make_pair(name, &type));
+
+	members_order.emplace_back(name);
 }
 
 Type

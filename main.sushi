@@ -1,5 +1,16 @@
 
+struct willy {
+    a: i16;
+    b: i32;
+}
 
-fn callable(a: i32, b: i32): i32 {
-    return a + b;
+fn callable(s: willy*): i32 {
+
+    if (s.b > 5) {
+        s.b = 82;
+    } else {
+        let a = 4;
+    }
+
+    return s.b + 1;
 }
