@@ -6,11 +6,14 @@ struct willy {
 
 fn callable(s: willy*): i32 {
 
-    if (s.b > 5) {
-        s.b = 82;
-    } else {
-        let a = 4;
+    let a = 1;
+    if (a > 0) {
+        a = 0;
+    } 
+
+    for (let l = 5; l > 0; l = l - 1) {
+        a = a + l;
     }
 
-    return s.b + 1;
+    return a;
 }

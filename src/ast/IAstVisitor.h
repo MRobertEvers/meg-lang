@@ -19,6 +19,7 @@ class MemberReference;
 class Assign;
 class While;
 class Call;
+class For;
 class Statement;
 class Expression;
 } // namespace ast
@@ -40,6 +41,7 @@ public:
 	virtual void visit(ast::MemberReference const*) = 0;
 	virtual void visit(ast::TypeDeclarator const*) = 0;
 	virtual void visit(ast::If const*) = 0;
+	virtual void visit(ast::For const*) = 0;
 	virtual void visit(ast::Assign const*) = 0;
 	virtual void visit(ast::While const*) = 0;
 	virtual void visit(ast::Call const*) = 0;

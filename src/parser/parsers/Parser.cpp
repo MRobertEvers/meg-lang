@@ -451,6 +451,20 @@ Parser::parse_statement()
 		goto no_semi;
 	}
 	break;
+	case TokenType::for_keyword:
+	{
+		auto expr = parse_for();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+
+		// TODO: Better way to do this?
+		goto no_semi;
+	}
+	break;
 	case TokenType::open_curly:
 	{
 		auto expr = parse_block();
@@ -541,6 +555,63 @@ Parser::parse_if()
 	{
 		return If{trail.mark(), condition.unwrap(), then_block.unwrap()};
 	}
+}
+
+ParseResult<For>
+Parser::parse_for()
+{
+	auto trail = get_parse_trail();
+
+	auto tok = cursor.consume(TokenType::for_keyword);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'for'", tok.as());
+	}
+
+	tok = cursor.consume(TokenType::open_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '('", tok.as());
+	}
+
+	auto init = parse_statement();
+	if( !init.ok() )
+	{
+		return init;
+	}
+
+	auto condition = parse_expr();
+	if( !condition.ok() )
+	{
+		return condition;
+	}
+
+	tok = cursor.consume(TokenType::semicolon);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ';'", tok.as());
+	}
+
+	auto end_loop = parse_expr_statement();
+	if( !end_loop.ok() )
+	{
+		return end_loop;
+	}
+
+	tok = cursor.consume(TokenType::close_paren);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ';'", tok.as());
+	}
+
+	auto body = parse_statement();
+	if( !body.ok() )
+	{
+		return body;
+	}
+
+	return ast::For(
+		trail.mark(), init.unwrap(), condition.unwrap(), end_loop.unwrap(), body.unwrap());
 }
 
 ParseResult<IExpressionNode>

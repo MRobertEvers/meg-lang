@@ -33,6 +33,7 @@ private:
 	ParseResult<IStatementNode> parse_statement();
 
 	ParseResult<If> parse_if();
+	ParseResult<For> parse_for();
 	ParseResult<IExpressionNode> parse_literal();
 	ParseResult<TypeIdentifier> parse_type_identifier();
 	ParseResult<ValueIdentifier> parse_identifier();

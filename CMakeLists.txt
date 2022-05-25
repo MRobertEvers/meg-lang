@@ -44,15 +44,15 @@ add_executable(sushi
     src/common/OwnPtr.h
     src/common/Vec.h
     src/common/String.h
-    src/format/FormatParser.h
-    src/format/FormatParser.cpp
-    src/format/NodeSpan.h
-    src/format/NodeSpan.cpp
-    src/format/pretty_print_ast.h
-    src/format/pretty_print_ast.cpp
-    src/format/reverse.h
-    src/format/utils.h
-    src/format/utils.cpp
+    # src/format/FormatParser.h
+    # src/format/FormatParser.cpp
+    # src/format/NodeSpan.h
+    # src/format/NodeSpan.cpp
+    # src/format/pretty_print_ast.h
+    # src/format/pretty_print_ast.cpp
+    # src/format/reverse.h
+    # src/format/utils.h
+    # src/format/utils.cpp
     src/codegen/Codegen.h
     src/codegen/Codegen.cpp
     src/parser/ParseResult.h
@@ -76,6 +76,7 @@ add_executable(sushi
     src/ast/statements/Let.h
     src/ast/statements/Statement.h
     src/ast/statements/If.h
+    src/ast/statements/For.h
     src/ast/statements/Block.h
     src/ast/statements/Function.h
     src/ast/statements/Prototype.h

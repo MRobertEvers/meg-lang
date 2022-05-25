@@ -12,6 +12,7 @@
 #include "expressions/TypeDeclarator.h"
 #include "statements/Assign.h"
 #include "statements/Block.h"
+#include "statements/For.h"
 #include "statements/Function.h"
 #include "statements/If.h"
 #include "statements/Let.h"

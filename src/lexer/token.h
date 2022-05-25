@@ -37,6 +37,7 @@ enum class TokenType
 	let,
 	struct_keyword,
 	if_keyword,
+	for_keyword,
 	else_keyword,
 	while_keyword,
 

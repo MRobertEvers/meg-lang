@@ -116,6 +116,7 @@ public:
 	virtual void visit(ast::MemberReference const*) override;
 	virtual void visit(ast::TypeDeclarator const*) override;
 	virtual void visit(ast::If const*) override;
+	virtual void visit(ast::For const*) override;
 	virtual void visit(ast::Assign const*) override;
 	virtual void visit(ast::While const*) override;
 	virtual void visit(ast::Call const*) override;

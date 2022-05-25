@@ -596,33 +596,61 @@ Codegen::visit(ast::If const* node)
 	last_expr = nullptr;
 
 	Builder->CreateBr(MergeBB);
-	// Codegen of 'Then' can change the current block, update ThenBB for the PHI.
-	ThenBB = Builder->GetInsertBlock();
-
-	// Emit else block.
 	Function->getBasicBlockList().push_back(ElseBB);
 	Builder->SetInsertPoint(ElseBB);
 
-	node->else_block->visit(this);
-	auto ElseV = last_expr;
-	last_expr = nullptr;
-
+	if( !node->else_block.is_null() )
+	{
+		node->else_block->visit(this);
+		auto ElseV = last_expr;
+		last_expr = nullptr;
+	}
 	Builder->CreateBr(MergeBB);
+
 	// Codegen of 'Else' can change the current block, update ElseBB for the PHI.
 	ElseBB = Builder->GetInsertBlock();
 
 	// Emit merge block.
 	Function->getBasicBlockList().push_back(MergeBB);
 	Builder->SetInsertPoint(MergeBB);
+}
 
-	// This would be needed for a ternary expr.
+void
+Codegen::visit(ast::For const* node)
+{
+	node->init->visit(this);
 
-	// PHINode* PN = Builder->CreatePHI(llvm::Type::getDoubleTy(*Context), 2, "iftmp");
+	auto Function = current_scope->get_function();
 
-	// PN->addIncoming(ThenV, ThenBB);
-	// PN->addIncoming(ElseV, ElseBB);
+	BasicBlock* LoopStartBB = BasicBlock::Create(*Context, "condition", Function);
+	BasicBlock* LoopBB = BasicBlock::Create(*Context, "loop");
+	BasicBlock* LoopDoneBB = BasicBlock::Create(*Context, "after_loop");
 
-	// last_expr = PN;
+	// There are no implicit fallthroughs, we have to make an
+	// explicit fallthrough
+	Builder->CreateBr(LoopStartBB);
+
+	Builder->SetInsertPoint(LoopStartBB);
+	node->condition->visit(this);
+	auto CondV = last_expr;
+	last_expr = nullptr;
+	if( !CondV )
+		return;
+
+	Builder->CreateCondBr(CondV, LoopBB, LoopDoneBB);
+
+	Function->getBasicBlockList().push_back(LoopBB);
+	Builder->SetInsertPoint(LoopBB);
+
+	node->body->visit(this);
+
+	node->end_loop->visit(this);
+
+	Builder->CreateBr(LoopStartBB);
+
+	// Emit else block.
+	Function->getBasicBlockList().push_back(LoopDoneBB);
+	Builder->SetInsertPoint(LoopDoneBB);
 }
 
 void
