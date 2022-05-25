@@ -17,7 +17,7 @@ public:
 		text,
 		document,  // A list of concatenated nodes.
 		line,	   // Line break or space if group fits on line.
-		soft_line, // Line break or space if fits on line
+		soft_line, // Line break or nothing if fits on line
 		hard_line, // Always line break,
 		indent,
 		min_padding, // Add minimum spacing between non-newline/whitespace elements

@@ -285,6 +285,31 @@ FormatParser::visit(ast::If const* node)
 }
 
 void
+FormatParser::visit(ast::For const* node)
+{
+	append_span(NodeSpan{"for "});
+
+	append_span("(");
+	{
+		GroupScope g{*this};
+		{
+			IndentScope ind{*this};
+			append_span(NodeSpan::SoftLine());
+			visit_node(node->init.get());
+			append_span(NodeSpan::SoftLine());
+			visit_node(node->condition.get());
+			append_span(NodeSpan{"; "});
+			append_span(NodeSpan::SoftLine());
+			visit_node(node->end_loop.get());
+		}
+		append_span(NodeSpan::SoftLine());
+	}
+	append_span(")");
+	append_span(NodeSpan{" "});
+	visit_node(node->body.get());
+}
+
+void
 FormatParser::visit(ast::Assign const* node)
 {
 	visit_node(node->lhs.get());

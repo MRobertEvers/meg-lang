@@ -545,22 +545,6 @@ Codegen::visit(ast::MemberReference const* node)
 		PointedToType, BaseValue, idx, struct_name_str + "." + member_name);
 
 	last_expr = MemberPtr;
-
-	// LEGACY! We want to return values by reference so than can be used as LValues or RValues,
-	// if something needs a value, the callee must perform the load themselves.
-
-	// // If the type of MemberPtr is a struct pointer, don't load it.
-	// // Most operations in llvm work on struct pointers, not the struct itself.
-	// if( MemberPtr->getType()->getPointerElementType()->isStructTy() )
-	// {
-	// 	// Do nothing
-	// 	last_expr = MemberPtr;
-	// }
-	// else
-	// {
-	// 	// Load the value.
-	// 	last_expr = Builder->CreateLoad(MemberType, MemberPtr, "");
-	// }
 }
 
 void
@@ -627,7 +611,7 @@ Codegen::visit(ast::For const* node)
 	BasicBlock* LoopDoneBB = BasicBlock::Create(*Context, "after_loop");
 
 	// There are no implicit fallthroughs, we have to make an
-	// explicit fallthrough
+	// explicit fallthrough from the current block to the LoopStartBB
 	Builder->CreateBr(LoopStartBB);
 
 	Builder->SetInsertPoint(LoopStartBB);
@@ -648,7 +632,6 @@ Codegen::visit(ast::For const* node)
 
 	Builder->CreateBr(LoopStartBB);
 
-	// Emit else block.
 	Function->getBasicBlockList().push_back(LoopDoneBB);
 	Builder->SetInsertPoint(LoopDoneBB);
 }
@@ -696,9 +679,12 @@ Codegen::visit(ast::While const* node)
 	BasicBlock* AfterLoopBB = BasicBlock::Create(*Context, "after_loop");
 
 	// Insert an explicit fall through from the current block to the LoopBB.
-	// TODO: I'm not sure why this is needed, but LLVM segfaults if its not there.
+	// TODO: (2022-01-11) I'm not sure why this is needed, but LLVM segfaults if its not there.
 	// Maybe it is doing some sort of graph analysis and implicit fallthrough on blocks
 	// is not allowed?
+	// Answer: (2022-05-25) Yes. It is. Every block must end with a terminator instruction, the
+	// block we are in when we enter this function (i.e. visit(ast:While)) does not yet have a
+	// terminator instr.
 	Builder->CreateBr(LoopConditionCheckBB);
 
 	Builder->SetInsertPoint(LoopConditionCheckBB);
@@ -708,7 +694,6 @@ Codegen::visit(ast::While const* node)
 	if( !CondV )
 		return;
 
-	// TODO: Just require boolean for CondV
 	Builder->CreateCondBr(CondV, LoopBB, AfterLoopBB);
 
 	Function->getBasicBlockList().push_back(LoopBB);
@@ -736,35 +721,6 @@ Codegen::visit(ast::Call const* node)
 	}
 
 	llvm::Function* Function = static_cast<llvm::Function*>(last_expr);
-	// auto name = node->name->get_fqn();
-	// auto function = current_scope->get_identifier(name);
-
-	// if( !function || function->type != IdentifierValue::IdentifierType::function_type )
-	// {
-	// 	std::cout << "Expected function name" << std::endl;
-	// 	return;
-	// }
-
-	// auto Function = function->data.Function;
-	// if( node->args.args.size() != Function->arg_size() )
-	// {
-	// 	std::cout << "Wrong no args" << std::endl;
-	// 	return;
-	// }
-
-	// unsigned int idx = 0;
-	// for( auto& Param : Function->args() )
-	// {
-	// 	auto ParamType = Param.getType();
-
-	// 	auto ArgType = get_type(node->args.args[idx]->get_type());
-	// 	if( ArgType == nullptr || ArgType != ParamType )
-	// 	{
-	// 		std::cout << "Unknown arg type" << std::endl;
-	// 		return;
-	// 	}
-	// 	idx++;
-	// }
 
 	std::vector<Value*> ArgsV;
 	for( unsigned i = 0, e = node->args.args.size(); i != e; ++i )

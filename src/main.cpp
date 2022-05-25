@@ -36,7 +36,7 @@ gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 	if( mod_result.ok() )
 	{
 		auto mod = mod_result.unwrap();
-		// pretty_print_ast(tokens, mod.get());
+		pretty_print_ast(tokens, mod.get());
 
 		// mod->visit(&sema);
 		// if( sema.is_errored() )

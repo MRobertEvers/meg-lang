@@ -453,6 +453,10 @@ Sema::visit(ast::If const* node)
 }
 
 void
+Sema::visit(ast::For const* node)
+{}
+
+void
 Sema::visit(ast::Assign const* node)
 {
 	visit_node(node->lhs.get());
