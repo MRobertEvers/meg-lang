@@ -38,10 +38,13 @@ private:
 	Token lex_consume_number();
 	Token lex_consume_single();
 	Token lex_consume_line_comment();
+	Token lex_consume_ambiguous_lexeme();
 
 	void track_newline(std::vector<Token>& tokens);
 
 	bool peek(char const* seq);
+
+	Token new_token(TokenType token_type, int size);
 
 public:
 	static void print_tokens(std::vector<Token> const& tokens);

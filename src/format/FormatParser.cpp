@@ -104,7 +104,8 @@ FormatParser::visit(ast::BinaryOperation const* node)
 	visit_node(node->LHS.get());
 
 	append_span(NodeSpan{" "});
-	append_span(NodeSpan{String{node->Op} + " "});
+	auto span = node->get_span();
+	append_span(NodeSpan{String(span.start, span.size) + " "});
 
 	visit_node(node->RHS.get());
 }

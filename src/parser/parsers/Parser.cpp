@@ -1,22 +1,10 @@
 #include "Parser.h"
 
+#include "bin_op.h"
 #include "common/Vec.h"
 #include "common/unreachable.h"
 
 #include <map>
-
-// TODO: Dont do this
-static std::map<char, int> BinopPrecedence;
-
-static int
-get_token_precedence(Token const& token)
-{
-	// Make sure it's a declared binop.
-	int prec = BinopPrecedence[*token.start];
-	if( prec <= 0 )
-		return -1;
-	return prec;
-}
 
 static ValueIdentifier
 to_value_identifier(ConsumeResult const& tok_res, Span span)
@@ -37,12 +25,7 @@ to_type_identifier(ConsumeResult const& tok_res, Span span)
 Parser::Parser(TokenCursor& cursor)
 	: cursor(cursor)
 {
-	BinopPrecedence['<'] = 10;
-	BinopPrecedence['>'] = 10;
-	BinopPrecedence['+'] = 20;
-	BinopPrecedence['-'] = 20;
-	BinopPrecedence['*'] = 40; // highest.
-
+	init_bin_op_lookup();
 	// Module global scope.
 	// current_scope = ParseScope::CreateDefault();
 }
@@ -271,19 +254,33 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 	while( true )
 	{
 		auto cur = cursor.peek();
-		int TokPrec = get_token_precedence(cur);
+
+		// This is a binary operation because TokPrec would be less than ExprPrec if
+		// the next token was not a bin op (e.g. if statement or so.)
+
+		// TODO: Consume bin op
+		auto tok = cursor.consume(
+			{TokenType::plus,
+			 TokenType::star,
+			 TokenType::slash,
+			 TokenType::minus,
+			 TokenType::gt,
+			 TokenType::gte,
+			 TokenType::lt,
+			 TokenType::lte,
+			 TokenType::and_lex,
+			 TokenType::or_lex,
+			 TokenType::cmp,
+			 TokenType::ne});
+
+		auto token_type = tok.as().type;
+		auto op = get_bin_op_from_token_type(token_type);
+		int TokPrec = get_token_precedence(op);
 
 		// If this is a binop that binds at least as tightly as the current binop,
 		// consume it, otherwise we are done.
 		if( TokPrec < ExprPrec )
 			return LHS;
-
-		// This is a binary operation because TokPrec would be less than ExprPrec if
-		// the next token was not a bin op (e.g. if statement or so.)
-		char Op = *cur.start;
-
-		// TODO: Consume bin op
-		cursor.consume({TokenType::plus, TokenType::star, TokenType::minus, TokenType::gt});
 
 		// Parse the primary expression after the binary operator.
 		auto RHS = parse_postfix_expr();
@@ -293,7 +290,9 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 		// If BinOp binds less tightly with RHS than the operator after RHS, let
 		// the pending operator take RHS as its LHS.
 		cur = cursor.peek();
-		int NextPrec = get_token_precedence(cur);
+		token_type = tok.as().type;
+		op = get_bin_op_from_token_type(token_type);
+		int NextPrec = get_token_precedence(op);
 		if( TokPrec < NextPrec )
 		{
 			RHS = parse_bin_op(TokPrec + 1, RHS.unwrap());
@@ -302,7 +301,7 @@ Parser::parse_bin_op(int ExprPrec, OwnPtr<IExpressionNode> LHS)
 		}
 
 		// Merge LHS/RHS.
-		LHS = BinaryOperation{trail.mark(), Op, std::move(LHS), RHS.unwrap()};
+		LHS = BinaryOperation{trail.mark(), op, std::move(LHS), RHS.unwrap()};
 	}
 }
 
@@ -310,7 +309,13 @@ ParseResult<Assign>
 Parser::parse_assign(OwnPtr<IExpressionNode> lhs)
 {
 	auto trail = get_parse_trail();
-	auto tok = cursor.consume(TokenType::equal);
+	auto tok = cursor.consume({
+		TokenType::plus_equal,
+		TokenType::sub_equal,
+		TokenType::mul_equal,
+		TokenType::div_equal,
+		TokenType::equal,
+	});
 	if( !tok.ok() )
 	{
 		return ParseError("Expected '='", tok.as());
@@ -322,7 +327,31 @@ Parser::parse_assign(OwnPtr<IExpressionNode> lhs)
 		return rhs;
 	}
 
-	return Assign{trail.mark(), '=', std::move(lhs), rhs.unwrap()};
+	AssignOp op = AssignOp::assign;
+	switch( tok.as().type )
+	{
+	case TokenType::equal:
+		op = AssignOp::assign;
+		break;
+	case TokenType::plus_equal:
+		op = AssignOp::add;
+		break;
+	case TokenType::sub_equal:
+		op = AssignOp::sub;
+		break;
+	case TokenType::mul_equal:
+		op = AssignOp::mul;
+		break;
+	case TokenType::div_equal:
+		op = AssignOp::div;
+		break;
+
+	default:
+		return ParseError("Unexpected token.", tok.as());
+		break;
+	}
+
+	return Assign{trail.mark(), AssignOp::assign, std::move(lhs), rhs.unwrap()};
 }
 
 /**
@@ -343,6 +372,10 @@ Parser::parse_expr_statement()
 	switch( tok.type )
 	{
 	case TokenType::equal:
+	case TokenType::mul_equal:
+	case TokenType::div_equal:
+	case TokenType::sub_equal:
+	case TokenType::plus_equal:
 		return parse_assign(expr.unwrap());
 		break;
 

@@ -57,6 +57,8 @@ add_executable(sushi
     src/codegen/Codegen.cpp
     src/parser/ParseResult.h
     src/parser/ParseResult.cpp
+    src/parser/parsers/bin_op.h
+    src/parser/parsers/bin_op.cpp
     src/parser/parsers/Parser.h
     src/parser/parsers/Parser.cpp
     src/parser/parsers/ParseTrail.h

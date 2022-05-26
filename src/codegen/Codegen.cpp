@@ -242,20 +242,41 @@ Codegen::visit(ast::BinaryOperation const* node)
 	auto Op = node->Op;
 	switch( Op )
 	{
-	case '+':
+	case BinOp::plus:
 		last_expr = Builder->CreateAdd(L, R, "addtmp");
 		break;
-	case '-':
+	case BinOp::minus:
 		last_expr = Builder->CreateSub(L, R, "subtmp");
 		break;
-	case '*':
+	case BinOp::star:
 		last_expr = Builder->CreateMul(L, R, "multmp");
 		break;
-	case '/':
+	case BinOp::slash:
 		last_expr = Builder->CreateSDiv(L, R, "divtmp");
 		break;
-	case '>':
+	case BinOp::gt:
 		last_expr = Builder->CreateICmpUGT(L, R, "cmptmp");
+		break;
+	case BinOp::gte:
+		last_expr = Builder->CreateICmpUGE(L, R, "cmptmp");
+		break;
+	case BinOp::lt:
+		last_expr = Builder->CreateICmpULT(L, R, "cmptmp");
+		break;
+	case BinOp::lte:
+		last_expr = Builder->CreateICmpULE(L, R, "cmptmp");
+		break;
+	case BinOp::cmp:
+		last_expr = Builder->CreateICmpEQ(L, R, "cmptmp");
+		break;
+	case BinOp::ne:
+		last_expr = Builder->CreateICmpNE(L, R, "cmptmp");
+		break;
+	case BinOp::and_lex:
+		last_expr = Builder->CreateAnd(L, R, "cmptmp");
+		break;
+	case BinOp::or_lex:
+		last_expr = Builder->CreateOr(L, R, "cmptmp");
 		break;
 	default:
 		return;
@@ -657,16 +678,49 @@ Codegen::visit(ast::Assign const* node)
 
 	// Store the initial value into the alloca.
 	node->rhs->visit(this);
-	auto RLValue = last_expr;
+	auto RValue = last_expr;
 	last_expr = nullptr;
-	if( !RLValue )
+	if( !RValue )
 	{
 		std::cout << "RLValue undefined" << std::endl;
 		return;
 	}
-	RLValue = promote_to_value(RLValue);
+	RValue = promote_to_value(RValue);
 
-	Builder->CreateStore(RLValue, LValue);
+	switch( node->Op )
+	{
+	case AssignOp::add:
+	{
+		auto LValuePromoted = promote_to_value(LValue);
+		auto TempRValue = Builder->CreateAdd(RValue, LValuePromoted);
+		Builder->CreateStore(TempRValue, LValue);
+	}
+	break;
+	case AssignOp::sub:
+	{
+		auto LValuePromoted = promote_to_value(LValue);
+		auto TempRValue = Builder->CreateSub(RValue, LValuePromoted);
+		Builder->CreateStore(TempRValue, LValue);
+	}
+	break;
+	case AssignOp::mul:
+	{
+		auto LValuePromoted = promote_to_value(LValue);
+		auto TempRValue = Builder->CreateMul(RValue, LValuePromoted);
+		Builder->CreateStore(TempRValue, LValue);
+	}
+	break;
+	case AssignOp::div:
+	{
+		auto LValuePromoted = promote_to_value(LValue);
+		auto TempRValue = Builder->CreateSDiv(RValue, LValuePromoted);
+		Builder->CreateStore(TempRValue, LValue);
+	}
+	break;
+	case AssignOp::assign:
+		Builder->CreateStore(RValue, LValue);
+		break;
+	}
 }
 
 void

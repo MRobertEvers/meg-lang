@@ -13,12 +13,23 @@ enum class TokenType
 	// Comment
 	line_comment,
 
-	// One character tokens
+	exclam,
+	mul_equal,
+	div_equal,
+	sub_equal,
+	plus_equal,
 	star,
 	plus,
 	minus,
 	slash,
-	gt, // Greater Than
+	gt,	 // Greater Than
+	gte, // Greater Than equal
+	lt,	 // Less Than
+	lte, // Less Than equal
+	ne,	 // Not equal
+	cmp, // ==
+	and_lex,
+	or_lex,
 
 	open_paren,
 	close_paren,

@@ -4,12 +4,21 @@
 namespace ast
 {
 
+enum class AssignOp
+{
+	assign,
+	add,
+	sub,
+	mul,
+	div
+};
+
 class Assign : public IStatementNode
 {
 public:
-	char Op;
+	AssignOp Op;
 	OwnPtr<IExpressionNode> lhs, rhs;
-	Assign(Span span, char Op, OwnPtr<IExpressionNode> LHS, OwnPtr<IExpressionNode> RHS)
+	Assign(Span span, AssignOp Op, OwnPtr<IExpressionNode> LHS, OwnPtr<IExpressionNode> RHS)
 		: IStatementNode(span)
 		, Op(Op)
 		, lhs(std::move(LHS))

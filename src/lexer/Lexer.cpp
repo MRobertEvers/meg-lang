@@ -60,20 +60,6 @@ Lexer::lex()
 			tokens.push_back(lex_consume_number());
 			break;
 
-		case '/':
-			// Could be '/' (division) or '//' (a comment)
-			if( peek("/") )
-			{
-				tokens.push_back(lex_consume_line_comment());
-				break;
-			}
-			else
-			{
-				// Fall through
-			}
-		case '*':
-		case '+':
-		case '-':
 		case '(':
 		case ')':
 		case '{':
@@ -82,9 +68,17 @@ Lexer::lex()
 		case ':':
 		case ',':
 		case '.':
+			tokens.push_back(lex_consume_single());
+			break;
+		case '/':
 		case '>':
 		case '=':
-			tokens.push_back(lex_consume_single());
+		case '*':
+		case '+':
+		case '-':
+		case '&':
+		case '|':
+			tokens.push_back(lex_consume_ambiguous_lexeme());
 			break;
 
 		default:
@@ -141,18 +135,6 @@ Lexer::lex_consume_single()
 
 	switch( c )
 	{
-	case '*':
-		token.type = TokenType::star;
-		break;
-	case '+':
-		token.type = TokenType::plus;
-		break;
-	case '-':
-		token.type = TokenType::minus;
-		break;
-	case '/':
-		token.type = TokenType::slash;
-		break;
 	case '(':
 		token.type = TokenType::open_paren;
 		break;
@@ -174,15 +156,10 @@ Lexer::lex_consume_single()
 	case ',':
 		token.type = TokenType::comma;
 		break;
-	case '=':
-		token.type = TokenType::equal;
-		break;
 	case '.':
 		token.type = TokenType::dot;
 		break;
-	case '>':
-		token.type = TokenType::gt;
-		break;
+
 	default:
 		token.type = TokenType::bad;
 		break;
@@ -242,6 +219,128 @@ Lexer::lex_consume_line_comment()
 	return token;
 }
 
+Token
+Lexer::lex_consume_ambiguous_lexeme()
+{
+	Token token{};
+	token.start = &input_[cursor_];
+	token.size = 1;
+	token.neighborhood.line_num = curr_line_;
+
+	char c = input_[cursor_];
+
+	switch( c )
+	{
+	case '&':
+		if( peek("&") )
+		{
+			return new_token(TokenType::and_lex, 2);
+		}
+		else
+		{}
+		break;
+	case '|':
+		if( peek("|") )
+		{
+			return new_token(TokenType::or_lex, 2);
+		}
+		else
+		{}
+		break;
+	case '!':
+		if( peek("=") )
+		{
+			return new_token(TokenType::ne, 2);
+		}
+		else
+		{
+			token.type = TokenType::exclam;
+		}
+		break;
+	case '/':
+		if( peek("/") )
+		{
+			return lex_consume_line_comment();
+		}
+		else if( peek("=") )
+		{
+			return new_token(TokenType::div_equal, 2);
+		}
+		else
+		{
+			token.type = TokenType::slash;
+		}
+		break;
+	case '*':
+		if( peek("=") )
+		{
+			return new_token(TokenType::mul_equal, 2);
+		}
+		else
+		{
+			token.type = TokenType::star;
+		}
+		break;
+	case '+':
+		if( peek("=") )
+		{
+			return new_token(TokenType::plus_equal, 2);
+		}
+		else
+		{
+			token.type = TokenType::plus;
+		}
+		break;
+	case '-':
+		if( peek("=") )
+		{
+			return new_token(TokenType::sub_equal, 2);
+		}
+		else
+		{
+			token.type = TokenType::minus;
+		}
+		break;
+
+	case '=':
+		if( peek("=") )
+		{
+			return new_token(TokenType::cmp, 2);
+		}
+		else
+		{
+			token.type = TokenType::equal;
+		}
+		break;
+	case '>':
+		if( peek("=") )
+		{
+			return new_token(TokenType::gte, 2);
+		}
+		else
+		{
+			token.type = TokenType::gt;
+		}
+		break;
+	case '<':
+		if( peek("=") )
+		{
+			return new_token(TokenType::lte, 2);
+		}
+		else
+		{
+			token.type = TokenType::lt;
+		}
+		break;
+	default:
+		token.type = TokenType::bad;
+		break;
+	}
+
+done:
+	return token;
+}
+
 void
 Lexer::track_newline(std::vector<Token>& tokens)
 {
@@ -264,7 +363,7 @@ Lexer::peek(char const* seq)
 			auto c = input_[look_ahead];
 			if( c != seq[i] )
 			{
-				return true;
+				return false;
 			}
 		}
 		else
@@ -274,4 +373,16 @@ Lexer::peek(char const* seq)
 	}
 
 	return true;
+}
+
+Token
+Lexer::new_token(TokenType token_type, int size)
+{
+	Token token{token_type};
+	token.start = &input_[cursor_];
+	token.size = size;
+	token.neighborhood.line_num = curr_line_;
+
+	cursor_ += size - 1;
+	return token;
 }
