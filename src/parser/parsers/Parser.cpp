@@ -351,7 +351,7 @@ Parser::parse_assign(OwnPtr<IExpressionNode> lhs)
 		break;
 	}
 
-	return Assign{trail.mark(), AssignOp::assign, std::move(lhs), rhs.unwrap()};
+	return Assign{trail.mark(), op, std::move(lhs), rhs.unwrap()};
 }
 
 /**

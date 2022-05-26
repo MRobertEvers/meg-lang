@@ -104,8 +104,50 @@ FormatParser::visit(ast::BinaryOperation const* node)
 	visit_node(node->LHS.get());
 
 	append_span(NodeSpan{" "});
-	auto span = node->get_span();
-	append_span(NodeSpan{String(span.start, span.size) + " "});
+
+	switch( node->Op )
+	{
+	case ast::BinOp ::plus:
+		append_span(NodeSpan{"+"});
+		break;
+	case ast::BinOp ::star:
+		append_span(NodeSpan{"*"});
+		break;
+	case ast::BinOp ::minus:
+		append_span(NodeSpan{"-"});
+		break;
+	case ast::BinOp ::slash:
+		append_span(NodeSpan{"/"});
+		break;
+	case ast::BinOp ::gt:
+		append_span(NodeSpan{">"});
+		break;
+	case ast::BinOp ::gte:
+		append_span(NodeSpan{">="});
+		break;
+	case ast::BinOp ::lt:
+		append_span(NodeSpan{"<"});
+		break;
+	case ast::BinOp ::lte:
+		append_span(NodeSpan{"<="});
+		break;
+	case ast::BinOp ::and_lex:
+		append_span(NodeSpan{"&&"});
+		break;
+	case ast::BinOp ::or_lex:
+		append_span(NodeSpan{"||"});
+		break;
+	case ast::BinOp ::cmp:
+		append_span(NodeSpan{"=="});
+		break;
+	case ast::BinOp ::ne:
+		append_span(NodeSpan{"!="});
+		break;
+	default:
+		break;
+		// Todo: panic
+	}
+	append_span(NodeSpan{String{node->Op} + " "});
 
 	visit_node(node->RHS.get());
 }
@@ -314,7 +356,30 @@ void
 FormatParser::visit(ast::Assign const* node)
 {
 	visit_node(node->lhs.get());
-	append_span(NodeSpan{" ="});
+	append_span(NodeSpan{" "});
+
+	auto op = node->Op;
+	switch( op )
+	{
+	case ast::AssignOp::assign:
+		append_span(NodeSpan::Text("="));
+		break;
+	case ast::AssignOp::add:
+		append_span(NodeSpan::Text("+="));
+		break;
+	case ast::AssignOp::sub:
+		append_span(NodeSpan::Text("-="));
+		break;
+	case ast::AssignOp::mul:
+		append_span(NodeSpan::Text("*="));
+		break;
+	case ast::AssignOp::div:
+		append_span(NodeSpan::Text("/="));
+		break;
+	default:
+		break;
+	}
+
 	append_span(NodeSpan::Line());
 
 	visit_node(node->rhs.get());
