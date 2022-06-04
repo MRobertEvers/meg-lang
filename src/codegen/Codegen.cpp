@@ -699,7 +699,7 @@ Codegen::visit(ast::Assign const* node)
 	case AssignOp::sub:
 	{
 		auto LValuePromoted = promote_to_value(LValue);
-		auto TempRValue = Builder->CreateSub(RValue, LValuePromoted);
+		auto TempRValue = Builder->CreateSub(LValuePromoted, RValue);
 		Builder->CreateStore(TempRValue, LValue);
 	}
 	break;

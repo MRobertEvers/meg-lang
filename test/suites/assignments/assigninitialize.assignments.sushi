@@ -1,0 +1,5 @@
+fn test_sushi(): i32 {
+    let a = 10;
+    
+    return a;
+}

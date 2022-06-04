@@ -25,7 +25,7 @@ using namespace ast;
 using namespace llvm;
 using namespace parser;
 
-void
+int
 gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 {
 	TokenCursor cursor{tokens};
@@ -47,10 +47,13 @@ gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 		{
 			mod->visit(&cg);
 		}
+
+		return 0;
 	}
 	else
 	{
 		mod_result.unwrap_error()->print();
+		return -1;
 	}
 }
 
@@ -82,7 +85,12 @@ main(int argc, char* argv[])
 
 	auto lex_result = lex.lex();
 
-	gen_code(cg, lex_result.tokens);
+	auto code = gen_code(cg, lex_result.tokens);
+
+	if( code != 0 )
+	{
+		return -1;
+	}
 
 	std::string Str;
 	raw_string_ostream OS(Str);

@@ -20,9 +20,12 @@ async function sushiCompile({ filepath, cwd }) {
       },
       (err, stdout, stderr) => {
         if (err) {
-          reject();
+          console.log(stdout, err, stderr);
+          reject(new Error("Sushi rejected.\n" + stdout));
           return;
         }
+
+        console.log(stdout);
         resolve(stdout);
       }
     );
@@ -41,7 +44,7 @@ async function clangCompile({ objectFiles, cwd }) {
       (err, stdout, stderr) => {
         if (err) {
           console.log(err, stderr);
-          reject();
+          reject(new Error(`Failed to compile '${cmd}'`));
           return;
         }
 
@@ -72,15 +75,19 @@ async function run({ binary, cwd }) {
 
 async function compileAndRun({ filepath, cwd }) {
   const delFolder = createTestFolder({ cwd: cwd });
-  await sushiCompile({ filepath: filepath, cwd: cwd });
+  try {
+    await sushiCompile({ filepath: filepath, cwd: cwd });
 
-  await clangCompile({ objectFiles: ["output.o"], cwd: cwd });
+    await clangCompile({ objectFiles: ["output.o"], cwd: cwd });
 
-  const result = await run({ binary: "test", cwd: cwd });
+    const result = await run({ binary: "test", cwd: cwd });
 
-  delFolder();
-
-  return result;
+    return result;
+  } catch (e) {
+    throw e;
+  } finally {
+    delFolder();
+  }
 }
 
 function createTestFolder({ cwd }) {
