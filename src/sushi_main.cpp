@@ -145,7 +145,5 @@ main(int argc, char* argv[])
 	pass.run(Mod);
 	dest.flush();
 
-	outs() << "Wrote " << Filename << "\n";
-
 	return 0;
 }

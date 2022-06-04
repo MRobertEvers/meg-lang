@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Launch",
-            "program": "${workspaceFolder}/build_052422/sushi",
+            "program": "${workspaceFolder}/build/sushi",
             "cwd": "${workspaceFolder}",
             "args": ["main.sushi"],
         },
