@@ -3,12 +3,13 @@
 #include <map>
 
 using namespace ast;
+using namespace parser;
 
 // TODO: Dont do this
 static std::map<char, int> BinopPrecedence;
 
 int
-get_token_precedence(BinOp bin_op_type)
+parser::get_token_precedence(BinOp bin_op_type)
 {
 	// Make sure it's a declared binop.
 	int prec = BinopPrecedence[bin_op_type];
@@ -18,7 +19,7 @@ get_token_precedence(BinOp bin_op_type)
 }
 
 ast::BinOp
-get_bin_op_from_token_type(TokenType token_type)
+parser::get_bin_op_from_token_type(TokenType token_type)
 {
 	auto op = BinOp::bad;
 	switch( token_type )
@@ -66,7 +67,7 @@ get_bin_op_from_token_type(TokenType token_type)
 }
 
 void
-init_bin_op_lookup()
+parser::init_bin_op_lookup()
 {
 	BinopPrecedence[BinOp::ne] = 10;
 	BinopPrecedence[BinOp::cmp] = 10;

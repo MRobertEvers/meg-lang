@@ -1,5 +1,7 @@
 #include "ParseTrail.h"
 
+using namespace parser;
+
 Span
 ParseTrail::mark()
 {

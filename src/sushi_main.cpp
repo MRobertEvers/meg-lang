@@ -37,7 +37,6 @@ gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 	if( mod_result.ok() )
 	{
 		auto mod = mod_result.unwrap();
-		pretty_print_ast(tokens, mod.get());
 
 		// mod->visit(&sema);
 		// if( sema.is_errored() )
@@ -77,24 +76,16 @@ main(int argc, char* argv[])
 	buffer << file.rdbuf();
 	std::string filedata = buffer.str();
 
-	std::cout << filedata << std::endl;
-
 	codegen::Codegen cg;
 
 	Lexer lex{filedata.c_str()};
 
 	auto lex_result = lex.lex();
 
-	Lexer::print_tokens(lex_result.tokens);
-
 	gen_code(cg, lex_result.tokens);
 
 	std::string Str;
 	raw_string_ostream OS(Str);
-
-	cg.Module->print(OS, nullptr);
-
-	std::cout << Str;
 
 	auto& Mod = *cg.Module;
 
@@ -109,14 +100,14 @@ main(int argc, char* argv[])
 
 	// auto TargetTriple = sys::getDefaultTargetTriple();
 	std::string TargetTriple = "aarch64-app-darwin";
-	std::cout << "Target: " << TargetTriple << std::endl;
+	// std::cout << "Target: " << TargetTriple << std::endl;
 
 	std::string Error;
 	auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
 	if( !Target )
 	{
 		errs() << Error;
-		return 1;
+		return -1;
 	}
 
 	auto TheTargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
@@ -131,7 +122,7 @@ main(int argc, char* argv[])
 	if( EC )
 	{
 		errs() << "Could not open file: " << EC.message();
-		return 1;
+		return -1;
 	}
 
 	legacy::PassManager pass;
@@ -140,7 +131,7 @@ main(int argc, char* argv[])
 	if( TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType) )
 	{
 		errs() << "TheTargetMachine can't emit a file of this type";
-		return 1;
+		return -1;
 	}
 
 	pass.run(Mod);

@@ -1,0 +1,9 @@
+fn test_sushi(): i32 {
+    let a = 0;
+
+    for (let l = 5; l > 0; l = l - 1) {
+        a = a + l;
+    }
+
+    return a;
+}

@@ -8,6 +8,8 @@
 
 using namespace ast;
 
+namespace parser
+{
 class ParserMetaInformation
 {
 public:
@@ -38,3 +40,4 @@ public:
 
 	Span mark();
 };
+} // namespace parser

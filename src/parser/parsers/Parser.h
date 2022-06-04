@@ -7,6 +7,8 @@
 
 using namespace ast;
 
+namespace parser
+{
 class Parser
 {
 	TokenCursor& cursor;
@@ -52,3 +54,4 @@ private:
 
 	ParseTrail get_parse_trail();
 };
+} // namespace parser

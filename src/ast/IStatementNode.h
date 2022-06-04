@@ -3,7 +3,6 @@
 
 #include "IAstNode.h"
 #include "Span.h"
-#include <llvm/IR/Value.h>
 
 namespace ast
 {

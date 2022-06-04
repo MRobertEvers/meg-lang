@@ -33,7 +33,7 @@ template<typename Callback>
 static void
 traverse_format_ast(NodeSpan& root_doc, Callback out)
 {
-	int max_line_len = 0;
+	int max_line_len = 80;
 
 	Vec<AstCallIteration> stack;
 

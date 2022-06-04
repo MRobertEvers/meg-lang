@@ -6,6 +6,8 @@
 
 #include <map>
 
+using namespace parser;
+
 static ValueIdentifier
 to_value_identifier(ConsumeResult const& tok_res, Span span)
 {
