@@ -1,6 +1,7 @@
 #pragma once
 #include "ast/ast.h"
 #include "common/String.h"
+#include <llvm-c/Core.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
@@ -107,6 +108,7 @@ public:
 	virtual void visit(ast::Block const*) override;
 	virtual void visit(ast::BinaryOperation const*) override;
 	virtual void visit(ast::Number const*) override;
+	virtual void visit(ast::StringLiteral const*) override;
 	virtual void visit(ast::Return const*) override;
 	virtual void visit(ast::Prototype const*) override;
 	virtual void visit(ast::TypeIdentifier const*) override;

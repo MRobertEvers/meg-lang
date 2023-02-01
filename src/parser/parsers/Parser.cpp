@@ -59,9 +59,7 @@ Parser::parse_module_top_level_item()
 	switch( tok.type )
 	{
 	case TokenType::fn:
-	{
 		return parse_function();
-	}
 	case TokenType::struct_keyword:
 		return parse_struct();
 	default:
@@ -670,7 +668,13 @@ Parser::parse_literal()
 		return Number(trail.mark(), val);
 	}
 	break;
+	case LiteralType::string:
+	{
+		auto sz = String{curr_tok.start + 1, curr_tok.size - 2};
 
+		return StringLiteral(trail.mark(), sz);
+	}
+	break;
 	default:
 		return ParseError("Expected literal type", tok.as());
 	}
@@ -1017,7 +1021,12 @@ Parser::parse_function()
 	auto definition = parse_function_body();
 	if( !definition.ok() )
 	{
-		return definition;
+		auto tok = cursor.consume(TokenType::semicolon);
+		if( !tok.ok() )
+		{
+			return ParseError("Expected ';'", tok.as());
+		}
+		return ast::Function(trail.mark(), proto.unwrap(), nullptr);
 	}
 
 	return ast::Function(trail.mark(), proto.unwrap(), definition.unwrap());

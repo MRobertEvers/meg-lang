@@ -52,6 +52,7 @@ public:
 	virtual void visit(ast::Block const*) override;
 	virtual void visit(ast::BinaryOperation const*) override;
 	virtual void visit(ast::Number const*) override;
+	virtual void visit(ast::StringLiteral const*) override;
 	virtual void visit(ast::Return const*) override;
 	virtual void visit(ast::Prototype const*) override;
 	virtual void visit(ast::TypeIdentifier const*) override;

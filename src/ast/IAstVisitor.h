@@ -7,6 +7,7 @@ class Function;
 class Block;
 class BinaryOperation;
 class Number;
+class StringLiteral;
 class Return;
 class Prototype;
 class TypeIdentifier;
@@ -32,6 +33,7 @@ public:
 	virtual void visit(ast::Block const*) = 0;
 	virtual void visit(ast::BinaryOperation const*) = 0;
 	virtual void visit(ast::Number const*) = 0;
+	virtual void visit(ast::StringLiteral const*) = 0;
 	virtual void visit(ast::Return const*) = 0;
 	virtual void visit(ast::Prototype const*) = 0;
 	virtual void visit(ast::TypeIdentifier const*) = 0;

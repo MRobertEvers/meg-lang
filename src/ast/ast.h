@@ -9,6 +9,7 @@
 #include "expressions/Identifier.h"
 #include "expressions/MemberReference.h"
 #include "expressions/Number.h"
+#include "expressions/StringLiteral.h"
 #include "expressions/TypeDeclarator.h"
 #include "statements/Assign.h"
 #include "statements/Block.h"

@@ -33,7 +33,9 @@ make
 
 The output is `sushi`.
 
-The `./sushi` executable takes a single argument, the file to compile. It produces an `output.o` file, which can be linked normally against C linkage.
+The `./sushi` executable takes a single argument, the file to compile. It produces an `output.o` file, which can be linked normally against C linkage. 
+
+For example you can compile a compilable executable using gcc or clang. `gcc ./output.o`
 
 
 You can use clang to bootstrap calling into our object code.

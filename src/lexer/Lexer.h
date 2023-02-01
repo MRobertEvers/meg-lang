@@ -39,6 +39,7 @@ private:
 	Token lex_consume_single();
 	Token lex_consume_line_comment();
 	Token lex_consume_ambiguous_lexeme();
+	Token lex_consume_string_literal();
 
 	void track_newline(std::vector<Token>& tokens);
 

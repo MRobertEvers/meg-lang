@@ -11,7 +11,7 @@ class Function : public IStatementNode
 {
 public:
 	OwnPtr<Prototype> Proto;
-	OwnPtr<Block> Body;
+	OwnPtr<Block> Body; // May be null
 
 	Function(Span span, OwnPtr<Prototype> Proto, OwnPtr<Block> Body)
 		: IStatementNode(span)

@@ -159,6 +159,12 @@ FormatParser::visit(ast::Number const* node)
 }
 
 void
+FormatParser::visit(ast::StringLiteral const* node)
+{
+	append_span(NodeSpan{(node->Val)});
+}
+
+void
 FormatParser::visit(ast::Return const* node)
 {
 	append_span(NodeSpan{"return "});
@@ -231,8 +237,8 @@ FormatParser::visit(ast::Let const* node)
 		visit_node(node->Type.get());
 	}
 
-	append_span(NodeSpan{" ="});
-	append_span(NodeSpan::Line());
+	append_span(NodeSpan{" = "});
+	// append_span(NodeSpan::Line());
 	{
 		IndentScope ind{*this};
 		visit_node(node->RHS.get());

@@ -1,5 +1,11 @@
 #include "Codegen.h"
 
+#include <llvm/ADT/StringRef.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+
 using namespace llvm;
 using namespace codegen;
 using namespace ast;
@@ -165,6 +171,9 @@ Codegen::visit(ast::Function const* node)
 	// reference to it for use below.
 	node->Proto->visit(this);
 
+	if( node->Body.is_null() )
+		return;
+
 	auto TheFunctionIter = Functions.find(node->Proto->Name->get_name());
 	if( TheFunctionIter == Functions.end() )
 		return;
@@ -289,6 +298,53 @@ Codegen::visit(ast::Number const* node)
 	last_expr = ConstantInt::get(*Context, APInt(32, node->Val, true));
 }
 
+// Constant*
+// geti8StrVal(M char const* str, Twine const& name)
+// {
+// 	LLVMContext& ctx = getGlobalContext();
+// 	Constant* strConstant = ConstantDataArray::getString(ctx, str);
+// 	GlobalVariable* GVStr = new GlobalVariable(
+// 		M, strConstant->getType(), true, GlobalValue::InternalLinkage, strConstant, name);
+// 	Constant* zero = Constant::getNullValue(IntegerType::getInt32Ty(ctx));
+// 	Constant* indices[] = {zero, zero};
+// 	Constant* strVal = ConstantExpr::getGetElementPtr(GVStr, indices, true);
+// 	return strVal;
+// }
+
+void
+Codegen::visit(ast::StringLiteral const* node)
+{
+	// auto array_type = ArrayType(ConstantInt::get(*Context, APInt(0, 8, true)), node->Val.size());
+
+	// LLVMValueRef str = LLVMAddGlobal(module->getLLVMModule(), array_type, "");
+	// ConstantData::set
+
+	// LLVMSetInitializer(str, LLVMConstString(sourceString, size, true));
+	// LLVMSetGlobalConstant(str, true);
+	// LLVMSetLinkage(str, LLVMPrivateLinkage);
+	// LLVMSetUnnamedAddress(str, LLVMGlobalUnnamedAddr);
+	// LLVMSetAlignment(str, 1);
+
+	// LLVMValueRef zeroIndex = LLVMConstInt(LLVMInt64Type(), 0, true);
+	// LLVMValueRef indexes[2] = {zeroIndex, zeroIndex};
+
+	// LLVMValueRef gep = LLVMBuildInBoundsGEP2(builder, strType, str, indexes, 2, "");
+	auto Literal = ConstantDataArray::getString(*Context, node->Val.c_str(), true);
+
+	GlobalVariable* GVStr = new GlobalVariable(
+		*Module, Literal->getType(), true, GlobalValue::InternalLinkage, Literal);
+	Constant* zero = Constant::getNullValue(IntegerType::getInt32Ty(*Context));
+	Constant* indices[] = {zero, zero};
+	Constant* strVal = ConstantExpr::getGetElementPtr(Literal->getType(), GVStr, indices);
+
+	// auto MemberPtr = Builder->CreateGEP(
+	// 	strVal->getType(), strVal, ConstantInt::get(*Context, APInt(32, 0, true)), "lit");
+	last_expr = strVal;
+
+	// return gep;
+	// last_expr = ConstantArray::get(*Context, APInt(32, node->Val, true));
+}
+
 void
 Codegen::visit(ast::Return const* node)
 {
@@ -335,6 +391,10 @@ Codegen::get_builtin_type(std::string const& name)
 	else if( name == "i32" || name == "u32" )
 	{
 		return llvm::Type::getInt32Ty(*Context);
+	}
+	else if( name == "void" )
+	{
+		return llvm::Type::getVoidTy(*Context);
 	}
 	else
 	{
@@ -413,16 +473,29 @@ Codegen::visit(ast::ValueIdentifier const* node)
 
 	auto value_identifier = current_scope->get_identifier(node->get_name());
 
-	if( value_identifier->type != IdentifierValue::IdentifierType::value )
+	if( !value_identifier ||
+		(value_identifier->type != IdentifierValue::IdentifierType::value &&
+		 value_identifier->type != IdentifierValue::IdentifierType::function_type) )
 	{
-		std::cout << "Unexpected type name" << std::endl;
+		std::cout << "Unexpected type name " << node->get_name() << std::endl;
 		return;
 	}
 
 	// If the value is being used as an LValue, we want the Value itself.
 	// TODO: Change the paradigm of last_expr to return the pointer to the value,
 	// then if the value is needed, do a signle pointer deref.
-	last_expr = value_identifier->data.Value;
+	switch( value_identifier->type )
+	{
+	case IdentifierValue::IdentifierType::value:
+		last_expr = value_identifier->data.Value;
+		break;
+	case IdentifierValue::IdentifierType::function_type:
+		last_expr = value_identifier->data.Function;
+		break;
+
+	default:
+		break;
+	}
 	// last_expr =
 	// 	Builder->CreateLoad(Var->getAllocatedType(), Var, value_identifier->identifier->get_fqn());
 }
@@ -768,7 +841,8 @@ Codegen::visit(ast::Call const* node)
 		return;
 	}
 
-	if( !last_expr->getType()->isFunctionTy() )
+	if( !last_expr->getType()->isPointerTy() &&
+		!last_expr->getType()->getPointerElementType()->isFunctionTy() )
 	{
 		std::cout << "Expected function type" << std::endl;
 		return;
@@ -788,11 +862,25 @@ Codegen::visit(ast::Call const* node)
 			return;
 		}
 
-		Expr = promote_to_value(Expr);
+		// Expr = promote_to_value(Expr);
 		ArgsV.push_back(Expr);
 	}
 
-	last_expr = Builder->CreateCall(Function, ArgsV, "call");
+	// https://github.com/ark-lang/ark/issues/362
+	if( Function->getReturnType()->isVoidTy() )
+	{
+		auto tp1 = Function->getFunctionType()->getParamType(0);
+		auto tp2 = ArgsV[0]->getType();
+		if( tp1 == tp2 )
+		{
+			std::cout << " ???" << std::endl;
+		}
+		last_expr = Builder->CreateCall(Function, ArgsV);
+	}
+	else
+	{
+		last_expr = Builder->CreateCall(Function, ArgsV, "call");
+	}
 }
 
 void

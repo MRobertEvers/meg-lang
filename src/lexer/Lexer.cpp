@@ -80,7 +80,9 @@ Lexer::lex()
 		case '|':
 			tokens.push_back(lex_consume_ambiguous_lexeme());
 			break;
-
+		case '"':
+			tokens.push_back(lex_consume_string_literal());
+			break;
 		default:
 			std::cout << "Unexpected character: '" << c << "'" << std::endl;
 			break;
@@ -336,6 +338,30 @@ Lexer::lex_consume_ambiguous_lexeme()
 		token.type = TokenType::bad;
 		break;
 	}
+
+done:
+	return token;
+}
+
+Token
+Lexer::lex_consume_string_literal()
+{
+	Token token{};
+	token.type = TokenType::literal;
+	token.literal_type = LiteralType::string;
+	token.start = &input_[cursor_];
+	token.size = 1;
+	token.neighborhood.line_num = curr_line_;
+	cursor_ += 1;
+
+	char c = input_[cursor_];
+	while( c != '"' )
+	{
+		token.size += 1;
+		cursor_ += 1;
+		c = input_[cursor_];
+	}
+	token.size += 1;
 
 done:
 	return token;

@@ -95,6 +95,10 @@ main(int argc, char* argv[])
 	std::string Str;
 	raw_string_ostream OS(Str);
 
+	cg.Module->print(OS, nullptr);
+
+	std::cout << Str;
+
 	auto& Mod = *cg.Module;
 
 	auto CPU = "generic";
