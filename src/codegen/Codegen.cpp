@@ -314,35 +314,21 @@ Codegen::visit(ast::Number const* node)
 void
 Codegen::visit(ast::StringLiteral const* node)
 {
-	// auto array_type = ArrayType(ConstantInt::get(*Context, APInt(0, 8, true)), node->Val.size());
-
-	// LLVMValueRef str = LLVMAddGlobal(module->getLLVMModule(), array_type, "");
-	// ConstantData::set
-
-	// LLVMSetInitializer(str, LLVMConstString(sourceString, size, true));
-	// LLVMSetGlobalConstant(str, true);
-	// LLVMSetLinkage(str, LLVMPrivateLinkage);
-	// LLVMSetUnnamedAddress(str, LLVMGlobalUnnamedAddr);
-	// LLVMSetAlignment(str, 1);
-
-	// LLVMValueRef zeroIndex = LLVMConstInt(LLVMInt64Type(), 0, true);
-	// LLVMValueRef indexes[2] = {zeroIndex, zeroIndex};
-
-	// LLVMValueRef gep = LLVMBuildInBoundsGEP2(builder, strType, str, indexes, 2, "");
 	auto Literal = ConstantDataArray::getString(*Context, node->Val.c_str(), true);
 
 	GlobalVariable* GVStr = new GlobalVariable(
 		*Module, Literal->getType(), true, GlobalValue::InternalLinkage, Literal);
 	Constant* zero = Constant::getNullValue(IntegerType::getInt32Ty(*Context));
 	Constant* indices[] = {zero, zero};
-	Constant* strVal = ConstantExpr::getGetElementPtr(Literal->getType(), GVStr, indices);
+	Constant* StrVal = ConstantExpr::getGetElementPtr(Literal->getType(), GVStr, indices);
 
-	// auto MemberPtr = Builder->CreateGEP(
-	// 	strVal->getType(), strVal, ConstantInt::get(*Context, APInt(32, 0, true)), "lit");
-	last_expr = strVal;
+	// GlobalVariable::getUnnamedAddr()
 
-	// return gep;
-	// last_expr = ConstantArray::get(*Context, APInt(32, node->Val, true));
+	AllocaInst* Alloca = Builder->CreateAlloca(StrVal->getType(), nullptr);
+
+	Builder->CreateStore(StrVal, Alloca);
+
+	last_expr = Alloca;
 }
 
 void
@@ -862,7 +848,13 @@ Codegen::visit(ast::Call const* node)
 			return;
 		}
 
-		// Expr = promote_to_value(Expr);
+		// TODO: If the type returned is a stack variable...
+		// then we must promote to value. Because a stack
+		// variable of type i32, is llvm type i32*.
+		// (Because the alloca function actually returns a pointer
+		// to the memory on the stack).
+		// For literals, we don't want to do this.
+		Expr = promote_to_value(Expr);
 		ArgsV.push_back(Expr);
 	}
 
