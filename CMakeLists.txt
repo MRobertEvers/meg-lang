@@ -45,6 +45,10 @@ add_executable(sushi
     src/common/Vec.h
     src/common/String.h
     src/ast2/AstNode.h
+    src/ast2/bin_op.cpp
+    src/ast2/ParseTrail.cpp
+    src/ast2/ParseResult.cpp
+    src/ast2/AstGen.cpp
 )
 
 # # Now build our tools

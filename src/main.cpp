@@ -1,3 +1,4 @@
+#include "ast2/AstGen.h"
 #include "ast2/AstNode.h"
 #include "common/OwnPtr.h"
 #include "lexer/Lexer.h"
@@ -50,6 +51,8 @@ main(int argc, char* argv[])
 	Lexer::print_tokens(lex_result.tokens);
 
 	Ast ast;
+	TokenCursor cursor{lex_result.tokens};
+	AstGen gen{ast, cursor};
 
-	auto fn = ast.Fn(Span{}, nullptr, nullptr);
+	auto result = gen.parse();
 }

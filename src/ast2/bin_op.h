@@ -1,7 +1,7 @@
 
 #pragma once
-#include "../../ast/ast.h"
-#include "../../lexer/token.h"
+#include "AstNode.h"
+#include "lexer/token.h"
 
 namespace ast
 {
