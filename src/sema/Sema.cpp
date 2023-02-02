@@ -280,19 +280,26 @@ Sema::visit(ast::Prototype const* node)
 		current_scope->add_named_value(name_identifier->get_name(), type);
 	}
 
-	auto return_type_declarator = node->ReturnType.get();
-	auto return_type = lookup(return_type_declarator->get_type_name());
-	if( !return_type )
+	if( !node->is_infer_return() )
 	{
-		last_expr = SemaError("Unknown type");
-		return;
+		auto return_type_declarator = node->ReturnType.get();
+		auto return_type = lookup(return_type_declarator->get_type_name());
+		if( !return_type )
+		{
+			last_expr = SemaError("Unknown type");
+			return;
+		}
+
+		auto function_type_def = Type::Function(node->Name->get_name(), args, return_type);
+		create_type(function_type_def);
+		current_scope->set_expected_return(return_type);
 	}
-
-	auto function_type_def = Type::Function(node->Name->get_name(), args, return_type);
-	create_type(function_type_def);
-
-	// TODO: this should be in function visit
-	current_scope->set_expected_return(return_type);
+	else
+	{
+		auto function_type_def =
+			Type::Function(node->Name->get_name(), args, lookup(infer_type_name));
+		create_type(function_type_def);
+	}
 }
 
 void

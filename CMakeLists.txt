@@ -33,7 +33,7 @@ include_directories(src)
 
 # Now build our tools
 add_executable(sushi 
-    src/sushi_main.cpp
+    src/main.cpp
     src/lexer/Lexer.cpp
     src/lexer/Lexer.h
     src/lexer/keywords.cpp
@@ -44,47 +44,63 @@ add_executable(sushi
     src/common/OwnPtr.h
     src/common/Vec.h
     src/common/String.h
-    src/format/FormatParser.h
-    src/format/FormatParser.cpp
-    src/format/NodeSpan.h
-    src/format/NodeSpan.cpp
-    src/format/pretty_print_ast.h
-    src/format/pretty_print_ast.cpp
-    src/format/reverse.h
-    src/format/utils.h
-    src/format/utils.cpp
-    src/codegen/Codegen.h
-    src/codegen/Codegen.cpp
-    src/parser/ParseResult.h
-    src/parser/ParseResult.cpp
-    src/parser/parsers/bin_op.h
-    src/parser/parsers/bin_op.cpp
-    src/parser/parsers/Parser.h
-    src/parser/parsers/Parser.cpp
-    src/parser/parsers/ParseTrail.h
-    src/parser/parsers/ParseTrail.cpp
-    src/sema/Sema.cpp
-    src/sema/Sema.h
-    src/sema/SemaResult.h
-    src/sema/SemaResult.cpp
-    src/sema/Type.h
-    src/sema/Type.cpp
-    src/ast/IAstNode.h
-    src/ast/expressions/Expression.h
-    src/ast/expressions/BinOp.h
-    src/ast/expressions/Identifier.h
-    src/ast/expressions/MemberReference.h
-    src/ast/expressions/Number.h
-    src/ast/statements/Let.h
-    src/ast/statements/Statement.h
-    src/ast/statements/If.h
-    src/ast/statements/For.h
-    src/ast/statements/Block.h
-    src/ast/statements/Function.h
-    src/ast/statements/Prototype.h
-    src/ast/statements/Return.h
-    src/ast/statements/Struct.h
+    src/ast2/AstNode.h
 )
+
+# # Now build our tools
+# add_executable(sushi 
+#     src/sushi_main.cpp
+#     src/lexer/Lexer.cpp
+#     src/lexer/Lexer.h
+#     src/lexer/keywords.cpp
+#     src/lexer/keywords.h
+#     src/lexer/token.h
+#     src/lexer/TokenCursor.h
+#     src/lexer/TokenCursor.cpp
+#     src/common/OwnPtr.h
+#     src/common/Vec.h
+#     src/common/String.h
+#     src/format/FormatParser.h
+#     src/format/FormatParser.cpp
+#     src/format/NodeSpan.h
+#     src/format/NodeSpan.cpp
+#     src/format/pretty_print_ast.h
+#     src/format/pretty_print_ast.cpp
+#     src/format/reverse.h
+#     src/format/utils.h
+#     src/format/utils.cpp
+#     src/codegen/Codegen.h
+#     src/codegen/Codegen.cpp
+#     src/parser/ParseResult.h
+#     src/parser/ParseResult.cpp
+#     src/parser/parsers/bin_op.h
+#     src/parser/parsers/bin_op.cpp
+#     src/parser/parsers/Parser.h
+#     src/parser/parsers/Parser.cpp
+#     src/parser/parsers/ParseTrail.h
+#     src/parser/parsers/ParseTrail.cpp
+#     src/sema/Sema.cpp
+#     src/sema/Sema.h
+#     src/sema/SemaResult.h
+#     src/sema/SemaResult.cpp
+#     src/sema/Type.h
+#     src/sema/Type.cpp
+#     src/ast/IAstNode.h
+#     src/ast/expressions/Expression.h
+#     src/ast/expressions/BinOp.h
+#     src/ast/expressions/Identifier.h
+#     src/ast/expressions/MemberReference.h
+#     src/ast/expressions/Number.h
+#     src/ast/statements/Let.h
+#     src/ast/statements/Statement.h
+#     src/ast/statements/If.h
+#     src/ast/statements/For.h
+#     src/ast/statements/Block.h
+#     src/ast/statements/Function.h
+#     src/ast/statements/Prototype.h
+#     src/ast/statements/Return.h
+#     src/ast/statements/Struct.h
+# )
 
 set_property(TARGET sushi PROPERTY CXX_STANDARD 17)
 
