@@ -41,6 +41,8 @@ class Prototype : public IStatementNode
 {
 public:
 	OwnPtr<ParameterList> Parameters;
+
+	// TODO: May be null
 	OwnPtr<TypeDeclarator> ReturnType;
 	OwnPtr<TypeIdentifier> Name;
 
@@ -57,5 +59,6 @@ public:
 	virtual void visit(IAstVisitor* visitor) const override { return visitor->visit(this); };
 
 	const ParameterList* get_parameters() const { return Parameters.get(); }
+	bool is_infer_return() const { return ReturnType.is_null(); }
 };
 } // namespace ast

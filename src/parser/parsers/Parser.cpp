@@ -987,20 +987,26 @@ Parser::parse_function_proto()
 		return ParseError("Expected ')'", tok.as());
 	}
 
-	tok = cursor.consume(TokenType::colon);
-	if( !tok.ok() )
-	{
-		return ParseError("Expected ':'", tok.as());
-	}
+	auto infer_type_tok = cursor.consume_if_expected(TokenType::colon);
+	// if( !infer_type_tok.ok() )
+	// {
+	// 	return ParseError("Expected ':'", infer_type_tok.as());
+	// }
 
-	auto return_type_identifier = parse_type_decl(false);
-	if( !return_type_identifier.ok() )
+	if( infer_type_tok.ok() )
 	{
-		return return_type_identifier;
+		auto return_type_identifier = parse_type_decl(false);
+		if( !return_type_identifier.ok() )
+		{
+			return return_type_identifier;
+		}
+		return Prototype{
+			trail.mark(), fn_identifier.unwrap(), return_type_identifier.unwrap(), params.unwrap()};
 	}
-
-	return Prototype{
-		trail.mark(), fn_identifier.unwrap(), return_type_identifier.unwrap(), params.unwrap()};
+	else
+	{
+		return Prototype{trail.mark(), fn_identifier.unwrap(), nullptr, params.unwrap()};
+	}
 }
 
 ParseResult<Function>
@@ -1023,6 +1029,11 @@ Parser::parse_function()
 
 	if( extern_tok.ok() )
 	{
+		if( proto.as()->is_infer_return() )
+		{
+			return ParseError("Extern functions must specify a return type.", cursor.peek());
+		}
+
 		auto tok = cursor.consume(TokenType::semicolon);
 		if( !tok.ok() )
 		{
