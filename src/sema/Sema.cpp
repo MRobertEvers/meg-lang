@@ -125,7 +125,7 @@ Sema::Scope::get_parent()
 }
 
 Sema::Sema()
-	: last_expr(SemaError(""))
+	: last_expr(ScopedType{})
 {
 	scopes.reserve(1000);
 	new_scope();
@@ -162,10 +162,13 @@ Sema::visit(ast::Function const* node)
 		return;
 	}
 
-	visit_node(node->Body.get());
-	if( !ok() )
+	if( !node->is_declaration_only() )
 	{
-		return;
+		visit_node(node->Body.get());
+		if( !ok() )
+		{
+			return;
+		}
 	}
 
 	pop_scope();
@@ -219,6 +222,13 @@ void
 Sema::visit(ast::Number const* node)
 {
 	last_expr = current_scope->lookup2("i32");
+}
+
+void
+Sema::visit(ast::StringLiteral const*)
+{
+	auto type = current_scope->lookup2("i8");
+	last_expr = create_type(Type::PointerTo(*type.expr));
 }
 
 void
@@ -560,6 +570,13 @@ Sema::print_err()
 		std::cout << "Semantic Error" << std::endl;
 		std::cout << last_expr.unwrap_error()->error << std::endl;
 	}
+}
+
+SemaResult<Sema::ScopedType>
+Sema::analyse(ast::IAstNode const* node)
+{
+	node->visit(this);
+	return consume();
 }
 
 void

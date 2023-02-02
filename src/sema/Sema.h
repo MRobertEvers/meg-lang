@@ -36,6 +36,11 @@ class Sema : public IAstVisitor
 		// a pointer type.
 		Scope const* scope = nullptr;
 		ScopedType(){};
+
+		ScopedType(Type const* expr)
+			: expr(expr)
+			, scope(nullptr){};
+
 		ScopedType(Type const* expr, Scope const* scope)
 			: expr(expr)
 			, scope(scope){};
@@ -87,6 +92,7 @@ public:
 	virtual void visit(ast::Block const*) override;
 	virtual void visit(ast::BinaryOperation const*) override;
 	virtual void visit(ast::Number const*) override;
+	virtual void visit(ast::StringLiteral const*) override;
 	virtual void visit(ast::Return const*) override;
 	virtual void visit(ast::Prototype const*) override;
 	virtual void visit(ast::TypeIdentifier const*) override;
@@ -105,6 +111,8 @@ public:
 
 	bool is_errored() const;
 	void print_err();
+
+	SemaResult<ScopedType> analyse(ast::IAstNode const*);
 
 private:
 	void visit_node(ast::IAstNode const* node);

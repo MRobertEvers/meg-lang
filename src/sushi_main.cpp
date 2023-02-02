@@ -32,18 +32,19 @@ gen_code(codegen::Codegen& cg, std::vector<Token> const& tokens)
 	Parser parse{cursor};
 	auto mod_result = parse.parse_module();
 
-	// sema::Sema sema;
+	sema::Sema sema;
 
 	if( mod_result.ok() )
 	{
 		auto mod = mod_result.unwrap();
 
-		// mod->visit(&sema);
-		// if( sema.is_errored() )
-		// {
-		// 	sema.print_err();
-		// }
-		// else
+		auto sema_result = sema.analyse(mod.get());
+		if( !sema_result.ok() )
+		{
+			std::cout << "Semantic Error" << std::endl;
+			std::cout << sema_result.unwrap_error()->error << std::endl;
+		}
+		else
 		{
 			mod->visit(&cg);
 		}

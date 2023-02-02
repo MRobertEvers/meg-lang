@@ -861,12 +861,6 @@ Codegen::visit(ast::Call const* node)
 	// https://github.com/ark-lang/ark/issues/362
 	if( Function->getReturnType()->isVoidTy() )
 	{
-		auto tp1 = Function->getFunctionType()->getParamType(0);
-		auto tp2 = ArgsV[0]->getType();
-		if( tp1 == tp2 )
-		{
-			std::cout << " ???" << std::endl;
-		}
 		last_expr = Builder->CreateCall(Function, ArgsV);
 	}
 	else

@@ -44,6 +44,7 @@ enum class TokenType
 
 	// Keyword
 	fn,
+	extern_keyword,
 	return_keyword,
 	let,
 	struct_keyword,

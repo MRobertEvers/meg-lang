@@ -58,6 +58,8 @@ Parser::parse_module_top_level_item()
 	auto tok = cursor.peek();
 	switch( tok.type )
 	{
+	// Fall through
+	case TokenType::extern_keyword:
 	case TokenType::fn:
 		return parse_function();
 	case TokenType::struct_keyword:
@@ -1005,6 +1007,7 @@ ParseResult<Function>
 Parser::parse_function()
 {
 	auto trail = get_parse_trail();
+	auto extern_tok = cursor.consume_if_expected(TokenType::extern_keyword);
 
 	auto tok = cursor.consume(TokenType::fn);
 	if( !tok.ok() )
@@ -1018,8 +1021,7 @@ Parser::parse_function()
 		return proto;
 	}
 
-	auto definition = parse_function_body();
-	if( !definition.ok() )
+	if( extern_tok.ok() )
 	{
 		auto tok = cursor.consume(TokenType::semicolon);
 		if( !tok.ok() )
@@ -1028,8 +1030,16 @@ Parser::parse_function()
 		}
 		return ast::Function(trail.mark(), proto.unwrap(), nullptr);
 	}
+	else
+	{
+		auto definition = parse_function_body();
+		if( !definition.ok() )
+		{
+			return definition;
+		}
 
-	return ast::Function(trail.mark(), proto.unwrap(), definition.unwrap());
+		return ast::Function(trail.mark(), proto.unwrap(), definition.unwrap());
+	}
 }
 
 ParseResult<Block>

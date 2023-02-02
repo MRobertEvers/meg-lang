@@ -14,6 +14,7 @@ KeywordIdentifierTuple keywords[] =
 {
 	// clang-format on
 	{"fn", TokenType::fn},
+	{"extern", TokenType::extern_keyword},
 	{"return", TokenType::return_keyword},
 	{"let", TokenType::let},
 	{"struct", TokenType::struct_keyword},
@@ -76,6 +77,7 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::colon, "colon"},
 	{TokenType::comma, "comma"},
 	{TokenType::fn, "fn"},
+	{TokenType::extern_keyword, "extern"},
 	{TokenType::return_keyword, "return"},
 	{TokenType::while_keyword, "while"},
 	{TokenType::let, "let"},

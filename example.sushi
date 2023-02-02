@@ -1,8 +1,0 @@
-
-fn printf(s: i8*): void;
-
-fn main(): i32 {
-    printf("wow");
-    return 0;
-}
-

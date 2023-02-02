@@ -1,0 +1,38 @@
+
+
+struct Andy {
+    x: i32;
+    y: i32;
+}
+
+
+fn call_andy(a: Andy*): i32  {
+    let x: i32 = a.y;
+
+
+    for (let i = 10; i > 0; i -= 1) {
+
+        if (i >= 5) {
+
+            x += 0;
+        } 
+else {
+
+        x += i;
+
+}
+}
+
+    return x + a.x;
+}
+
+
+fn meth(num: i32): i32 {
+    return (num + 5) * 2;
+}
+
+fn main(): i32 {
+    printf("");
+    return 0;
+}
+
