@@ -12,6 +12,8 @@ ast::to_string(NodeType type)
 		return "Module";
 	case NodeType::Fn:
 		return "Fn";
+	case NodeType::ExternFn:
+		return "ExternFn";
 	case NodeType::FnProto:
 		return "FnProto";
 	case NodeType::FnParamList:

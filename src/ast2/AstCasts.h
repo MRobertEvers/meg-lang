@@ -19,6 +19,7 @@ struct Cast
 };
 
 Cast<AstFn> as_fn(ast::AstNode* node);
+Cast<AstModule> as_module(ast::AstNode* node);
 Cast<AstFnProto> as_fn_proto(ast::AstNode* node);
 Cast<AstFnParamList> as_fn_param_list(ast::AstNode* node);
 Cast<AstReturn> as_fn_return(ast::AstNode* node);
@@ -30,4 +31,15 @@ Cast<AstFnCall> as_fn_call(ast::AstNode* node);
 Cast<AstNumberLiteral> as_number_literal(ast::AstNode* node);
 Cast<AstStmt> as_stmt(ast::AstNode* node);
 Cast<AstExpr> as_expr(ast::AstNode* node);
+
+// template<template<typename> typename Container, typename NodeType>
+// Container<NodeType>
+// expected(ast::AstNode* node, Cast<NodeType> (*cast)(ast::AstNode* node))
+// {
+// 	auto castr = cast(node);
+// 	if( !castr.ok() )
+// 		return Container("Expected type '" + ast::to_string(node->type) + "'");
+
+// 	return castr.unwrap();
+// }
 }; // namespace ast

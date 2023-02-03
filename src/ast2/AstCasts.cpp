@@ -12,6 +12,15 @@ ast::as_fn(ast::AstNode* node)
 	return &node->data.fn;
 }
 
+Cast<AstModule>
+ast::as_module(ast::AstNode* node)
+{
+	if( node->type != AstModule::nt )
+		return Cast<AstModule>();
+
+	return &node->data.mod;
+}
+
 Cast<AstFnProto>
 ast::as_fn_proto(ast::AstNode* node)
 {

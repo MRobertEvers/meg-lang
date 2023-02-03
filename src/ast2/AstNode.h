@@ -12,6 +12,7 @@ enum class NodeType
 	Invalid,
 	Module,
 	Fn,
+	ExternFn,
 	FnProto,
 	FnParamList,
 	ValueDecl,
@@ -86,6 +87,18 @@ struct AstFn
 	AstFn(AstNode* prototype, AstNode* body)
 		: prototype(prototype)
 		, body(body)
+	{}
+};
+
+struct AstExternFn
+{
+	static constexpr NodeType nt = NodeType::ExternFn;
+
+	AstNode* prototype;
+
+	AstExternFn() = default;
+	AstExternFn(AstNode* prototype)
+		: prototype(prototype)
 	{}
 };
 
@@ -418,6 +431,7 @@ struct AstNode
 	{
 		AstModule mod;
 		AstFn fn;
+		AstExternFn extern_fn;
 		AstFnProto fn_proto;
 		AstFnParamList fn_params;
 		AstValueDecl value_decl;
