@@ -1,23 +1,25 @@
 #pragma once
-#include "Type.h"
+#include "Types.h"
 #include "common/String.h"
+#include "type/Type.h"
 
 #include <map>
 namespace sema
 {
-
+// TODO: ScopeExitType => return, yield, etc.
 class Scope
 {
 	Scope* parent = nullptr;
+	std::map<String, Type const*> types_in_scope;
 
-	std::map<String, Type const*> types;
+	Types* types;
 	std::map<String, TypeInstance> names;
-	TypeInstance expected_return;
+	TypeInstance* expected_return;
 
 public:
 	bool is_in_scope = true;
 
-	Scope();
+	Scope(Types* types);
 	Scope(Scope* parent);
 	~Scope();
 

@@ -2,6 +2,7 @@
 #include "ast2/AstGen.h"
 #include "ast2/AstNode.h"
 #include "ast2/AstTags.h"
+// #include "codegen2/Codegen.h"
 #include "common/OwnPtr.h"
 #include "lexer/Lexer.h"
 #include "lexer/TokenCursor.h"
@@ -21,6 +22,7 @@
 #include <vector>
 
 using namespace sema;
+// using namespace cg;
 using namespace ast;
 using namespace llvm;
 
@@ -63,4 +65,8 @@ main(int argc, char* argv[])
 	auto sema_result = sema.sema(result.unwrap());
 	if( !sema_result.ok() )
 		sema_result.unwrap_error()->print();
+
+	// CG cg{ast};
+
+	// cg.codegen(result.unwrap());
 }

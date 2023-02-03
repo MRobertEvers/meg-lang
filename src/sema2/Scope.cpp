@@ -2,13 +2,27 @@
 
 using namespace sema;
 
-Scope::Scope(){};
-Scope::Scope(Scope* parent)
-	: parent(parent){};
+Scope::Scope(Types* tys)
+	: types(tys)
+{
+	for( auto const& ty : types->types )
+	{
+		Type const* tyc = &ty.second;
+		String s = String(ty.first);
+		// auto entry = std::make_pair<String, Type const*>(String(ty.first), tyc);
+		types_in_scope.emplace(s, tyc);
+	}
+};
+Scope::Scope(Scope* par)
+	: parent(par)
+	, types(par->types){};
 
 Scope::~Scope()
 {
-	//
+	if( this->expected_return )
+	{
+		delete this->expected_return;
+	}
 }
 
 void
@@ -20,14 +34,14 @@ Scope::add_value_identifier(String const& name, TypeInstance id)
 void
 Scope::add_type_identifier(Type const* id)
 {
-	auto iter = types.emplace(id->get_name(), id);
+	auto iter = types_in_scope.emplace(id->get_name(), id);
 }
 
 Type const*
 Scope::lookup_type(String const& name) const
 {
-	auto me = types.find(name);
-	if( me == types.end() )
+	auto me = types_in_scope.find(name);
+	if( me == types_in_scope.end() )
 	{
 		if( parent == nullptr )
 		{
@@ -68,7 +82,7 @@ Scope::lookup_value_type(String const& name) const
 TypeInstance const*
 Scope::get_expected_return() const
 {
-	if( expected_return.type == nullptr )
+	if( expected_return == nullptr )
 	{
 		if( parent == nullptr )
 		{
@@ -81,14 +95,14 @@ Scope::get_expected_return() const
 	}
 	else
 	{
-		return &expected_return;
+		return expected_return;
 	}
 }
 
 void
 Scope::set_expected_return(TypeInstance n)
 {
-	expected_return = n;
+	expected_return = new TypeInstance(n);
 }
 
 Scope*

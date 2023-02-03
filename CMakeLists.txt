@@ -49,13 +49,23 @@ add_executable(sushi
     src/ast2/ParseResult.cpp
     src/ast2/AstNode.cpp
     src/ast2/AstGen.cpp
+    src/ast2/AstCasts.cpp
     src/ast2/AstTags.h
     src/ast2/Ast.cpp
     src/sema2/Scope.cpp
     src/sema2/Sema2.cpp
     src/sema2/SemaResult.cpp
-    src/sema2/Type.cpp
+    src/sema2/type/Type.cpp
+    src/sema2/type/FunctionTypeInfo.cpp
+    src/sema2/type/StructTypeInfo.cpp
+    src/sema2/Types.cpp
+    src/sema2/TypeInstance.cpp
+    src/sema2/TypedMember.cpp
     src/sema2/SemaTag.cpp
+    # src/codegen2/Codegen.cpp
+    # src/codegen2/CGResult.cpp
+    # src/codegen2/CGed.cpp
+    # src/codegen2/CGTag.cpp
 )
 
 # # Now build our tools

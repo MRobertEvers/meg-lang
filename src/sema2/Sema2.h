@@ -2,10 +2,11 @@
 #include "Scope.h"
 #include "SemaResult.h"
 #include "SemaTag.h"
-#include "Type.h"
+#include "Types.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"
 #include "common/Vec.h"
+#include "type/Type.h"
 
 namespace sema
 {
@@ -14,8 +15,7 @@ class Sema2
 public:
 	ast::Ast& ast;
 
-	// TODO: something to manage the types?
-	Vec<Type> all_types;
+	Types types;
 	Vec<Scope> scopes;
 	Scope* current_scope = nullptr;
 

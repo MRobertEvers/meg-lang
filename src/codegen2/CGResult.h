@@ -6,30 +6,29 @@
 #include "lexer/token.h"
 
 #include <iostream>
-#include <optional>
-namespace sema
+namespace cg
 {
 
-class SemaError
+class CGError
 {
 public:
 	String error;
 	Token token;
 
-	SemaError(char const* str)
+	CGError(char const* str)
 		: error(str){};
-	SemaError(String& str)
+	CGError(String& str)
 		: error(std::move(str)){};
-	SemaError(String&& str)
+	CGError(String&& str)
 		: error(std::move(str)){};
 
-	SemaError(char const* str, Token token)
+	CGError(char const* str, Token token)
 		: error(str)
 		, token(token){};
-	SemaError(String& str, Token token)
+	CGError(String& str, Token token)
 		: error(str)
 		, token(token){};
-	SemaError(String&& str, Token token)
+	CGError(String&& str, Token token)
 		: error(str)
 		, token(token){};
 
@@ -37,36 +36,36 @@ public:
 };
 
 template<typename T>
-class SemaResult
+class CGResult
 {
-	OwnPtr<SemaError> error = OwnPtr<SemaError>::null();
-	std::optional<T> result;
+	OwnPtr<CGError> error = OwnPtr<CGError>::null();
+	T result;
 
 public:
-	SemaResult<T>(T const& val)
+	CGResult<T>(T const& val)
 		: result(val){
-			  // std::cout << "SemaResult: " << std::hex << &val << std::endl;
+			  // std::cout << "CGResult: " << std::hex << &val << std::endl;
 		  };
-	SemaResult<T>(T& val)
+	CGResult<T>(T& val)
 		: result(std::move(val)){
-			  // std::cout << "SemaResult: " << std::hex << &val << std::endl;
+			  // std::cout << "CGResult: " << std::hex << &val << std::endl;
 		  };
-	SemaResult<T>(T&& val)
+	CGResult<T>(T&& val)
 		: result(std::move(val)){
-			  // std::cout << "SemaResult: " << std::hex << &val << std::endl;
+			  // std::cout << "CGResult: " << std::hex << &val << std::endl;
 		  };
 
 	/**
-	 * @brief Construct a new SemaResult<T> object from an error
+	 * @brief Construct a new CGResult<T> object from an error
 	 *
-	 * SemaResult<ResultType>
+	 * CGResult<ResultType>
 	 * sema() {
-	 * 		return SemaResult("Bad parse");
+	 * 		return CGResult("Bad parse");
 	 * }
 	 *
 	 * @param err
 	 */
-	SemaResult<T>(SemaError err)
+	CGResult<T>(CGError err)
 		: error(err){};
 
 	/**
@@ -96,7 +95,7 @@ public:
 		typename TOther,
 		typename = std::enable_if_t<!std::is_base_of<T, TOther>::value>,
 		typename = void>
-	SemaResult<T>(SemaResult<TOther>&& other)
+	CGResult<T>(CGResult<TOther>&& other)
 		: error(std::move(other.unwrap_error()))
 	{
 		assert(
@@ -106,11 +105,11 @@ public:
 			"vice-versa?");
 	};
 
-	T unwrap() { return result.value(); }
-	OwnPtr<SemaError> unwrap_error() { return std::move(error); }
+	T unwrap() { return result; }
+	OwnPtr<CGError> unwrap_error() { return std::move(error); }
 
 	bool ok() const { return error.is_null(); }
 
-	static SemaResult<T> Ok(T el) { return SemaResult(el); }
+	static CGResult<T> Ok(T el) { return CGResult(el); }
 };
-} // namespace sema
+} // namespace cg
