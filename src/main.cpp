@@ -1,5 +1,7 @@
+#include "ast2/Ast.h"
 #include "ast2/AstGen.h"
 #include "ast2/AstNode.h"
+#include "ast2/AstTags.h"
 #include "common/OwnPtr.h"
 #include "lexer/Lexer.h"
 #include "lexer/TokenCursor.h"
@@ -11,12 +13,14 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "sema2/Sema2.h"
 
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
+using namespace sema;
 using namespace ast;
 using namespace llvm;
 
@@ -50,9 +54,13 @@ main(int argc, char* argv[])
 
 	Lexer::print_tokens(lex_result.tokens);
 
-	Ast ast;
 	TokenCursor cursor{lex_result.tokens};
+	Ast ast;
 	AstGen gen{ast, cursor};
-
 	auto result = gen.parse();
+
+	Sema2 sema{ast};
+	auto sema_result = sema.sema(result.unwrap());
+	if( !sema_result.ok() )
+		sema_result.unwrap_error()->print();
 }

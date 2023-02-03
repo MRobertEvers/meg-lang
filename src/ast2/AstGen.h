@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Ast.h"
 #include "AstNode.h"
 #include "ParseResult.h"
 #include "ParseTrail.h"

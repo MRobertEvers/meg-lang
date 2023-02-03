@@ -1,5 +1,6 @@
 #include "AstGen.h"
 
+#include "Ast.h"
 #include "bin_op.h"
 
 #include <string>
@@ -525,8 +526,7 @@ AstGen::parse_statement()
 	}
 
 no_semi:
-	return stmt;
-	// return Statement{trail.mark(), std::move(stmt)};
+	return ast.Stmt(trail.mark(), stmt);
 }
 
 ParseResult<ast::AstNode*>
@@ -833,8 +833,7 @@ AstGen::parse_simple_expr()
 		return ParseError("Expected simple expression.", tok);
 	}
 
-	return result;
-	// return ast.Expression(trail.mark(), result);
+	return ast.Expr(trail.mark(), result);
 }
 
 ParseResult<ast::AstNode*>
@@ -930,7 +929,7 @@ AstGen::parse_function_parameter_list()
 		// Also catches trailing comma.
 		cursor.consume_if_expected(TokenType::comma);
 
-		auto decl = ast.FnParamDecl(param_trail.mark(), identifer.unwrap(), type_decl.unwrap());
+		auto decl = ast.ValueDecl(param_trail.mark(), identifer.unwrap(), type_decl.unwrap());
 
 		result->append(decl);
 		curr_tok = cursor.peek();

@@ -44,11 +44,18 @@ add_executable(sushi
     src/common/OwnPtr.h
     src/common/Vec.h
     src/common/String.h
-    src/ast2/AstNode.h
     src/ast2/bin_op.cpp
     src/ast2/ParseTrail.cpp
     src/ast2/ParseResult.cpp
+    src/ast2/AstNode.cpp
     src/ast2/AstGen.cpp
+    src/ast2/AstTags.h
+    src/ast2/Ast.cpp
+    src/sema2/Scope.cpp
+    src/sema2/Sema2.cpp
+    src/sema2/SemaResult.cpp
+    src/sema2/Type.cpp
+    src/sema2/SemaTag.cpp
 )
 
 # # Now build our tools

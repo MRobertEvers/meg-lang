@@ -1,5 +1,6 @@
 #pragma once
 #include "Span.h"
+#include "bin_op.h"
 #include "common/String.h"
 #include "common/Vec.h"
 
@@ -13,7 +14,7 @@ enum class NodeType
 	Fn,
 	FnProto,
 	FnParamList,
-	FnParamDecl,
+	ValueDecl,
 	FnCall,
 	ExprList,
 	Block,
@@ -31,11 +32,14 @@ enum class NodeType
 	NumberLiteral,
 	TypeDeclarator,
 	MemberAccess,
+	Expr,
+	Stmt,
 };
+
+String to_string(NodeType type);
 
 // Forward declare ast node.
 struct AstNode;
-struct Ast;
 
 template<typename T>
 struct AstList
@@ -45,9 +49,23 @@ struct AstList
 	void append(AstNode* elem) { list.push_back(elem); }
 };
 
+template<typename T>
+T*
+begin(AstList<T>* l)
+{
+	return l->list.begin().base();
+}
+
+template<typename T>
+T*
+end(AstList<T>* l)
+{
+	return l->list.end().base();
+}
+
 struct AstModule
 {
-	static constexpr NodeType type = NodeType::Module;
+	static constexpr NodeType nt = NodeType::Module;
 
 	AstList<AstNode*>* statements;
 
@@ -59,7 +77,7 @@ struct AstModule
 
 struct AstFn
 {
-	static constexpr NodeType type = NodeType::Fn;
+	static constexpr NodeType nt = NodeType::Fn;
 
 	AstNode* prototype;
 	AstNode* body;
@@ -73,7 +91,7 @@ struct AstFn
 
 struct AstFnProto
 {
-	static constexpr NodeType type = NodeType::FnProto;
+	static constexpr NodeType nt = NodeType::FnProto;
 
 	AstNode* name;
 	AstNode* params;
@@ -89,7 +107,7 @@ struct AstFnProto
 
 struct AstFnParamList
 {
-	static constexpr NodeType type = NodeType::FnParamList;
+	static constexpr NodeType nt = NodeType::FnParamList;
 
 	AstList<AstNode*>* params;
 
@@ -99,15 +117,15 @@ struct AstFnParamList
 	{}
 };
 
-struct AstFnParamDecl
+struct AstValueDecl
 {
-	static constexpr NodeType type = NodeType::FnParamDecl;
+	static constexpr NodeType nt = NodeType::ValueDecl;
 
 	AstNode* name;
 	AstNode* type_name;
 
-	AstFnParamDecl() = default;
-	AstFnParamDecl(AstNode* name, AstNode* type_name)
+	AstValueDecl() = default;
+	AstValueDecl(AstNode* name, AstNode* type_name)
 		: name(name)
 		, type_name(type_name)
 	{}
@@ -115,20 +133,21 @@ struct AstFnParamDecl
 
 struct AstFnCall
 {
-	static constexpr NodeType type = NodeType::FnCall;
+	static constexpr NodeType nt = NodeType::FnCall;
 
 	AstNode* call_target;
 	AstNode* args;
 
 	AstFnCall() = default;
 	AstFnCall(AstNode* call_target, AstNode* args)
-		: args(args)
+		: call_target(call_target)
+		, args(args)
 	{}
 };
 
 struct AstExprList
 {
-	static constexpr NodeType type = NodeType::ExprList;
+	static constexpr NodeType nt = NodeType::ExprList;
 
 	AstList<AstNode*>* exprs;
 
@@ -140,7 +159,7 @@ struct AstExprList
 
 struct AstBlock
 {
-	static constexpr NodeType type = NodeType::Block;
+	static constexpr NodeType nt = NodeType::Block;
 
 	AstList<AstNode*>* statements;
 
@@ -150,26 +169,9 @@ struct AstBlock
 	{}
 };
 
-enum BinOp : char
-{
-	plus,
-	star,
-	minus,
-	slash,
-	gt,
-	gte,
-	lt,
-	lte,
-	and_lex,
-	or_lex,
-	cmp,
-	ne,
-	bad
-};
-
 struct AstBinOp
 {
-	static constexpr NodeType type = NodeType::BinOp;
+	static constexpr NodeType nt = NodeType::BinOp;
 
 	BinOp op;
 	AstNode* left;
@@ -191,7 +193,7 @@ enum IdClassification
 
 struct AstId
 {
-	static constexpr NodeType type = NodeType::Id;
+	static constexpr NodeType nt = NodeType::Id;
 
 	IdClassification classification;
 	String* name;
@@ -214,7 +216,7 @@ enum class AssignOp
 
 struct AstAssign
 {
-	static constexpr NodeType type = NodeType::Assign;
+	static constexpr NodeType nt = NodeType::Assign;
 
 	AssignOp op;
 	AstNode* left;
@@ -230,7 +232,7 @@ struct AstAssign
 
 struct AstIf
 {
-	static constexpr NodeType type = NodeType::If;
+	static constexpr NodeType nt = NodeType::If;
 
 	AstNode* condition;
 	AstNode* then_block;
@@ -246,7 +248,7 @@ struct AstIf
 
 struct AstLet
 {
-	static constexpr NodeType type = NodeType::Let;
+	static constexpr NodeType nt = NodeType::Let;
 
 	AstNode* identifier;
 	AstNode* type_declarator;
@@ -262,7 +264,7 @@ struct AstLet
 
 struct AstReturn
 {
-	static constexpr NodeType type = NodeType::Return;
+	static constexpr NodeType nt = NodeType::Return;
 
 	AstNode* expr;
 
@@ -274,7 +276,7 @@ struct AstReturn
 
 struct AstStruct
 {
-	static constexpr NodeType type = NodeType::Struct;
+	static constexpr NodeType nt = NodeType::Struct;
 
 	AstNode* type_name;
 	AstList<AstNode*>* members;
@@ -288,7 +290,7 @@ struct AstStruct
 
 struct AstMemberDef
 {
-	static constexpr NodeType type = NodeType::MemberDef;
+	static constexpr NodeType nt = NodeType::MemberDef;
 
 	AstNode* identifier;
 	AstNode* type_declarator;
@@ -302,7 +304,7 @@ struct AstMemberDef
 
 struct AstWhile
 {
-	static constexpr NodeType type = NodeType::While;
+	static constexpr NodeType nt = NodeType::While;
 
 	AstNode* condition;
 	AstNode* block;
@@ -316,7 +318,7 @@ struct AstWhile
 
 struct AstFor
 {
-	static constexpr NodeType type = NodeType::For;
+	static constexpr NodeType nt = NodeType::For;
 
 	AstNode* init;
 	AstNode* condition;
@@ -334,7 +336,7 @@ struct AstFor
 
 struct AstStringLiteral
 {
-	static constexpr NodeType type = NodeType::StringLiteral;
+	static constexpr NodeType nt = NodeType::StringLiteral;
 
 	String* literal;
 
@@ -346,7 +348,7 @@ struct AstStringLiteral
 
 struct AstNumberLiteral
 {
-	static constexpr NodeType type = NodeType::NumberLiteral;
+	static constexpr NodeType nt = NodeType::NumberLiteral;
 
 	long long literal;
 
@@ -358,7 +360,7 @@ struct AstNumberLiteral
 
 struct AstTypeDeclarator
 {
-	static constexpr NodeType type = NodeType::TypeDeclarator;
+	static constexpr NodeType nt = NodeType::TypeDeclarator;
 
 	unsigned int indirection_level;
 	String* name;
@@ -372,7 +374,7 @@ struct AstTypeDeclarator
 
 struct AstMemberAccess
 {
-	static constexpr NodeType type = NodeType::MemberAccess;
+	static constexpr NodeType nt = NodeType::MemberAccess;
 
 	AstNode* expr;
 	AstNode* member_name;
@@ -381,6 +383,30 @@ struct AstMemberAccess
 	AstMemberAccess(AstNode* expr, AstNode* member_name)
 		: expr(expr)
 		, member_name(member_name)
+	{}
+};
+
+struct AstExpr
+{
+	static constexpr NodeType nt = NodeType::Expr;
+
+	AstNode* expr;
+
+	AstExpr() = default;
+	AstExpr(AstNode* expr)
+		: expr(expr)
+	{}
+};
+
+struct AstStmt
+{
+	static constexpr NodeType nt = NodeType::Stmt;
+
+	AstNode* expr;
+
+	AstStmt() = default;
+	AstStmt(AstNode* expr)
+		: expr(expr)
 	{}
 };
 
@@ -394,7 +420,7 @@ struct AstNode
 		AstFn fn;
 		AstFnProto fn_proto;
 		AstFnParamList fn_params;
-		AstFnParamDecl fn_param_decl;
+		AstValueDecl value_decl;
 		AstFnCall fn_call;
 		AstExprList expr_list;
 		AstBlock block;
@@ -412,202 +438,9 @@ struct AstNode
 		AstNumberLiteral number_literal;
 		AstTypeDeclarator type_declarator;
 		AstMemberAccess member_access;
+		AstExpr expr;
+		AstStmt stmt;
 	} data;
-};
-
-// TODO: AST owns all ast nodes.
-// Track all memory allocs
-struct Ast
-{
-private:
-	template<typename T>
-	AstNode* make_empty(Span span)
-	{
-		auto node = new AstNode;
-		node->type = T::type;
-		node->span = span;
-
-		return node;
-	}
-
-public:
-	String* create_string(char const* cstr, unsigned int size) { return new String{cstr, size}; }
-	AstList<AstNode*>* create_list() { return new AstList<AstNode*>{}; }
-
-	AstNode* Module(Span span, AstList<AstNode*>* params)
-	{
-		auto node = make_empty<AstModule>(span);
-		node->data.mod = AstModule{params};
-		return node;
-	}
-
-	AstNode* Fn(Span span, AstNode* prototype, AstNode* body)
-	{
-		auto node = make_empty<AstFn>(span);
-		node->data.fn = AstFn{prototype, body};
-		return node;
-	}
-
-	AstNode* FnProto(Span span, AstNode* name, AstNode* params, AstNode* return_type)
-	{
-		auto node = make_empty<AstFnProto>(span);
-		node->data.fn_proto = AstFnProto{name, params, return_type};
-		return node;
-	}
-
-	AstNode* FnParamList(Span span, AstList<AstNode*>* params)
-	{
-		auto node = make_empty<AstFnParamList>(span);
-		node->data.fn_params = AstFnParamList{params};
-		return node;
-	}
-
-	AstNode* FnParamDecl(Span span, AstNode* name, AstNode* type_name)
-	{
-		auto node = make_empty<AstFnParamDecl>(span);
-		node->data.fn_param_decl = AstFnParamDecl{name, type_name};
-		return node;
-	}
-
-	AstNode* FnCall(Span span, AstNode* call_target, AstNode* args)
-	{
-		auto node = make_empty<AstFnCall>(span);
-		node->data.fn_call = AstFnCall{call_target, args};
-		return node;
-	}
-
-	AstNode* ExprList(Span span, AstList<AstNode*>* args)
-	{
-		auto node = make_empty<AstExprList>(span);
-		node->data.expr_list = AstExprList{args};
-		return node;
-	}
-
-	AstNode* Block(Span span, AstList<AstNode*>* statements)
-	{
-		auto node = make_empty<AstBlock>(span);
-		node->data.block = AstBlock{statements};
-		return node;
-	}
-
-	AstNode* BinOp(Span span, BinOp op, AstNode* left, AstNode* right)
-	{
-		auto node = make_empty<AstBinOp>(span);
-		node->data.binop = AstBinOp{op, left, right};
-		return node;
-	}
-
-	AstNode* Id(Span span, IdClassification classification, String* name)
-	{
-		auto node = make_empty<AstId>(span);
-		node->data.id = AstId{classification, name};
-		return node;
-	}
-
-	AstNode* TypeId(Span span, String* name)
-	{
-		auto node = make_empty<AstId>(span);
-		node->data.id = AstId{IdClassification::TypeIdentifier, name};
-		return node;
-	}
-
-	AstNode* ValueId(Span span, String* name)
-	{
-		auto node = make_empty<AstId>(span);
-		node->data.id = AstId{IdClassification::ValueIdentifier, name};
-		return node;
-	}
-
-	AstNode* Assign(Span span, AssignOp op, AstNode* left, AstNode* right)
-	{
-		auto node = make_empty<AstAssign>(span);
-		node->data.assign = AstAssign{op, left, right};
-		return node;
-	}
-
-	AstNode* If(Span span, AstNode* condition, AstNode* then_block, AstNode* else_block)
-	{
-		auto node = make_empty<AstIf>(span);
-		node->data.ifcond = AstIf{condition, then_block, else_block};
-		return node;
-	}
-
-	AstNode* Let(Span span, AstNode* identifier, AstNode* type_declarator, AstNode* rhs)
-	{
-		auto node = make_empty<AstLet>(span);
-		node->data.let = AstLet{identifier, type_declarator, rhs};
-		return node;
-	}
-
-	AstNode* Return(Span span, AstNode* expr)
-	{
-		auto node = make_empty<AstReturn>(span);
-		node->data.returnexpr = AstReturn{expr};
-		return node;
-	}
-
-	AstNode* Struct(Span span, AstNode* type_name, AstList<AstNode*>* members)
-	{
-		auto node = make_empty<AstStruct>(span);
-		node->data.structstmt = AstStruct{type_name, members};
-		return node;
-	}
-
-	AstNode* Member(Span span, AstNode* identifier, AstNode* type_declarator)
-	{
-		auto node = make_empty<AstMemberDef>(span);
-		node->data.member = AstMemberDef{identifier, type_declarator};
-		return node;
-	}
-
-	AstNode* While(Span span, AstNode* condition, AstNode* block)
-	{
-		auto node = make_empty<AstWhile>(span);
-		node->data.whilestmt = AstWhile{condition, block};
-		return node;
-	}
-
-	AstNode* For(Span span, AstNode* init, AstNode* condition, AstNode* end_loop, AstNode* body)
-	{
-		auto node = make_empty<AstFor>(span);
-		node->data.forstmt = AstFor{init, condition, end_loop, body};
-		return node;
-	}
-
-	AstNode* StringLiteral(Span span, String* literal)
-	{
-		auto node = make_empty<AstStringLiteral>(span);
-		node->data.string_literal = AstStringLiteral{literal};
-		return node;
-	}
-
-	AstNode* NumberLiteral(Span span, long long literal)
-	{
-		auto node = make_empty<AstNumberLiteral>(span);
-		node->data.number_literal = AstNumberLiteral{literal};
-		return node;
-	}
-
-	AstNode* TypeDeclarator(Span span, String* name, unsigned int indirection_level)
-	{
-		auto node = make_empty<AstTypeDeclarator>(span);
-		node->data.type_declarator = AstTypeDeclarator{name, indirection_level};
-		return node;
-	}
-
-	AstNode* TypeDeclaratorEmpty()
-	{
-		auto node = make_empty<AstTypeDeclarator>(Span{});
-		node->data.type_declarator = AstTypeDeclarator{};
-		return node;
-	}
-
-	AstNode* MemberAccess(Span span, AstNode* expr, AstNode* member_name)
-	{
-		auto node = make_empty<AstMemberAccess>(span);
-		node->data.member_access = AstMemberAccess{expr, member_name};
-		return node;
-	}
 };
 
 } // namespace ast
