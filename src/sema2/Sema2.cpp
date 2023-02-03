@@ -6,6 +6,32 @@
 using namespace ast;
 using namespace sema;
 
+Vec<ir::IRTopLevelStmt*>*
+Sema2::create_tlslist()
+{
+	//
+	return new Vec<ir::IRTopLevelStmt*>();
+}
+
+Vec<ir::IRStmt*>*
+Sema2::create_slist()
+{
+	//
+	return new Vec<ir::IRStmt*>();
+}
+
+ir::IRModule*
+Sema2::Module(AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts)
+{
+	//
+	auto mod = new ir::IRModule;
+
+	mod->node = node;
+	mod->stmts = stmts;
+
+	return mod;
+}
+
 // static SemaResult<TypeInstance>
 // expected(Sema2& sema, ast::AstNode* node, ast::NodeType type)
 // {

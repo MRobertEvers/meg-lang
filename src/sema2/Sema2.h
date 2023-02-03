@@ -54,6 +54,8 @@ public:
 
 	Vec<ir::IRTopLevelStmt*>* create_tlslist();
 	Vec<ir::IRStmt*>* create_slist();
+
+	ir::IRModule* Module(ast::AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts);
 };
 
 } // namespace sema

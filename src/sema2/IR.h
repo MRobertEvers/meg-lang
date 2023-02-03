@@ -1,5 +1,6 @@
 #pragma once
 #include "TypeInstance.h"
+#include "ast2/AstNode.h"
 #include "common/String.h"
 #include "common/Vec.h"
 #include "type/Type.h"
@@ -20,6 +21,7 @@ struct IRExpr;
 struct IRModule
 {
 	//
+	ast::AstNode* node;
 	Vec<IRTopLevelStmt*>* stmts;
 };
 

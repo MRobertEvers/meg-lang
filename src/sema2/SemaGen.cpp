@@ -8,31 +8,30 @@ using namespace sema;
 using namespace ir;
 using namespace ast;
 
-SemaResult<IRModule>
+SemaResult<IRModule*>
 sema::sema_module(Sema2& sema, AstNode* node)
 {
-	// auto result = ast::as_mod(node);
-	// if( !result.ok() )
-	// 	return result;
+	auto result = expected(node, ast::as_module);
+	if( !result.ok() )
+		return result;
 
-	// auto mod = node->data.mod;
+	auto mod = node->data.mod;
 
-	// for( auto statement : mod.statements )
-	// {
-	// 	auto statement_result = sema_tls(sema, statement);
-	// 	// Don't really care about the sema result here.
-	// 	if( !statement_result.ok() )
-	// 	{
-	// 		return statement_result;
-	// 	}
-	// }
+	auto stmts = sema.create_tlslist();
 
-	// return Ok();
+	for( auto statement : mod.statements )
+	{
+		auto statement_result = sema_tls(sema, statement);
+		if( !statement_result.ok() )
+			return statement_result;
 
-	return SemaError("Not Implemented.");
+		stmts->push_back(statement_result.unwrap());
+	}
+
+	return sema.Module(node, stmts);
 }
 
-SemaResult<IRTopLevelStmt>
+SemaResult<IRTopLevelStmt*>
 sema::sema_tls(Sema2& sema, AstNode* ast)
 {
 	return SemaError("Not Implemented.");

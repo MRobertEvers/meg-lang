@@ -21,7 +21,7 @@ expected(ast::AstNode* node, ast::Cast<NodeType> (*cast)(ast::AstNode* node))
 	return SemaResult(castr.unwrap());
 }
 
-SemaResult<ir::IRModule> sema_module(Sema2& sema, ast::AstNode* ast);
-SemaResult<ir::IRTopLevelStmt> sema_tls(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRModule*> sema_module(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRTopLevelStmt*> sema_tls(Sema2& sema, ast::AstNode* ast);
 
 }; // namespace sema
