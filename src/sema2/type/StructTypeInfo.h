@@ -14,7 +14,7 @@ struct StructTypeInfo
 	std::map<String, TypedMember> members;
 
 public:
-	StructTypeInfo(std::map<String, TypedMember> members);
+	// static StructTypeInfo Make(std::map<String, TypedMember> members);
 };
 
 } // namespace sema

@@ -16,8 +16,7 @@ expected(Sema2& sema, ast::AstNode* node, ast::NodeType type)
 	semtag->scope = sema.current_scope;
 	semtag->tag_type = SemaTagType::Sema;
 
-	return SemaError("TODO:");
-	// return TypeInstance::OfType(&void_type);
+	return TypeInstance::OfType(sema.types.void_type());
 }
 
 static SemaResult<AstId*>
@@ -142,8 +141,8 @@ sema_fn_proto(Sema2& sema, ast::AstNode* node)
 
 	sema.current_scope->set_expected_return(return_type);
 
-	auto fn_type =
-		sema.CreateType(std::move(Type::Function(*fn_name, params.unwrap(), return_type)));
+	auto newtype = Type::Function(*fn_name, params.unwrap(), return_type);
+	auto fn_type = sema.CreateType(newtype);
 	sema.add_type_identifier(fn_type);
 	sema.add_value_identifier(*fn_name, TypeInstance::OfType(fn_type));
 
@@ -390,7 +389,7 @@ Sema2::sema_fn_call(ast::AstNode* node)
 	if( !expr_type.type->is_function_type() )
 		return SemaError("Expected function type.");
 
-	// return expr_type.type->get_return_type();
+	return expr_type.type->get_return_type().value();
 }
 
 SemaResult<TypeInstance>
@@ -415,7 +414,7 @@ Sema2::sema_stmt(ast::AstNode* node)
 SemaResult<TypeInstance>
 Sema2::sema_number_literal(ast::AstNode* node)
 {
-	// return TypeInstance::OfType(current_scope->lookup_type(i32_type.get_name()));
+	return TypeInstance::OfType(types.i32_type());
 }
 
 SemaResult<TypeInstance>
@@ -445,7 +444,7 @@ Sema2::typecheck_value_decl(ast::AstValueDecl* decl)
 SemaResult<TypeInstance>
 Sema2::Ok()
 {
-	// return TypeInstance::OfType(&void_type);
+	return TypeInstance::OfType(types.void_type());
 }
 
 void
@@ -477,7 +476,7 @@ Sema2::add_type_identifier(Type const* id)
 Type const*
 Sema2::CreateType(Type ty)
 {
-	return types.define_type(std::move(ty));
+	return types.define_type(ty);
 }
 
 SemaResult<TypeInstance>

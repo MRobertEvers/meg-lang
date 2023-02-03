@@ -11,6 +11,8 @@ private:
 		, indirection_level(indir){};
 
 public:
+	TypeInstance() = default;
+
 	int indirection_level;
 	Type const* type;
 	bool operator==(const TypeInstance& rhs)

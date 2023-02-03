@@ -2,6 +2,7 @@
 
 using namespace sema;
 
-StructTypeInfo::StructTypeInfo(std::map<String, TypedMember> members)
-	: members(members)
-{}
+// StructTypeInfo
+// StructTypeInfo::Make(std::map<String, TypedMember> members)
+// 	: members(members)
+// {}

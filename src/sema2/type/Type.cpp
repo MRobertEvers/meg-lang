@@ -10,31 +10,33 @@ Type::Type(String name)
 
 Type::Type(String name, std::map<String, TypedMember> members)
 	: name(name)
-	, cls(TypeClassification::struct_cls)
-{
-	this->type_info.struct_ = new StructTypeInfo(members);
-};
+	, members(members)
+	, cls(TypeClassification::struct_cls){};
 
 Type::Type(String name, Vec<TypedMember> args, TypeInstance return_type)
 	: name(name)
+	, members_order(args)
 	, cls(TypeClassification::function)
 {
-	this->type_info.fn_ = new FunctionTypeInfo(args, return_type);
+	for( auto arg : args )
+	{
+		members.emplace(arg.name, arg);
+	}
 };
 
 Type::~Type()
 {
-	switch( cls )
-	{
-	case TypeClassification::function:
-		delete this->type_info.fn_;
-		break;
-	case TypeClassification::struct_cls:
-		delete this->type_info.struct_;
-		break;
-	case TypeClassification::primitive:
-		break;
-	}
+	// switch( cls )
+	// {
+	// case TypeClassification::function:
+	// 	this->type_info.fn_.~FunctionTypeInfo();
+	// 	break;
+	// case TypeClassification::struct_cls:
+	// 	this->type_info.struct_.~StructTypeInfo();
+	// 	break;
+	// case TypeClassification::primitive:
+	// 	break;
+	// }
 }
 
 String
@@ -102,6 +104,15 @@ Type::get_name() const
 
 // 	members_order.emplace_back(TypedMember{type, name});
 // }
+
+std::optional<TypeInstance>
+Type::get_return_type() const
+{
+	if( cls != TypeClassification::function )
+		return std::optional<TypeInstance>();
+
+	return this->return_type;
+}
 
 Type
 Type::Function(String const& name, Vec<TypedMember> args, TypeInstance return_type)

@@ -7,6 +7,7 @@
 #include "common/Vec.h"
 
 #include <map>
+#include <optional>
 namespace sema
 {
 
@@ -32,11 +33,12 @@ private:
 	};
 
 	TypeClassification cls = TypeClassification::primitive;
-	union TypeInfo
-	{
-		FunctionTypeInfo* fn_;
-		StructTypeInfo* struct_;
-	} type_info;
+	std::map<String, TypedMember> members;
+
+	Vec<TypedMember> members_order;
+
+	// For functions return type
+	TypeInstance return_type;
 
 	String name;
 
@@ -47,6 +49,7 @@ private:
 public:
 	~Type();
 
+	std::optional<TypeInstance> get_return_type() const;
 	bool is_function_type() const { return cls == TypeClassification::function; }
 	bool is_struct_type() const { return cls == TypeClassification::struct_cls; }
 	String get_name() const;

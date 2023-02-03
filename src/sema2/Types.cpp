@@ -18,8 +18,8 @@ static Type _bool_type = Type::Primitive("bool");
 
 Types::Types()
 {
-	this->void_type = define_type(_void_type);
-	define_type(_infer_type);
+	this->void_type_ = define_type(_void_type);
+	this->i32_type_ = define_type(_infer_type);
 	define_type(_i8_type);
 	define_type(_i16_type);
 	define_type(_i32_type);
@@ -35,4 +35,16 @@ Types::define_type(Type type)
 	auto emplaced = types.emplace(type.get_name(), type);
 
 	return &emplaced.first->second;
+}
+
+Type const*
+Types::void_type()
+{
+	return this->void_type_;
+}
+
+Type const*
+Types::i32_type()
+{
+	return this->i32_type_;
 }

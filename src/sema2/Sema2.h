@@ -44,7 +44,7 @@ public:
 
 	SemaResult<TypedMember> typecheck_value_decl(ast::AstValueDecl* decl);
 
-	static SemaResult<TypeInstance> Ok();
+	SemaResult<TypeInstance> Ok();
 
 	void new_scope();
 	void pop_scope();
