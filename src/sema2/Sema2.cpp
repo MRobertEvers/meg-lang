@@ -8,16 +8,22 @@ using namespace sema;
 
 Sema2::Sema2()
 {
-	push_scope();
+	scopes.reserve(100);
+	scopes.emplace_back(&types);
+	current_scope = &scopes.back();
 
-	for( auto ty : types.types )
-		add_type_identifier(&ty.second);
+	for( auto& ty : types.types )
+	{
+		auto second = &ty.second;
+		add_type_identifier(second);
+	}
 }
 
 Scope*
 Sema2::push_scope()
 {
-	scopes.emplace_back(current_scope);
+	auto s = Scope(current_scope);
+	scopes.push_back(s);
 	current_scope = &scopes.back();
 
 	return current_scope;
@@ -46,6 +52,24 @@ void
 Sema2::add_type_identifier(Type const* id)
 {
 	return current_scope->add_type_identifier(id);
+}
+
+std::optional<TypeInstance>
+Sema2::get_expected_return()
+{
+	return current_scope->get_expected_return();
+}
+
+void
+Sema2::set_expected_return(TypeInstance n)
+{
+	current_scope->set_expected_return(n);
+}
+
+void
+Sema2::clear_expected_return()
+{
+	current_scope->clear_expected_return();
 }
 
 std::optional<TypeInstance>
@@ -240,6 +264,10 @@ Sema2::Expr(ir::IRCall* call)
 	nod->expr.call = call;
 	nod->type = ir::IRExprType::Call;
 
+	auto t = call->call_target->type_instance.type->get_return_type();
+	assert(t.has_value());
+	nod->type_instance = t.value();
+
 	return nod;
 }
 
@@ -251,6 +279,7 @@ Sema2::Expr(ir::IRNumberLiteral* nl)
 	nod->node = nl->node;
 	nod->expr.num_literal = nl;
 	nod->type = ir::IRExprType::NumberLiteral;
+	nod->type_instance = nl->type_instance;
 
 	return nod;
 }
@@ -263,6 +292,7 @@ Sema2::Expr(ir::IRStringLiteral* nl)
 	nod->node = nl->node;
 	nod->expr.str_literal = nl;
 	nod->type = ir::IRExprType::StringLiteral;
+	nod->type_instance = nl->type_instance;
 
 	return nod;
 }
@@ -275,6 +305,7 @@ Sema2::Expr(ir::IRId* nl)
 	nod->node = nl->node;
 	nod->expr.id = nl;
 	nod->type = ir::IRExprType::Id;
+	nod->type_instance = nl->type_instance;
 
 	return nod;
 }
@@ -315,23 +346,25 @@ Sema2::Args(ast::AstNode* node, Vec<ir::IRExpr*>* args)
 }
 
 ir::IRNumberLiteral*
-Sema2::NumberLiteral(ast::AstNode* node, long long val)
+Sema2::NumberLiteral(ast::AstNode* node, sema::TypeInstance type_instance, long long val)
 {
 	auto nod = new ir::IRNumberLiteral;
 
 	nod->node = node;
 	nod->val = val;
+	nod->type_instance = type_instance;
 
 	return nod;
 }
 
 ir::IRStringLiteral*
-Sema2::StringLiteral(ast::AstNode* node, String* name)
+Sema2::StringLiteral(ast::AstNode* node, sema::TypeInstance type_instance, String* name)
 {
 	auto nod = new ir::IRStringLiteral;
 
 	nod->node = node;
 	nod->value = name;
+	nod->type_instance = type_instance;
 
 	return nod;
 }

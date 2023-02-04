@@ -206,6 +206,13 @@ sema::sema_expr(Sema2& sema, ast::AstNode* ast)
 	return sema_expr_any(sema, expr_node);
 }
 
+static void
+inject_function_args(sema::Sema2& sema, Vec<ir::IRValueDecl*>& args)
+{
+	for( auto arg : args )
+		sema.add_value_identifier(*arg->name, arg->type_decl->type_instance);
+}
+
 SemaResult<ir::IRFunction*>
 sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 {
@@ -217,12 +224,23 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 	auto protor = sema_fn_proto(sema, fn.prototype);
 	if( !protor.ok() )
 		return protor;
+	auto proto = protor.unwrap();
 
-	auto bodyr = sema_block(sema, fn.body);
+	auto maybe_return_type = proto->fn_type->get_return_type();
+	assert(
+		maybe_return_type.has_value() &&
+		"Function prototype did not provide return type. (Missing infer?)");
+
+	sema.push_scope();
+	inject_function_args(sema, *proto->args);
+	sema.set_expected_return(maybe_return_type.value());
+	auto bodyr = sema_block(sema, fn.body, false);
 	if( !bodyr.ok() )
 		return bodyr;
+	sema.clear_expected_return();
+	sema.pop_scope();
 
-	return sema.Fn(ast, protor.unwrap(), bodyr.unwrap());
+	return sema.Fn(ast, proto, bodyr.unwrap());
 }
 
 SemaResult<ir::IRArgs*>
@@ -292,13 +310,25 @@ sema::sema_return(Sema2& sema, ast::AstNode* ast)
 	auto retr = sema_expr(sema, return_expr.expr);
 	if( !retr.ok() )
 		return retr;
+	auto ret = retr.unwrap();
+
+	auto maybe_expected_type = sema.get_expected_return();
+	if( !maybe_expected_type.has_value() )
+		return SemaError("Return statement outside function?");
+
+	auto expected_type = maybe_expected_type.value();
+	if( !sema.types.equal_types(expected_type, ret->type_instance) )
+		return SemaError("Incorrect return type.");
 
 	return sema.Return(ast, retr.unwrap());
 }
 
 SemaResult<ir::IRBlock*>
-sema::sema_block(Sema2& sema, ast::AstNode* ast)
+sema::sema_block(Sema2& sema, ast::AstNode* ast, bool new_scope)
 {
+	if( new_scope )
+		sema.push_scope();
+
 	auto blockr = expected(ast, ast::as_block);
 	if( !blockr.ok() )
 		return blockr;
@@ -313,6 +343,9 @@ sema::sema_block(Sema2& sema, ast::AstNode* ast)
 
 		stmtlist->push_back(stmtr.unwrap());
 	}
+
+	if( new_scope )
+		sema.pop_scope();
 
 	return sema.Block(ast, stmtlist);
 }
@@ -416,7 +449,7 @@ sema::sema_number_literal(Sema2& sema, ast::AstNode* ast)
 		return numr;
 	auto num = numr.unwrap();
 
-	return sema.NumberLiteral(ast, num.literal);
+	return sema.NumberLiteral(ast, TypeInstance::OfType(sema.types.i32_type()), num.literal);
 }
 
 SemaResult<ir::IRStringLiteral*>
@@ -429,7 +462,7 @@ sema::sema_string_literal(Sema2& sema, ast::AstNode* ast)
 
 	auto name = sema.create_name(num.literal->c_str(), num.literal->size());
 
-	return sema.StringLiteral(ast, name);
+	return sema.StringLiteral(ast, TypeInstance::PointerTo(sema.types.i8_type(), 1), name);
 }
 
 SemaResult<ir::IRTypeDeclaraor*>
@@ -440,11 +473,18 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 		return type_declr;
 	auto type_decl = type_declr.unwrap();
 
-	auto type = sema.lookup_type(*type_decl.name);
-	if( !type )
-		return SemaError("Could not find type '" + *type_decl.name + "'");
+	if( !type_decl.empty )
+	{
+		auto type = sema.lookup_type(*type_decl.name);
+		if( !type )
+			return SemaError("Could not find type '" + *type_decl.name + "'");
 
-	auto type_instance = TypeInstance::PointerTo(type, type_decl.indirection_level);
+		auto type_instance = TypeInstance::PointerTo(type, type_decl.indirection_level);
 
-	return sema.TypeDecl(ast, type_instance);
+		return sema.TypeDecl(ast, type_instance);
+	}
+	else
+	{
+		return sema.TypeDecl(ast, TypeInstance::OfType(sema.types.infer_type()));
+	}
 }

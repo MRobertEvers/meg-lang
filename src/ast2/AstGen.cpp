@@ -986,7 +986,8 @@ AstGen::parse_function_proto()
 	}
 	else
 	{
-		return ast.FnProto(trail.mark(), fn_identifier.unwrap(), nullptr, params.unwrap());
+		return ast.FnProto(
+			trail.mark(), fn_identifier.unwrap(), ast.TypeDeclaratorEmpty(), params.unwrap());
 	}
 }
 

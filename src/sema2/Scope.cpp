@@ -2,28 +2,14 @@
 
 using namespace sema;
 
-Scope::Scope(Types* tys)
-	: types(tys)
-{
-	for( auto const& ty : types->types )
-	{
-		Type const* tyc = &ty.second;
-		String s = String(ty.first);
-		// auto entry = std::make_pair<String, Type const*>(String(ty.first), tyc);
-		types_in_scope.emplace(s, tyc);
-	}
-};
-Scope::Scope(Scope* par)
-	: parent(par)
-	, types(par->types){};
+Scope::Scope(Types* ty)
+	: types(ty)
+	, parent(nullptr)
+{}
 
-Scope::~Scope()
-{
-	if( this->expected_return )
-	{
-		delete this->expected_return;
-	}
-}
+Scope::Scope(Scope* par)
+	: types(par->types)
+	, parent(par){};
 
 void
 Scope::add_value_identifier(String const& name, TypeInstance id)
@@ -79,14 +65,14 @@ Scope::lookup_value_type(String const& name) const
 	}
 }
 
-TypeInstance const*
+std::optional<TypeInstance>
 Scope::get_expected_return() const
 {
-	if( expected_return == nullptr )
+	if( !expected_return.has_value() )
 	{
 		if( parent == nullptr )
 		{
-			return nullptr;
+			return std::optional<TypeInstance>();
 		}
 		else
 		{
@@ -102,7 +88,13 @@ Scope::get_expected_return() const
 void
 Scope::set_expected_return(TypeInstance n)
 {
-	expected_return = new TypeInstance(n);
+	expected_return = n;
+}
+
+void
+Scope::clear_expected_return()
+{
+	expected_return = std::optional<TypeInstance>();
 }
 
 Scope*

@@ -17,12 +17,12 @@ namespace sema
 class Sema2
 {
 	using TagType = SemaTag;
-	Types types;
 
 	Vec<Scope> scopes;
-	Scope* current_scope;
+	Scope* current_scope = nullptr;
 
 public:
+	Types types;
 	Sema2();
 	// Types types;
 	// Vec<Scope> scopes;
@@ -55,6 +55,10 @@ public:
 	void pop_scope();
 	void add_value_identifier(String const& name, TypeInstance id);
 	void add_type_identifier(Type const* id);
+
+	std::optional<TypeInstance> get_expected_return();
+	void set_expected_return(TypeInstance id);
+	void clear_expected_return();
 
 	Type const* CreateType(Type ty);
 
@@ -92,8 +96,10 @@ public:
 	ir::IRStmt* Stmt(ir::IRReturn*);
 	ir::IRStmt* Stmt(ir::IRExpr*);
 	ir::IRArgs* Args(ast::AstNode* node, Vec<ir::IRExpr*>* args);
-	ir::IRNumberLiteral* NumberLiteral(ast::AstNode* node, long long val);
-	ir::IRStringLiteral* StringLiteral(ast::AstNode* node, String* name);
+	ir::IRNumberLiteral*
+	NumberLiteral(ast::AstNode* node, TypeInstance type_instance, long long val);
+	ir::IRStringLiteral*
+	StringLiteral(ast::AstNode* node, TypeInstance type_instance, String* name);
 	ir::IRId* Id(ast::AstNode* node, String* name, sema::TypeInstance type);
 };
 

@@ -19,10 +19,10 @@ static Type _bool_type = Type::Primitive("bool");
 Types::Types()
 {
 	this->void_type_ = define_type(_void_type);
-	this->i32_type_ = define_type(_infer_type);
-	define_type(_i8_type);
+	this->infer_type_ = define_type(_infer_type);
+	this->i8_type_ = define_type(_i8_type);
 	define_type(_i16_type);
-	define_type(_i32_type);
+	this->i32_type_ = define_type(_i32_type);
 	define_type(_u8_type);
 	define_type(_u16_type);
 	define_type(_u32_type);
@@ -38,6 +38,12 @@ Types::define_type(Type type)
 }
 
 Type const*
+Types::infer_type()
+{
+	return this->infer_type_;
+}
+
+Type const*
 Types::void_type()
 {
 	return this->void_type_;
@@ -47,4 +53,19 @@ Type const*
 Types::i32_type()
 {
 	return this->i32_type_;
+}
+
+Type const*
+Types::i8_type()
+{
+	return this->i8_type_;
+}
+
+bool
+Types::equal_types(TypeInstance l, TypeInstance r)
+{
+	if( l.type == infer_type_ || r.type == infer_type_ )
+		return l.type != r.type;
+
+	return l == r;
 }

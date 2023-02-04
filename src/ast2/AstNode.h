@@ -377,11 +377,13 @@ struct AstTypeDeclarator
 
 	unsigned int indirection_level;
 	String* name;
+	bool empty;
 
 	AstTypeDeclarator() = default;
 	AstTypeDeclarator(String* name, unsigned int indirection_level)
 		: name(name)
 		, indirection_level(indirection_level)
+		, empty(false)
 	{}
 };
 

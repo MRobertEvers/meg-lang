@@ -105,6 +105,7 @@ struct IRCall
 	//
 	IRExpr* call_target;
 	IRArgs* args;
+
 	ast::AstNode* node;
 };
 
@@ -128,6 +129,7 @@ struct IRNumberLiteral
 	//
 	ast::AstNode* node;
 	long long val;
+	sema::TypeInstance type_instance;
 };
 
 struct IRStringLiteral
@@ -135,6 +137,7 @@ struct IRStringLiteral
 	//
 	ast::AstNode* node;
 	String* value;
+	sema::TypeInstance type_instance;
 };
 
 enum class IRStmtType
@@ -174,6 +177,8 @@ struct IRExpr
 		IRCall* call;
 	} expr;
 	IRExprType type;
+
+	sema::TypeInstance type_instance;
 };
 
 }; // namespace ir

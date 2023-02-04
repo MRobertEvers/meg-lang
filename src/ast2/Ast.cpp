@@ -207,6 +207,7 @@ Ast::TypeDeclarator(Span span, String* name, unsigned int indirection_level)
 {
 	auto node = make_empty<AstTypeDeclarator>(span);
 	node->data.type_declarator = AstTypeDeclarator{name, indirection_level};
+	node->data.type_declarator.empty = false;
 	return node;
 }
 
@@ -215,6 +216,7 @@ Ast::TypeDeclaratorEmpty()
 {
 	auto node = make_empty<AstTypeDeclarator>(Span{});
 	node->data.type_declarator = AstTypeDeclarator{};
+	node->data.type_declarator.empty = true;
 	return node;
 }
 

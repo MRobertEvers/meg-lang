@@ -14,8 +14,10 @@ namespace sema
 class Types
 {
 private:
+	Type const* infer_type_;
 	Type const* void_type_;
 	Type const* i32_type_;
+	Type const* i8_type_;
 
 public:
 	std::map<String, Type> types;
@@ -23,8 +25,12 @@ public:
 
 	Type const* define_type(Type type);
 
+	Type const* infer_type();
 	Type const* void_type();
 	Type const* i32_type();
+	Type const* i8_type();
+
+	bool equal_types(TypeInstance l, TypeInstance r);
 
 private:
 };

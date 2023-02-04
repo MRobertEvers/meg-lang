@@ -34,7 +34,7 @@ SemaResult<ir::IRArgs*> sema_fn_args(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRCall*> sema_fn_call(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRId*> sema_id(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRReturn*> sema_return(Sema2& sema, ast::AstNode* ast);
-SemaResult<ir::IRBlock*> sema_block(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRBlock*> sema_block(Sema2& sema, ast::AstNode* ast, bool new_scope);
 SemaResult<ir::IRProto*> sema_fn_proto(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRValueDecl*> sema_value_decl(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRNumberLiteral*> sema_number_literal(Sema2& sema, ast::AstNode* ast);

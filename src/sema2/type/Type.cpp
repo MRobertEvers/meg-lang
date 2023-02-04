@@ -16,6 +16,7 @@ Type::Type(String name, std::map<String, TypedMember> members)
 Type::Type(String name, Vec<TypedMember> args, TypeInstance return_type)
 	: name(name)
 	, members_order(args)
+	, return_type(return_type)
 	, cls(TypeClassification::function)
 {
 	for( auto arg : args )
