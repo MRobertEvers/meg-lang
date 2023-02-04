@@ -21,11 +21,11 @@ Types::Types()
 	this->void_type_ = define_type(_void_type);
 	this->infer_type_ = define_type(_infer_type);
 	this->i8_type_ = define_type(_i8_type);
-	define_type(_i16_type);
+	this->i16_type_ = define_type(_i16_type);
 	this->i32_type_ = define_type(_i32_type);
-	define_type(_u8_type);
-	define_type(_u16_type);
-	define_type(_u32_type);
+	this->u8_type_ = define_type(_u8_type);
+	this->u16_type_ = define_type(_u16_type);
+	this->u32_type_ = define_type(_u32_type);
 	define_type(_bool_type);
 }
 
@@ -56,9 +56,33 @@ Types::i32_type()
 }
 
 Type const*
+Types::i16_type()
+{
+	return this->i16_type_;
+}
+
+Type const*
 Types::i8_type()
 {
 	return this->i8_type_;
+}
+
+Type const*
+Types::u32_type()
+{
+	return this->u32_type_;
+}
+
+Type const*
+Types::u16_type()
+{
+	return this->u16_type_;
+}
+
+Type const*
+Types::u8_type()
+{
+	return this->u8_type_;
 }
 
 bool

@@ -6,6 +6,7 @@
 #include "lexer/token.h"
 
 #include <iostream>
+#include <optional>
 namespace cg
 {
 
@@ -39,7 +40,7 @@ template<typename T>
 class CGResult
 {
 	OwnPtr<CGError> error = OwnPtr<CGError>::null();
-	T result;
+	std::optional<T> result;
 
 public:
 	CGResult<T>(T const& val)
@@ -105,7 +106,7 @@ public:
 			"vice-versa?");
 	};
 
-	T unwrap() { return result; }
+	T unwrap() { return result.value(); }
 	OwnPtr<CGError> unwrap_error() { return std::move(error); }
 
 	bool ok() const { return error.is_null(); }

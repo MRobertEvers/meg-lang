@@ -63,10 +63,10 @@ add_executable(sushi
     src/sema2/TypeInstance.cpp
     src/sema2/TypedMember.cpp
     src/sema2/SemaTag.cpp
-    # src/codegen2/Codegen.cpp
-    # src/codegen2/CGResult.cpp
-    # src/codegen2/CGed.cpp
-    # src/codegen2/CGTag.cpp
+    src/codegen2/Codegen.cpp
+    src/codegen2/CGResult.cpp
+    src/codegen2/CGed.cpp
+    src/codegen2/CGTag.cpp
 )
 
 # # Now build our tools

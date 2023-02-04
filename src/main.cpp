@@ -2,7 +2,7 @@
 #include "ast2/AstGen.h"
 #include "ast2/AstNode.h"
 #include "ast2/AstTags.h"
-// #include "codegen2/Codegen.h"
+#include "codegen2/Codegen.h"
 #include "common/OwnPtr.h"
 #include "lexer/Lexer.h"
 #include "lexer/TokenCursor.h"
@@ -22,8 +22,8 @@
 #include <sstream>
 #include <vector>
 
-// using namespace sema;
-// using namespace cg;
+using namespace sema;
+using namespace cg;
 using namespace ast;
 using namespace llvm;
 
@@ -71,7 +71,19 @@ main(int argc, char* argv[])
 	if( !sema_result.ok() )
 		sema_result.unwrap_error()->print();
 
-	// CG cg{ast};
+	CG cg{sema};
 
-	// cg.codegen(result.unwrap());
+	auto cgr = cg.codegen_module(sema_result.unwrap());
+	if( !cgr.ok() )
+	{
+		cgr.unwrap_error()->print();
+		return 0;
+	}
+
+	std::string Str;
+	raw_string_ostream OS(Str);
+
+	cg.Module->print(OS, nullptr);
+
+	std::cout << Str;
 }
