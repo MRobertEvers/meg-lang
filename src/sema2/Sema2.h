@@ -10,6 +10,8 @@
 #include "common/Vec.h"
 #include "type/Type.h"
 
+#include <optional>
+
 namespace sema
 {
 class Sema2
@@ -51,27 +53,48 @@ public:
 
 	Scope* push_scope();
 	void pop_scope();
-	// void add_value_identifier(String const& name, TypeInstance id);
+	void add_value_identifier(String const& name, TypeInstance id);
 	void add_type_identifier(Type const* id);
 
 	Type const* CreateType(Type ty);
 
 	// SemaResult<TypeInstance> expected(ast::AstNode* node, ast::NodeType type);
 
+	std::optional<TypeInstance> lookup_name(String const& name);
 	Type const* lookup_type(String const& name);
 
 	Vec<ir::IRTopLevelStmt*>* create_tlslist();
 	Vec<ir::IRStmt*>* create_slist();
+	Vec<ir::IRExpr*>* create_elist();
 	Vec<ir::IRValueDecl*>* create_argslist();
 	String* create_name(char const* s, int size);
 
 	ir::IRModule* Module(ast::AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts);
 	ir::IRTopLevelStmt* TLS(ir::IRExternFn*);
+	ir::IRTopLevelStmt* TLS(ir::IRFunction*);
+	ir::IRFunction* Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block);
+	ir::IRCall* FnCall(ast::AstNode* node, ir::IRExpr* call_target, ir::IRArgs* args);
 	ir::IRExternFn* ExternFn(ast::AstNode* node, ir::IRProto* stmts);
-	ir::IRProto*
-	Proto(ast::AstNode* node, String* name, Vec<ir::IRValueDecl*>* args, ir::IRTypeDeclaraor* rt);
+	ir::IRProto* Proto(
+		ast::AstNode* node,
+		String* name,
+		Vec<ir::IRValueDecl*>* args,
+		ir::IRTypeDeclaraor* rt,
+		Type const* fn_type);
+	ir::IRBlock* Block(ast::AstNode* node, Vec<ir::IRStmt*>* stmts);
+	ir::IRReturn* Return(ast::AstNode* node, ir::IRExpr* expr);
 	ir::IRValueDecl* ValueDecl(ast::AstNode* node, String* name, ir::IRTypeDeclaraor* rt);
-	ir::IRTypeDeclaraor* TypeDecl(ast::AstNode* node, sema::TypeInstance* type);
+	ir::IRTypeDeclaraor* TypeDecl(ast::AstNode* node, sema::TypeInstance type);
+	ir::IRExpr* Expr(ir::IRCall*);
+	ir::IRExpr* Expr(ir::IRNumberLiteral*);
+	ir::IRExpr* Expr(ir::IRStringLiteral*);
+	ir::IRExpr* Expr(ir::IRId*);
+	ir::IRStmt* Stmt(ir::IRReturn*);
+	ir::IRStmt* Stmt(ir::IRExpr*);
+	ir::IRArgs* Args(ast::AstNode* node, Vec<ir::IRExpr*>* args);
+	ir::IRNumberLiteral* NumberLiteral(ast::AstNode* node, long long val);
+	ir::IRStringLiteral* StringLiteral(ast::AstNode* node, String* name);
+	ir::IRId* Id(ast::AstNode* node, String* name, sema::TypeInstance type);
 };
 
 } // namespace sema

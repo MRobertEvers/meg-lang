@@ -37,9 +37,25 @@ Sema2::CreateType(Type ty)
 }
 
 void
+Sema2::add_value_identifier(String const& name, TypeInstance id)
+{
+	return current_scope->add_value_identifier(name, id);
+}
+
+void
 Sema2::add_type_identifier(Type const* id)
 {
 	return current_scope->add_type_identifier(id);
+}
+
+std::optional<TypeInstance>
+Sema2::lookup_name(String const& name)
+{
+	auto ti = current_scope->lookup_value_type(name);
+	if( ti == nullptr )
+		return std::optional<TypeInstance>();
+
+	return *ti;
 }
 
 Type const*
@@ -60,6 +76,12 @@ Sema2::create_slist()
 {
 	//
 	return new Vec<ir::IRStmt*>();
+}
+
+Vec<ir::IRExpr*>*
+Sema2::create_elist()
+{
+	return new Vec<ir::IRExpr*>();
 }
 
 Vec<ir::IRValueDecl*>*
@@ -98,6 +120,42 @@ Sema2::TLS(ir::IRExternFn* fn)
 	return nod;
 }
 
+ir::IRTopLevelStmt*
+Sema2::TLS(ir::IRFunction* fn)
+{
+	auto nod = new ir::IRTopLevelStmt;
+
+	nod->node = fn->node;
+	nod->stmt.fn = fn;
+	nod->type = ir::IRTopLevelType::Function;
+
+	return nod;
+}
+
+ir::IRFunction*
+Sema2::Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block)
+{
+	auto nod = new ir::IRFunction;
+
+	nod->node = node;
+	nod->proto = proto;
+	nod->block = block;
+
+	return nod;
+}
+
+ir::IRCall*
+Sema2::FnCall(ast::AstNode* node, ir::IRExpr* call_target, ir::IRArgs* args)
+{
+	auto nod = new ir::IRCall;
+
+	nod->node = node;
+	nod->call_target = call_target;
+	nod->args = args;
+
+	return nod;
+}
+
 ir::IRExternFn*
 Sema2::ExternFn(ast::AstNode* node, ir::IRProto* proto)
 {
@@ -110,16 +168,46 @@ Sema2::ExternFn(ast::AstNode* node, ir::IRProto* proto)
 }
 
 ir::IRProto*
-Sema2::Proto(ast::AstNode* node, String* name, Vec<ir::IRValueDecl*>* args, ir::IRTypeDeclaraor* rt)
+Sema2::Proto(
+	ast::AstNode* node,
+	String* name,
+	Vec<ir::IRValueDecl*>* args,
+	ir::IRTypeDeclaraor* rt,
+	Type const* fn_type)
 {
 	auto nod = new ir::IRProto;
 
 	nod->node = node;
-	nod->type nod->name = name;
-	nod->type_decl = rt;
+	nod->name = name;
+	nod->args = args;
+	nod->rt = rt;
+	nod->fn_type = fn_type;
 
 	return nod;
 }
+
+ir::IRBlock*
+Sema2::Block(ast::AstNode* node, Vec<ir::IRStmt*>* stmts)
+{
+	auto nod = new ir::IRBlock;
+
+	nod->node = node;
+	nod->stmts = stmts;
+
+	return nod;
+}
+
+ir::IRReturn*
+Sema2::Return(ast::AstNode* node, ir::IRExpr* expr)
+{
+	auto nod = new ir::IRReturn;
+
+	nod->node = node;
+	nod->expr = expr;
+
+	return nod;
+}
+
 ir::IRValueDecl*
 Sema2::ValueDecl(ast::AstNode* node, String* name, ir::IRTypeDeclaraor* rt)
 {
@@ -133,11 +221,128 @@ Sema2::ValueDecl(ast::AstNode* node, String* name, ir::IRTypeDeclaraor* rt)
 }
 
 ir::IRTypeDeclaraor*
-Sema2::TypeDecl(ast::AstNode* node, sema::TypeInstance* type)
+Sema2::TypeDecl(ast::AstNode* node, sema::TypeInstance type)
 {
 	auto nod = new ir::IRTypeDeclaraor;
 
 	nod->node = node;
+	nod->type_instance = type;
+
+	return nod;
+}
+
+ir::IRExpr*
+Sema2::Expr(ir::IRCall* call)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = call->node;
+	nod->expr.call = call;
+	nod->type = ir::IRExprType::Call;
+
+	return nod;
+}
+
+ir::IRExpr*
+Sema2::Expr(ir::IRNumberLiteral* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.num_literal = nl;
+	nod->type = ir::IRExprType::NumberLiteral;
+
+	return nod;
+}
+
+ir::IRExpr*
+Sema2::Expr(ir::IRStringLiteral* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.str_literal = nl;
+	nod->type = ir::IRExprType::StringLiteral;
+
+	return nod;
+}
+
+ir::IRExpr*
+Sema2::Expr(ir::IRId* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.id = nl;
+	nod->type = ir::IRExprType::Id;
+
+	return nod;
+}
+
+ir::IRStmt*
+Sema2::Stmt(ir::IRReturn* ret)
+{
+	auto nod = new ir::IRStmt;
+
+	nod->node = ret->node;
+	nod->stmt.ret = ret;
+	nod->type = ir::IRStmtType::Return;
+
+	return nod;
+}
+
+ir::IRStmt*
+Sema2::Stmt(ir::IRExpr* expr)
+{
+	auto nod = new ir::IRStmt;
+
+	nod->node = expr->node;
+	nod->stmt.expr = expr;
+	nod->type = ir::IRStmtType::ExprStmt;
+
+	return nod;
+}
+
+ir::IRArgs*
+Sema2::Args(ast::AstNode* node, Vec<ir::IRExpr*>* args)
+{
+	auto nod = new ir::IRArgs;
+
+	nod->node = node;
+	nod->args = args;
+
+	return nod;
+}
+
+ir::IRNumberLiteral*
+Sema2::NumberLiteral(ast::AstNode* node, long long val)
+{
+	auto nod = new ir::IRNumberLiteral;
+
+	nod->node = node;
+	nod->val = val;
+
+	return nod;
+}
+
+ir::IRStringLiteral*
+Sema2::StringLiteral(ast::AstNode* node, String* name)
+{
+	auto nod = new ir::IRStringLiteral;
+
+	nod->node = node;
+	nod->value = name;
+
+	return nod;
+}
+
+ir::IRId*
+Sema2::Id(ast::AstNode* node, String* name, sema::TypeInstance type)
+{
+	auto nod = new ir::IRId;
+
+	nod->node = node;
+	nod->name = name;
 	nod->type_instance = type;
 
 	return nod;

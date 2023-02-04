@@ -48,6 +48,15 @@ ast::as_fn_param_list(ast::AstNode* node)
 	return &node->data.fn_params;
 }
 
+Cast<AstExprList>
+ast::as_expr_list(ast::AstNode* node)
+{
+	if( node->type != AstExprList::nt )
+		return Cast<AstExprList>();
+
+	return &node->data.expr_list;
+}
+
 Cast<AstReturn>
 ast::as_fn_return(ast::AstNode* node)
 {
@@ -109,6 +118,15 @@ ast::as_number_literal(ast::AstNode* node)
 		return Cast<AstNumberLiteral>();
 
 	return &node->data.number_literal;
+}
+
+Cast<AstStringLiteral>
+ast::as_string_literal(ast::AstNode* node)
+{
+	if( node->type != AstStringLiteral::nt )
+		return Cast<AstStringLiteral>();
+
+	return &node->data.string_literal;
 }
 
 Cast<AstStmt>

@@ -16,16 +16,29 @@ expected(ast::AstNode* node, ast::Cast<NodeType> (*cast)(ast::AstNode* node))
 {
 	auto castr = cast(node);
 	if( !castr.ok() )
-		return SemaError("Expected type '" + ast::to_string(node->type) + "'");
+		return SemaError(
+			"Expected type '" + ast::to_string(NodeType::nt) + "'. Received '" +
+			ast::to_string(node->type) + "'.");
 
 	return SemaResult(castr.unwrap());
 }
 
 SemaResult<ir::IRModule*> sema_module(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRTopLevelStmt*> sema_tls(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRStmt*> sema_stmt(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRExpr*> sema_expr_any(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRExpr*> sema_expr(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExternFn*> sema_extern_fn(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRFunction*> sema_fn(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRArgs*> sema_fn_args(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRCall*> sema_fn_call(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRId*> sema_id(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRReturn*> sema_return(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRBlock*> sema_block(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRProto*> sema_fn_proto(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRValueDecl*> sema_value_decl(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRNumberLiteral*> sema_number_literal(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRStringLiteral*> sema_string_literal(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRTypeDeclaraor*> sema_type_decl(Sema2& sema, ast::AstNode* ast);
 
 }; // namespace sema

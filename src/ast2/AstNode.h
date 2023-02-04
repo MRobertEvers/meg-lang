@@ -415,11 +415,11 @@ struct AstStmt
 {
 	static constexpr NodeType nt = NodeType::Stmt;
 
-	AstNode* expr;
+	AstNode* stmt;
 
 	AstStmt() = default;
-	AstStmt(AstNode* expr)
-		: expr(expr)
+	AstStmt(AstNode* stmt)
+		: stmt(stmt)
 	{}
 };
 

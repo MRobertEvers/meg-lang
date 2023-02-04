@@ -27,6 +27,14 @@ Ast::Module(Span span, AstList<AstNode*>* params)
 }
 
 AstNode*
+Ast::ExternFn(Span span, AstNode* prototype)
+{
+	auto node = make_empty<AstExternFn>(span);
+	node->data.extern_fn = AstExternFn{prototype};
+	return node;
+}
+
+AstNode*
 Ast::Fn(Span span, AstNode* prototype, AstNode* body)
 {
 	auto node = make_empty<AstFn>(span);

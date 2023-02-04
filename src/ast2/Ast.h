@@ -31,6 +31,7 @@ public:
 	AstList<AstNode*>* create_list();
 
 	AstNode* Module(Span span, AstList<AstNode*>* params);
+	AstNode* ExternFn(Span span, AstNode* prototype);
 	AstNode* Fn(Span span, AstNode* prototype, AstNode* body);
 	AstNode* FnProto(Span span, AstNode* name, AstNode* params, AstNode* return_type);
 	AstNode* FnParamList(Span span, AstList<AstNode*>* params);

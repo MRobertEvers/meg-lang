@@ -59,6 +59,7 @@ public:
 		: error(err){};
 
 	T unwrap() { return result; }
+	OwnPtr<ParseError> unwrap_error() { return std::move(error); }
 
 	bool ok() const { return error.is_null() && result != nullptr; }
 };

@@ -48,6 +48,7 @@ private:
 
 	ParseResult<AstNode*> parse_function_parameter_list();
 	ParseResult<AstNode*> parse_function_proto();
+	ParseResult<AstNode*> parse_extern_function();
 	ParseResult<AstNode*> parse_function();
 	ParseResult<AstNode*> parse_function_body();
 

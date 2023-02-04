@@ -58,6 +58,7 @@ AstGen::parse_module_top_level_item()
 	{
 	// Fall through
 	case TokenType::extern_keyword:
+		return parse_extern_function();
 	case TokenType::fn:
 		return parse_function();
 	case TokenType::struct_keyword:
@@ -989,11 +990,46 @@ AstGen::parse_function_proto()
 	}
 }
 
+ParseResult<AstNode*>
+AstGen::parse_extern_function()
+{
+	auto trail = get_parse_trail();
+
+	auto tok = cursor.consume(TokenType::extern_keyword);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'extern'", tok.as());
+	}
+
+	tok = cursor.consume(TokenType::fn);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'fn'", tok.as());
+	}
+
+	auto proto = parse_function_proto();
+	if( !proto.ok() )
+	{
+		return proto;
+	}
+
+	if( proto.unwrap()->data.fn_proto.return_type == nullptr )
+	{
+		return ParseError("Extern functions must specify a return type.", cursor.peek());
+	}
+
+	tok = cursor.consume(TokenType::semicolon);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ';'", tok.as());
+	}
+	return ast.ExternFn(trail.mark(), proto.unwrap());
+}
+
 ParseResult<ast::AstNode*>
 AstGen::parse_function()
 {
 	auto trail = get_parse_trail();
-	auto extern_tok = cursor.consume_if_expected(TokenType::extern_keyword);
 
 	auto tok = cursor.consume(TokenType::fn);
 	if( !tok.ok() )
@@ -1007,31 +1043,13 @@ AstGen::parse_function()
 		return proto;
 	}
 
-	if( extern_tok.ok() )
+	auto definition = parse_function_body();
+	if( !definition.ok() )
 	{
-		// TODO: Accessor
-		if( proto.unwrap()->data.fn_proto.return_type == nullptr )
-		{
-			return ParseError("Extern functions must specify a return type.", cursor.peek());
-		}
-
-		auto tok = cursor.consume(TokenType::semicolon);
-		if( !tok.ok() )
-		{
-			return ParseError("Expected ';'", tok.as());
-		}
-		return ast.Fn(trail.mark(), proto.unwrap(), nullptr);
+		return definition;
 	}
-	else
-	{
-		auto definition = parse_function_body();
-		if( !definition.ok() )
-		{
-			return definition;
-		}
 
-		return ast.Fn(trail.mark(), proto.unwrap(), definition.unwrap());
-	}
+	return ast.Fn(trail.mark(), proto.unwrap(), definition.unwrap());
 }
 
 ParseResult<ast::AstNode*>

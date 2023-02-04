@@ -14,7 +14,7 @@ class Scope
 
 	Types* types;
 	std::map<String, TypeInstance> names;
-	TypeInstance* expected_return;
+	TypeInstance* expected_return = nullptr;
 
 public:
 	bool is_in_scope = true;

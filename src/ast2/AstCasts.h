@@ -23,6 +23,7 @@ Cast<AstExternFn> as_extern_fn(ast::AstNode* node);
 Cast<AstModule> as_module(ast::AstNode* node);
 Cast<AstFnProto> as_fn_proto(ast::AstNode* node);
 Cast<AstFnParamList> as_fn_param_list(ast::AstNode* node);
+Cast<AstExprList> as_expr_list(ast::AstNode* node);
 Cast<AstReturn> as_fn_return(ast::AstNode* node);
 Cast<AstId> as_id(ast::AstNode* node);
 Cast<AstBlock> as_block(ast::AstNode* node);
@@ -30,6 +31,7 @@ Cast<AstTypeDeclarator> as_type_decl(ast::AstNode* node);
 Cast<AstValueDecl> as_value_decl(ast::AstNode* node);
 Cast<AstFnCall> as_fn_call(ast::AstNode* node);
 Cast<AstNumberLiteral> as_number_literal(ast::AstNode* node);
+Cast<AstStringLiteral> as_string_literal(ast::AstNode* node);
 Cast<AstStmt> as_stmt(ast::AstNode* node);
 Cast<AstExpr> as_expr(ast::AstNode* node);
 

@@ -17,6 +17,8 @@ struct IRBlock;
 struct IRCall;
 struct IRStmt;
 struct IRExpr;
+struct IRValueDecl;
+struct IRExpr;
 
 struct IRModule
 {
@@ -61,8 +63,13 @@ struct IRExternFn
 struct IRProto
 {
 	//
+	ast::AstNode* node;
 	String* name;
-	sema::Type const* type;
+	Vec<ir::IRValueDecl*>* args;
+	ir::IRTypeDeclaraor* rt;
+
+	// Function
+	sema::Type const* fn_type;
 };
 
 struct IRValueDecl
@@ -82,45 +89,91 @@ struct IRTypeDeclaraor
 struct IRBlock
 {
 	//
+	ast::AstNode* node;
 	Vec<IRStmt*>* stmts;
+};
+
+struct IRArgs
+{
+	//
+	ast::AstNode* node;
+	Vec<ir::IRExpr*>* args;
 };
 
 struct IRCall
 {
 	//
+	IRExpr* call_target;
+	IRArgs* args;
+	ast::AstNode* node;
+};
+
+struct IRId
+{
+	//
+	String* name;
+	sema::TypeInstance type_instance;
+	ast::AstNode* node;
 };
 
 struct IRReturn
 {
 	//
+	ast::AstNode* node;
 	IRExpr* expr;
+};
+
+struct IRNumberLiteral
+{
+	//
+	ast::AstNode* node;
+	long long val;
+};
+
+struct IRStringLiteral
+{
+	//
+	ast::AstNode* node;
+	String* value;
 };
 
 enum class IRStmtType
 {
 	Return,
+	ExprStmt,
 };
 
 struct IRStmt
 {
+	ast::AstNode* node;
 	union
 	{
+		IRExpr* expr;
 		IRReturn* ret;
 	} stmt;
+	IRStmtType type;
 };
 
 enum class IRExprType
 {
 	Call,
+	NumberLiteral,
+	StringLiteral,
+	Id,
 };
 
 struct IRExpr
 {
+	ast::AstNode* node;
 	// Variant type
 	union
 	{
-		IRCall* ret;
-	} stmt;
+		IRId* id;
+		IRStringLiteral* str_literal;
+		IRNumberLiteral* num_literal;
+		IRCall* call;
+	} expr;
+	IRExprType type;
 };
 
 }; // namespace ir

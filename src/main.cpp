@@ -14,7 +14,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
-// #include "sema2/Sema2.h"
+#include "sema2/Sema2.h"
+#include "sema2/SemaGen.h"
 
 #include <fstream>
 #include <iostream>
@@ -60,11 +61,15 @@ main(int argc, char* argv[])
 	Ast ast;
 	AstGen gen{ast, cursor};
 	auto result = gen.parse();
+	if( !result.ok() )
+		result.unwrap_error()->print();
 
-	// Sema2 sema{ast};
+	sema::Sema2 sema;
+
+	auto sema_result = sema::sema_module(sema, result.unwrap());
 	// auto sema_result = sema.sema(result.unwrap());
-	// if( !sema_result.ok() )
-	// 	sema_result.unwrap_error()->print();
+	if( !sema_result.ok() )
+		sema_result.unwrap_error()->print();
 
 	// CG cg{ast};
 
