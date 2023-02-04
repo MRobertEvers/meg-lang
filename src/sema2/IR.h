@@ -28,11 +28,12 @@ struct IRModule
 enum IRTopLevelType
 {
 	Function,
-	Prototype
+	ExternFn
 };
 
 struct IRTopLevelStmt
 {
+	ast::AstNode* node;
 	//
 	union
 	{
@@ -45,6 +46,7 @@ struct IRTopLevelStmt
 
 struct IRFunction
 {
+	ast::AstNode* node;
 	//
 	IRProto* proto;
 	IRBlock* block;
@@ -52,6 +54,7 @@ struct IRFunction
 
 struct IRExternFn
 {
+	ast::AstNode* node;
 	IRProto* proto;
 };
 
@@ -65,12 +68,14 @@ struct IRProto
 struct IRValueDecl
 {
 	//
+	ast::AstNode* node;
 	IRTypeDeclaraor* type_decl;
 	String* name;
 };
 
 struct IRTypeDeclaraor
 {
+	ast::AstNode* node;
 	sema::TypeInstance type_instance;
 };
 

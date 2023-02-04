@@ -23,5 +23,9 @@ expected(ast::AstNode* node, ast::Cast<NodeType> (*cast)(ast::AstNode* node))
 
 SemaResult<ir::IRModule*> sema_module(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRTopLevelStmt*> sema_tls(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRExternFn*> sema_extern_fn(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRProto*> sema_fn_proto(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRValueDecl*> sema_value_decl(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRTypeDeclaraor*> sema_type_decl(Sema2& sema, ast::AstNode* ast);
 
 }; // namespace sema

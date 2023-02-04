@@ -6,6 +6,7 @@
 #include "Types.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"
+#include "common/String.h"
 #include "common/Vec.h"
 #include "type/Type.h"
 
@@ -14,8 +15,13 @@ namespace sema
 class Sema2
 {
 	using TagType = SemaTag;
+	Types types;
+
+	Vec<Scope> scopes;
+	Scope* current_scope;
 
 public:
+	Sema2();
 	// Types types;
 	// Vec<Scope> scopes;
 	// Scope* current_scope = nullptr;
@@ -43,19 +49,29 @@ public:
 
 	// SemaResult<TypeInstance> Ok();
 
-	// void new_scope();
-	// void pop_scope();
+	Scope* push_scope();
+	void pop_scope();
 	// void add_value_identifier(String const& name, TypeInstance id);
-	// void add_type_identifier(Type const* id);
+	void add_type_identifier(Type const* id);
 
-	// Type const* CreateType(Type ty);
+	Type const* CreateType(Type ty);
 
 	// SemaResult<TypeInstance> expected(ast::AstNode* node, ast::NodeType type);
 
+	Type const* lookup_type(String const& name);
+
 	Vec<ir::IRTopLevelStmt*>* create_tlslist();
 	Vec<ir::IRStmt*>* create_slist();
+	Vec<ir::IRValueDecl*>* create_argslist();
+	String* create_name(char const* s, int size);
 
 	ir::IRModule* Module(ast::AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts);
+	ir::IRTopLevelStmt* TLS(ir::IRExternFn*);
+	ir::IRExternFn* ExternFn(ast::AstNode* node, ir::IRProto* stmts);
+	ir::IRProto*
+	Proto(ast::AstNode* node, String* name, Vec<ir::IRValueDecl*>* args, ir::IRTypeDeclaraor* rt);
+	ir::IRValueDecl* ValueDecl(ast::AstNode* node, String* name, ir::IRTypeDeclaraor* rt);
+	ir::IRTypeDeclaraor* TypeDecl(ast::AstNode* node, sema::TypeInstance* type);
 };
 
 } // namespace sema

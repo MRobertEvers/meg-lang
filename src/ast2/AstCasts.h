@@ -19,6 +19,7 @@ struct Cast
 };
 
 Cast<AstFn> as_fn(ast::AstNode* node);
+Cast<AstExternFn> as_extern_fn(ast::AstNode* node);
 Cast<AstModule> as_module(ast::AstNode* node);
 Cast<AstFnProto> as_fn_proto(ast::AstNode* node);
 Cast<AstFnParamList> as_fn_param_list(ast::AstNode* node);

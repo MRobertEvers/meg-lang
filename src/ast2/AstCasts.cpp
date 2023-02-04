@@ -12,6 +12,15 @@ ast::as_fn(ast::AstNode* node)
 	return &node->data.fn;
 }
 
+Cast<AstExternFn>
+ast::as_extern_fn(ast::AstNode* node)
+{
+	if( node->type != AstExternFn::nt )
+		return Cast<AstExternFn>();
+
+	return &node->data.extern_fn;
+}
+
 Cast<AstModule>
 ast::as_module(ast::AstNode* node)
 {

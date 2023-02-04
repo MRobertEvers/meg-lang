@@ -6,6 +6,48 @@
 using namespace ast;
 using namespace sema;
 
+Sema2::Sema2()
+{
+	push_scope();
+
+	for( auto ty : types.types )
+		add_type_identifier(&ty.second);
+}
+
+Scope*
+Sema2::push_scope()
+{
+	scopes.emplace_back(current_scope);
+	current_scope = &scopes.back();
+
+	return current_scope;
+}
+
+void
+Sema2::pop_scope()
+{
+	current_scope->is_in_scope = false;
+	current_scope = current_scope->get_parent();
+}
+
+Type const*
+Sema2::CreateType(Type ty)
+{
+	return types.define_type(ty);
+}
+
+void
+Sema2::add_type_identifier(Type const* id)
+{
+	return current_scope->add_type_identifier(id);
+}
+
+Type const*
+Sema2::lookup_type(String const& name)
+{
+	return current_scope->lookup_type(name);
+}
+
 Vec<ir::IRTopLevelStmt*>*
 Sema2::create_tlslist()
 {
@@ -20,6 +62,18 @@ Sema2::create_slist()
 	return new Vec<ir::IRStmt*>();
 }
 
+Vec<ir::IRValueDecl*>*
+Sema2::create_argslist()
+{
+	return new Vec<ir::IRValueDecl*>();
+}
+
+String*
+Sema2::create_name(char const* s, int size)
+{
+	return new String(s, size);
+}
+
 ir::IRModule*
 Sema2::Module(AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts)
 {
@@ -30,6 +84,63 @@ Sema2::Module(AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts)
 	mod->stmts = stmts;
 
 	return mod;
+}
+
+ir::IRTopLevelStmt*
+Sema2::TLS(ir::IRExternFn* fn)
+{
+	auto nod = new ir::IRTopLevelStmt;
+
+	nod->node = fn->node;
+	nod->stmt.extern_fn = fn;
+	nod->type = ir::IRTopLevelType::ExternFn;
+
+	return nod;
+}
+
+ir::IRExternFn*
+Sema2::ExternFn(ast::AstNode* node, ir::IRProto* proto)
+{
+	auto nod = new ir::IRExternFn;
+
+	nod->node = node;
+	nod->proto = proto;
+
+	return nod;
+}
+
+ir::IRProto*
+Sema2::Proto(ast::AstNode* node, String* name, Vec<ir::IRValueDecl*>* args, ir::IRTypeDeclaraor* rt)
+{
+	auto nod = new ir::IRProto;
+
+	nod->node = node;
+	nod->type nod->name = name;
+	nod->type_decl = rt;
+
+	return nod;
+}
+ir::IRValueDecl*
+Sema2::ValueDecl(ast::AstNode* node, String* name, ir::IRTypeDeclaraor* rt)
+{
+	auto nod = new ir::IRValueDecl;
+
+	nod->node = node;
+	nod->name = name;
+	nod->type_decl = rt;
+
+	return nod;
+}
+
+ir::IRTypeDeclaraor*
+Sema2::TypeDecl(ast::AstNode* node, sema::TypeInstance* type)
+{
+	auto nod = new ir::IRTypeDeclaraor;
+
+	nod->node = node;
+	nod->type_instance = type;
+
+	return nod;
 }
 
 // static SemaResult<TypeInstance>
