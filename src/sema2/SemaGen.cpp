@@ -8,6 +8,12 @@ using namespace sema;
 using namespace ir;
 using namespace ast;
 
+SemaError
+NotImpl()
+{
+	return SemaError("Not Implemented.");
+}
+
 SemaResult<IRModule*>
 sema::sema_module(Sema2& sema, AstNode* node)
 {
@@ -34,5 +40,13 @@ sema::sema_module(Sema2& sema, AstNode* node)
 SemaResult<IRTopLevelStmt*>
 sema::sema_tls(Sema2& sema, AstNode* ast)
 {
-	return SemaError("Not Implemented.");
+	switch( ast->type )
+	{
+	case NodeType::Fn:
+		return NotImpl();
+	case NodeType::ExternFn:
+		return NotImpl();
+	default:
+		return SemaError("Unsupported NodeType as TLS.");
+	}
 }
