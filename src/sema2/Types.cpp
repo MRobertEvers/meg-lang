@@ -95,6 +95,15 @@ Types::equal_types(TypeInstance l, TypeInstance r)
 }
 
 TypeInstance
+Types::non_inferred(TypeInstance l, TypeInstance r)
+{
+	if( l.type != infer_type_ )
+		return l;
+	if( r.type != infer_type_ )
+		return r;
+}
+
+TypeInstance
 Types::VoidType()
 {
 	return TypeInstance::OfType(void_type_);
@@ -104,4 +113,10 @@ TypeInstance
 Types::InferType()
 {
 	return TypeInstance::OfType(infer_type_);
+}
+
+String
+sema::to_string(TypeInstance ty)
+{
+	return ty.type->get_name() + std::string(ty.indirection_level, '*');
 }

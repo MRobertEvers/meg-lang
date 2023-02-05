@@ -25,6 +25,8 @@ Cast<AstFnProto> as_fn_proto(ast::AstNode* node);
 Cast<AstFnParamList> as_fn_param_list(ast::AstNode* node);
 Cast<AstExprList> as_expr_list(ast::AstNode* node);
 Cast<AstReturn> as_fn_return(ast::AstNode* node);
+Cast<AstLet> as_let(ast::AstNode* node);
+Cast<AstAssign> as_assign(ast::AstNode* node);
 Cast<AstId> as_id(ast::AstNode* node);
 Cast<AstBlock> as_block(ast::AstNode* node);
 Cast<AstTypeDeclarator> as_type_decl(ast::AstNode* node);

@@ -66,6 +66,24 @@ ast::as_fn_return(ast::AstNode* node)
 	return &node->data.returnexpr;
 }
 
+Cast<AstLet>
+ast::as_let(ast::AstNode* node)
+{
+	if( node->type != AstLet::nt )
+		return Cast<AstLet>();
+
+	return &node->data.let;
+}
+
+Cast<AstAssign>
+ast::as_assign(ast::AstNode* node)
+{
+	if( node->type != AstAssign::nt )
+		return Cast<AstAssign>();
+
+	return &node->data.assign;
+}
+
 Cast<AstId>
 ast::as_id(ast::AstNode* node)
 {

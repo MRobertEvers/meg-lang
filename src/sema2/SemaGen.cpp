@@ -136,6 +136,22 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 
 		return sema.Stmt(fn_callr.unwrap());
 	}
+	case NodeType::Let:
+	{
+		auto letr = sema_let(sema, stmt_node);
+		if( !letr.ok() )
+			return letr;
+
+		return sema.Stmt(letr.unwrap());
+	}
+	case NodeType::Assign:
+	{
+		auto fn_callr = sema_assign(sema, stmt_node);
+		if( !fn_callr.ok() )
+			return fn_callr;
+
+		return sema.Stmt(fn_callr.unwrap());
+	}
 	default:
 	{
 		auto exprstmtr = sema_expr_any(sema, stmt_node);
@@ -294,7 +310,7 @@ sema::sema_id(Sema2& sema, ast::AstNode* ast)
 
 	auto maybe_type = sema.lookup_name(*id.name);
 	if( !maybe_type.has_value() )
-		return SemaError("Type not found '" + *id.name + "'");
+		return SemaError("Unrecognized variable '" + *id.name + "'");
 
 	return sema.Id(ast, id.name, maybe_type.value());
 }
@@ -321,6 +337,72 @@ sema::sema_return(Sema2& sema, ast::AstNode* ast)
 		return SemaError("Incorrect return type.");
 
 	return sema.Return(ast, retr.unwrap());
+}
+
+SemaResult<ir::IRLet*>
+sema::sema_let(Sema2& sema, ast::AstNode* ast)
+{
+	//
+	auto letr = expected(ast, ast::as_let);
+	if( !letr.ok() )
+		return letr;
+	auto let = letr.unwrap();
+
+	auto namer = as_name(sema, let.identifier);
+	if( !namer.ok() )
+		return namer;
+	auto name = namer.unwrap();
+
+	auto type_declrr = sema_type_decl(sema, let.type_declarator);
+	if( !type_declrr.ok() )
+		return type_declrr;
+	auto type_declr = type_declrr.unwrap();
+
+	auto rhs_exprr = sema_expr(sema, let.rhs);
+	if( !rhs_exprr.ok() )
+		return rhs_exprr;
+	auto rhs = rhs_exprr.unwrap();
+
+	if( !sema.types.equal_types(type_declr->type_instance, rhs->type_instance) )
+		return SemaError(
+			"Mismatched types: " + sema::to_string(type_declr->type_instance) +
+			" != " + sema::to_string(rhs->type_instance));
+
+	// TODO: Do I really need to do this?
+	type_declr->type_instance =
+		sema.types.non_inferred(type_declr->type_instance, rhs->type_instance);
+
+	sema.add_value_identifier(*name, type_declr->type_instance);
+
+	auto lhs_expr = sema.Expr(sema.ValueDecl(let.identifier, name, type_declr));
+	return sema.Let(ast, name, sema.Assign(ast, ast::AssignOp::assign, lhs_expr, rhs));
+}
+
+SemaResult<ir::IRAssign*>
+sema::sema_assign(Sema2& sema, ast::AstNode* ast)
+{
+	//
+	auto assignr = expected(ast, ast::as_assign);
+	if( !assignr.ok() )
+		return assignr;
+	auto assign = assignr.unwrap();
+
+	auto lhs_exprr = sema_expr(sema, assign.left);
+	if( !lhs_exprr.ok() )
+		return lhs_exprr;
+	auto lhs = lhs_exprr.unwrap();
+
+	auto rhs_exprr = sema_expr(sema, assign.right);
+	if( !rhs_exprr.ok() )
+		return rhs_exprr;
+	auto rhs = rhs_exprr.unwrap();
+
+	if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+		return SemaError(
+			"Mismatched types: " + sema::to_string(lhs->type_instance) +
+			" != " + sema::to_string(rhs->type_instance));
+
+	return sema.Assign(ast, assign.op, lhs, rhs);
 }
 
 SemaResult<ir::IRBlock*>

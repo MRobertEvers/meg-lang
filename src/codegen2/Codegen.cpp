@@ -79,6 +79,7 @@ get_params_types(CG& cg, ir::IRProto* proto)
 	return args;
 }
 
+// Get LValue?
 static std::optional<CGExpr>
 get_value(CG& cg, String const& name)
 {
@@ -137,6 +138,10 @@ CG::codegen_stmt(ir::IRStmt* stmt)
 		return codegen_expr(stmt->stmt.expr);
 	case ir::IRStmtType::Return:
 		return codegen_return(stmt->stmt.ret);
+	case ir::IRStmtType::Assign:
+		return codegen_assign(stmt->stmt.assign);
+	case ir::IRStmtType::Let:
+		return codegen_let(stmt->stmt.let);
 	}
 
 	return NotImpl();
@@ -155,6 +160,8 @@ CG::codegen_expr(ir::IRExpr* expr)
 		return codegen_number_literal(expr->expr.num_literal);
 	case ir::IRExprType::StringLiteral:
 		return codegen_string_literal(expr->expr.str_literal);
+	case ir::IRExprType::ValueDecl:
+		return codegen_value_decl(expr->expr.decl);
 	}
 
 	return NotImpl();
@@ -189,6 +196,93 @@ CG::codegen_return(ir::IRReturn* ret)
 	}
 
 	return CGExpr();
+}
+
+CGResult<CGExpr>
+CG::codegen_let(ir::IRLet* let)
+{
+	auto name = let->name;
+	auto type = let->assign->rhs->type_instance;
+	auto typer = get_type(*this, type);
+	if( !typer.ok() )
+		return typer;
+	auto Type = typer.unwrap();
+
+	llvm::AllocaInst* Alloca = Builder->CreateAlloca(Type, nullptr, *name);
+	values.emplace(*name, Alloca);
+
+	auto assignr = codegen_assign(let->assign);
+	if( !assignr.ok() )
+		return assignr;
+
+	return CGExpr(Alloca);
+}
+
+static llvm::Value*
+promote_to_value(CG& cg, llvm::Value* Val)
+{
+	// TODO: Opaque pointers, don't rel
+	auto PointedToType = Val->getType()->getPointerElementType();
+	return cg.Builder->CreateLoad(PointedToType, Val);
+}
+
+CGResult<CGExpr>
+CG::codegen_assign(ir::IRAssign* assign)
+{
+	auto lhsr = codegen_expr(assign->lhs);
+	if( !lhsr.ok() )
+		return lhsr;
+
+	auto rhsr = codegen_expr(assign->rhs);
+	if( !rhsr.ok() )
+		return rhsr;
+
+	auto lexpr = lhsr.unwrap();
+	auto rexpr = rhsr.unwrap();
+	// TODO: lvalue rvalue?
+	auto LValue = lexpr.as_value();
+	auto RValue = rexpr.as_value();
+
+	assert(LValue && RValue && "nullptr for assignment!");
+
+	// TODO: Promote to value really only needs to be done for allocas??
+	// Confusing, we'll see where this goes.
+	switch( assign->op )
+	{
+	case ast::AssignOp::add:
+	{
+		auto LValuePromoted = promote_to_value(*this, LValue);
+		auto TempRValue = Builder->CreateAdd(RValue, LValuePromoted);
+		Builder->CreateStore(TempRValue, LValue);
+	}
+	break;
+	case ast::AssignOp::sub:
+	{
+		auto LValuePromoted = promote_to_value(*this, LValue);
+		auto TempRValue = Builder->CreateSub(LValuePromoted, RValue);
+		Builder->CreateStore(TempRValue, LValue);
+	}
+	break;
+	case ast::AssignOp::mul:
+	{
+		auto LValuePromoted = promote_to_value(*this, LValue);
+		auto TempRValue = Builder->CreateMul(RValue, LValuePromoted);
+		Builder->CreateStore(TempRValue, LValue);
+	}
+	break;
+	case ast::AssignOp::div:
+	{
+		auto LValuePromoted = promote_to_value(*this, LValue);
+		auto TempRValue = Builder->CreateSDiv(RValue, LValuePromoted);
+		Builder->CreateStore(TempRValue, LValue);
+	}
+	break;
+	case ast::AssignOp::assign:
+		Builder->CreateStore(RValue, LValue);
+		break;
+	}
+
+	return lhsr.unwrap();
 }
 
 CGResult<CGFunctionContext>
@@ -302,6 +396,15 @@ CG::codegen_string_literal(ir::IRStringLiteral* lit)
 		llvm::ConstantExpr::getGetElementPtr(Literal->getType(), GVStr, indices);
 
 	return CGExpr(StrVal);
+}
+
+CGResult<CGExpr>
+CG::codegen_value_decl(ir::IRValueDecl* decl)
+{
+	auto valuer = get_value(*this, *decl->name);
+	assert(valuer.has_value());
+
+	return valuer.value();
 }
 
 CGResult<CGExpr>

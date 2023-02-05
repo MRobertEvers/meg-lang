@@ -4,6 +4,7 @@ extern fn printf(str: i8*): void;
 
 fn main(): i32 
 {
+    let my_var = 5;
     printf("Hello world");
-    return 0;
+    return my_var;
 }

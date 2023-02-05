@@ -39,11 +39,14 @@ public:
 	Type const* u8_type();
 
 	bool equal_types(TypeInstance l, TypeInstance r);
+	TypeInstance non_inferred(TypeInstance l, TypeInstance r);
 
 	TypeInstance VoidType();
 	TypeInstance InferType();
 
 private:
 };
+
+String to_string(TypeInstance ty);
 
 } // namespace sema

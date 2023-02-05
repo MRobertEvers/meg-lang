@@ -310,6 +310,19 @@ Sema2::Expr(ir::IRId* nl)
 	return nod;
 }
 
+ir::IRExpr*
+Sema2::Expr(ir::IRValueDecl* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.decl = nl;
+	nod->type = ir::IRExprType::ValueDecl;
+	nod->type_instance = nl->type_decl->type_instance;
+
+	return nod;
+}
+
 ir::IRStmt*
 Sema2::Stmt(ir::IRReturn* ret)
 {
@@ -330,6 +343,30 @@ Sema2::Stmt(ir::IRExpr* expr)
 	nod->node = expr->node;
 	nod->stmt.expr = expr;
 	nod->type = ir::IRStmtType::ExprStmt;
+
+	return nod;
+}
+
+ir::IRStmt*
+Sema2::Stmt(ir::IRLet* expr)
+{
+	auto nod = new ir::IRStmt;
+
+	nod->node = expr->node;
+	nod->stmt.let = expr;
+	nod->type = ir::IRStmtType::Let;
+
+	return nod;
+}
+
+ir::IRStmt*
+Sema2::Stmt(ir::IRAssign* expr)
+{
+	auto nod = new ir::IRStmt;
+
+	nod->node = expr->node;
+	nod->stmt.assign = expr;
+	nod->type = ir::IRStmtType::Assign;
 
 	return nod;
 }
@@ -377,6 +414,31 @@ Sema2::Id(ast::AstNode* node, String* name, sema::TypeInstance type)
 	nod->node = node;
 	nod->name = name;
 	nod->type_instance = type;
+
+	return nod;
+}
+
+ir::IRLet*
+Sema2::Let(ast::AstNode* node, String* name, ir::IRAssign* assign)
+{
+	auto nod = new ir::IRLet;
+
+	nod->node = node;
+	nod->name = name;
+	nod->assign = assign;
+
+	return nod;
+}
+
+ir::IRAssign*
+Sema2::Assign(ast::AstNode* node, ast::AssignOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
+{
+	auto nod = new ir::IRAssign;
+
+	nod->op = op;
+	nod->node = node;
+	nod->lhs = lhs;
+	nod->rhs = rhs;
 
 	return nod;
 }

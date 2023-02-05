@@ -49,14 +49,14 @@ public:
 	sema::Sema2& sema;
 	CG(sema::Sema2& sema);
 
-	// CGResult<CGExpr> codegen(ast::AstNode* node);
-
 	CGResult<CGExpr> codegen_module(ir::IRModule*);
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);
 	CGResult<CGExpr> codegen_stmt(ir::IRStmt*);
 	CGResult<CGExpr> codegen_expr(ir::IRExpr*);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
 	CGResult<CGExpr> codegen_return(ir::IRReturn*);
+	CGResult<CGExpr> codegen_let(ir::IRLet*);
+	CGResult<CGExpr> codegen_assign(ir::IRAssign*);
 	CGResult<CGFunctionContext> codegen_function_proto(ir::IRProto*);
 	CGResult<CGExpr> codegen_function(ir::IRFunction*);
 	CGResult<CGExpr> codegen_function_body(ir::IRBlock*);
@@ -64,19 +64,9 @@ public:
 	// TODO: Return RValue type?
 	CGResult<CGExpr> codegen_number_literal(ir::IRNumberLiteral*);
 	CGResult<CGExpr> codegen_string_literal(ir::IRStringLiteral*);
+	CGResult<CGExpr> codegen_value_decl(ir::IRValueDecl*);
 	CGResult<CGExpr> codegen_call(ir::IRCall*);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
-	// CGResult<CGExpr> codegen_fn_proto(ast::AstNode* node);
-	// CGResult<CGExpr> codegen_id(ast::AstNode* node);
-	// CGResult<CGExpr> codegen_block(ast::AstNode* node);
-	// CGResult<CGExpr> codegen_fn_call(ast::AstNode* node);
-	// CGResult<CGExpr> codegen_fn_return(ast::AstNode* node);
-	// CGResult<CGExpr> codegen_number_literal(ast::AstNode* node);
-	// CGResult<CGExpr> codegen_expr(ast::AstNode* node);
-	// CGResult<CGExpr> codegen_stmt(ast::AstNode* node);
-
-	// CGScope* get_scope(ast::AstNode* node);
-	// sema::Scope* get_sema_scope(ast::AstNode* node);
 
 	std::optional<llvm::Type*> find_type(sema::Type const*);
 };

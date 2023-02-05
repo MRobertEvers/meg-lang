@@ -19,6 +19,7 @@ struct IRStmt;
 struct IRExpr;
 struct IRValueDecl;
 struct IRExpr;
+struct IRAssign;
 
 struct IRModule
 {
@@ -124,6 +125,23 @@ struct IRReturn
 	IRExpr* expr;
 };
 
+struct IRLet
+{
+	//
+	ast::AstNode* node;
+	String* name;
+	IRAssign* assign;
+};
+
+struct IRAssign
+{
+	//
+	ast::AssignOp op;
+	ast::AstNode* node;
+	IRExpr* lhs;
+	IRExpr* rhs;
+};
+
 struct IRNumberLiteral
 {
 	//
@@ -144,6 +162,8 @@ enum class IRStmtType
 {
 	Return,
 	ExprStmt,
+	Let,
+	Assign,
 };
 
 struct IRStmt
@@ -153,6 +173,8 @@ struct IRStmt
 	{
 		IRExpr* expr;
 		IRReturn* ret;
+		IRLet* let;
+		IRAssign* assign;
 	} stmt;
 	IRStmtType type;
 };
@@ -163,6 +185,7 @@ enum class IRExprType
 	NumberLiteral,
 	StringLiteral,
 	Id,
+	ValueDecl,
 };
 
 struct IRExpr
@@ -171,7 +194,8 @@ struct IRExpr
 	// Variant type
 	union
 	{
-		IRId* id;
+		IRId* id;		   // Usage of an id
+		IRValueDecl* decl; // Variable declaration
 		IRStringLiteral* str_literal;
 		IRNumberLiteral* num_literal;
 		IRCall* call;

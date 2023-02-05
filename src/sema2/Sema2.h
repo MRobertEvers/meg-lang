@@ -93,14 +93,19 @@ public:
 	ir::IRExpr* Expr(ir::IRNumberLiteral*);
 	ir::IRExpr* Expr(ir::IRStringLiteral*);
 	ir::IRExpr* Expr(ir::IRId*);
+	ir::IRExpr* Expr(ir::IRValueDecl*);
 	ir::IRStmt* Stmt(ir::IRReturn*);
 	ir::IRStmt* Stmt(ir::IRExpr*);
+	ir::IRStmt* Stmt(ir::IRLet*);
+	ir::IRStmt* Stmt(ir::IRAssign*);
 	ir::IRArgs* Args(ast::AstNode* node, Vec<ir::IRExpr*>* args);
 	ir::IRNumberLiteral*
 	NumberLiteral(ast::AstNode* node, TypeInstance type_instance, long long val);
 	ir::IRStringLiteral*
 	StringLiteral(ast::AstNode* node, TypeInstance type_instance, String* name);
 	ir::IRId* Id(ast::AstNode* node, String* name, sema::TypeInstance type);
+	ir::IRLet* Let(ast::AstNode* node, String* name, ir::IRAssign* assign);
+	ir::IRAssign* Assign(ast::AstNode* node, ast::AssignOp op, ir::IRExpr* lhs, ir::IRExpr* rhs);
 };
 
 } // namespace sema
