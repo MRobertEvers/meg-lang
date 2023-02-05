@@ -392,7 +392,7 @@ CG::find_type(sema::Type const* ty)
 // 	return castr.unwrap();
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen(ast::AstNode* node)
 // {
 // 	switch( node->type )
@@ -452,7 +452,7 @@ CG::find_type(sema::Type const* ty)
 // 	return CGError("Unhandled ast NodeType in Codegen.");
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_module(ast::AstNode* node)
 // {
 // 	auto result = expected(node, NodeType::Module);
@@ -469,10 +469,10 @@ CG::find_type(sema::Type const* ty)
 // 			return statement_result;
 // 	}
 
-// 	return CGed{};
+// 	return CGExpr{};
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_fn(ast::AstNode* node)
 // {
 // 	auto result = expected(node, NodeType::Fn);
@@ -489,7 +489,7 @@ CG::find_type(sema::Type const* ty)
 // 			return statement_result;
 // 	}
 
-// 	return CGed{};
+// 	return CGExpr{};
 // }
 
 // CGResult<llvm::Type*>
@@ -532,12 +532,12 @@ CG::find_type(sema::Type const* ty)
 // 	return ParamTys;
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_fn_proto(ast::AstNode* node)
 // {
 // 	auto protor = ::expected(node, ast::as_fn_proto);
 // 	if( !protor.ok() )
-// 		return CGed{};
+// 		return CGExpr{};
 
 // 	auto scope = get_scope(node);
 
@@ -564,18 +564,18 @@ CG::find_type(sema::Type const* ty)
 // 	Functions.emplace(name, v)
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_id(ast::AstNode* node)
 // {
 // 	//
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_block(ast::AstNode* node)
 // {
 // 	auto blockr = ::expected(node, ast::as_block);
 // 	if( !blockr.ok() )
-// 		return CGed{};
+// 		return CGExpr{};
 
 // 	auto block = blockr.unwrap();
 
@@ -586,54 +586,54 @@ CG::find_type(sema::Type const* ty)
 // 			return stmtr;
 // 	}
 
-// 	return CGed{};
+// 	return CGExpr{};
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_fn_call(ast::AstNode* node)
 // {
 // 	auto fn_callr = ::expected(node, ast::as_fn_call);
 // 	if( !fn_callr.ok() )
-// 		return CGed{};
+// 		return CGExpr{};
 
 // 	auto fn_call = fn_callr.unwrap();
 // 	auto exprr = codegen_expr(fn_call.call_target);
 // 	if( !exprr.ok() )
-// 		return CGed{};
+// 		return CGExpr{};
 
 // 	const CallExprVal = exprr.unwrap();
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_fn_return(ast::AstNode* node)
 // {
 // 	auto fn_returnr = ::expected(node, ast::as_fn_return);
 // 	if( !fn_returnr.ok() )
-// 		return CGed{};
+// 		return CGExpr{};
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_number_literal(ast::AstNode* node)
 // {
 // 	auto number_litr = ::expected(node, ast::as_number_literal);
 // 	if( !number_litr.ok() )
-// 		return CGed{};
+// 		return CGExpr{};
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_expr(ast::AstNode* node)
 // {
 // 	auto exprr = ::expected(node, ast::as_expr);
 // 	if( !exprr.ok() )
-// 		return CGed{};
+// 		return CGExpr{};
 // }
 
-// CGResult<CGed>
+// CGResult<CGExpr>
 // CG::codegen_stmt(ast::AstNode* node)
 // {
 // 	auto stmtr = ::expected(node, ast::as_stmt);
 // 	if( !stmtr.ok() )
-// 		return CGed{};
+// 		return CGExpr{};
 // }
 
 // CGScope*

@@ -1,7 +1,7 @@
 #pragma once
+#include "CGExpr.h"
 #include "CGResult.h"
 #include "CGTag.h"
-#include "CGed.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"
 #include "common/String.h"
@@ -49,7 +49,7 @@ public:
 	sema::Sema2& sema;
 	CG(sema::Sema2& sema);
 
-	// CGResult<CGed> codegen(ast::AstNode* node);
+	// CGResult<CGExpr> codegen(ast::AstNode* node);
 
 	CGResult<CGExpr> codegen_module(ir::IRModule*);
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);
@@ -66,14 +66,14 @@ public:
 	CGResult<CGExpr> codegen_string_literal(ir::IRStringLiteral*);
 	CGResult<CGExpr> codegen_call(ir::IRCall*);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
-	// CGResult<CGed> codegen_fn_proto(ast::AstNode* node);
-	// CGResult<CGed> codegen_id(ast::AstNode* node);
-	// CGResult<CGed> codegen_block(ast::AstNode* node);
-	// CGResult<CGed> codegen_fn_call(ast::AstNode* node);
-	// CGResult<CGed> codegen_fn_return(ast::AstNode* node);
-	// CGResult<CGed> codegen_number_literal(ast::AstNode* node);
-	// CGResult<CGed> codegen_expr(ast::AstNode* node);
-	// CGResult<CGed> codegen_stmt(ast::AstNode* node);
+	// CGResult<CGExpr> codegen_fn_proto(ast::AstNode* node);
+	// CGResult<CGExpr> codegen_id(ast::AstNode* node);
+	// CGResult<CGExpr> codegen_block(ast::AstNode* node);
+	// CGResult<CGExpr> codegen_fn_call(ast::AstNode* node);
+	// CGResult<CGExpr> codegen_fn_return(ast::AstNode* node);
+	// CGResult<CGExpr> codegen_number_literal(ast::AstNode* node);
+	// CGResult<CGExpr> codegen_expr(ast::AstNode* node);
+	// CGResult<CGExpr> codegen_stmt(ast::AstNode* node);
 
 	// CGScope* get_scope(ast::AstNode* node);
 	// sema::Scope* get_sema_scope(ast::AstNode* node);
