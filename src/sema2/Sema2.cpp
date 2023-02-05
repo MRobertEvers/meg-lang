@@ -323,6 +323,19 @@ Sema2::Expr(ir::IRValueDecl* nl)
 	return nod;
 }
 
+ir::IRExpr*
+Sema2::Expr(ir::IRBinOp* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.binop = nl;
+	nod->type = ir::IRExprType::BinOp;
+	nod->type_instance = nl->lhs->type_instance;
+
+	return nod;
+}
+
 ir::IRStmt*
 Sema2::Stmt(ir::IRReturn* ret)
 {
@@ -434,6 +447,19 @@ ir::IRAssign*
 Sema2::Assign(ast::AstNode* node, ast::AssignOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
 {
 	auto nod = new ir::IRAssign;
+
+	nod->op = op;
+	nod->node = node;
+	nod->lhs = lhs;
+	nod->rhs = rhs;
+
+	return nod;
+}
+
+ir::IRBinOp*
+Sema2::BinOp(ast::AstNode* node, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
+{
+	auto nod = new ir::IRBinOp;
 
 	nod->op = op;
 	nod->node = node;

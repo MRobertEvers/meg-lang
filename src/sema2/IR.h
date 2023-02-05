@@ -142,6 +142,15 @@ struct IRAssign
 	IRExpr* rhs;
 };
 
+struct IRBinOp
+{
+	ast::BinOp op;
+	ast::AstNode* node;
+	sema::TypeInstance type_instance;
+	IRExpr* lhs;
+	IRExpr* rhs;
+};
+
 struct IRNumberLiteral
 {
 	//
@@ -185,6 +194,7 @@ enum class IRExprType
 	NumberLiteral,
 	StringLiteral,
 	Id,
+	BinOp,
 	ValueDecl,
 };
 
@@ -199,6 +209,7 @@ struct IRExpr
 		IRStringLiteral* str_literal;
 		IRNumberLiteral* num_literal;
 		IRCall* call;
+		IRBinOp* binop;
 	} expr;
 	IRExprType type;
 

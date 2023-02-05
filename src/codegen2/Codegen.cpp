@@ -24,6 +24,24 @@ establish_llvm_builtin_types(
 	lut.emplace(types.void_type(), llvm::Type::getVoidTy(*cg.Context));
 }
 
+static llvm::Value*
+promote_to_value(CG& cg, llvm::Value* Val)
+{
+	// TODO: Opaque pointers, don't rel
+	auto PointedToType = Val->getType()->getPointerElementType();
+	return cg.Builder->CreateLoad(PointedToType, Val);
+}
+
+static llvm::Value*
+__deprecate_promote_to_value(CG& cg, llvm::Value* Val)
+{
+	// TODO: Opaque pointers, don't rel
+	if( Val->getType()->isPointerTy() )
+		return promote_to_value(cg, Val);
+	else
+		return Val;
+}
+
 static CGResult<llvm::Type*>
 get_base_type(CG& cg, sema::TypeInstance ty)
 {
@@ -162,6 +180,8 @@ CG::codegen_expr(ir::IRExpr* expr)
 		return codegen_string_literal(expr->expr.str_literal);
 	case ir::IRExprType::ValueDecl:
 		return codegen_value_decl(expr->expr.decl);
+	case ir::IRExprType::BinOp:
+		return codegen_binop(expr->expr.binop);
 	}
 
 	return NotImpl();
@@ -216,14 +236,6 @@ CG::codegen_let(ir::IRLet* let)
 		return assignr;
 
 	return CGExpr(Alloca);
-}
-
-static llvm::Value*
-promote_to_value(CG& cg, llvm::Value* Val)
-{
-	// TODO: Opaque pointers, don't rel
-	auto PointedToType = Val->getType()->getPointerElementType();
-	return cg.Builder->CreateLoad(PointedToType, Val);
 }
 
 CGResult<CGExpr>
@@ -405,6 +417,64 @@ CG::codegen_value_decl(ir::IRValueDecl* decl)
 	assert(valuer.has_value());
 
 	return valuer.value();
+}
+
+CGResult<CGExpr>
+CG::codegen_binop(ir::IRBinOp* binop)
+{
+	auto lhsr = codegen_expr(binop->lhs);
+	if( !lhsr.ok() )
+		return lhsr;
+
+	auto rhsr = codegen_expr(binop->rhs);
+	if( !rhsr.ok() )
+		return rhsr;
+
+	auto lexpr = lhsr.unwrap();
+	auto rexpr = rhsr.unwrap();
+	// TODO: lvalue rvalue?
+	auto LValue = lexpr.as_value();
+	auto RValue = rexpr.as_value();
+
+	assert(LValue && RValue && "nullptr for assignment!");
+
+	// TODO: If the values are imediate then we don't need to promote.
+	// TODO: If both values are constant, just do the computation.
+	auto L = __deprecate_promote_to_value(*this, LValue); // promote_to_value(*this, LValue);
+	auto R = __deprecate_promote_to_value(*this, RValue); // promote_to_value(*this, RValue);
+
+	assert(L->getType()->isIntegerTy() && R->getType()->isIntegerTy());
+
+	auto Op = binop->op;
+	switch( Op )
+	{
+	case BinOp::plus:
+		return CGExpr(Builder->CreateAdd(L, R, "addtmp"));
+	case BinOp::minus:
+		return CGExpr(Builder->CreateSub(L, R, "subtmp"));
+	case BinOp::star:
+		return CGExpr(Builder->CreateMul(L, R, "multmp"));
+	case BinOp::slash:
+		return CGExpr(Builder->CreateSDiv(L, R, "divtmp"));
+	case BinOp::gt:
+		return CGExpr(Builder->CreateICmpUGT(L, R, "cmptmp"));
+	case BinOp::gte:
+		return CGExpr(Builder->CreateICmpUGE(L, R, "cmptmp"));
+	case BinOp::lt:
+		return CGExpr(Builder->CreateICmpULT(L, R, "cmptmp"));
+	case BinOp::lte:
+		return CGExpr(Builder->CreateICmpULE(L, R, "cmptmp"));
+	case BinOp::cmp:
+		return CGExpr(Builder->CreateICmpEQ(L, R, "cmptmp"));
+	case BinOp::ne:
+		return CGExpr(Builder->CreateICmpNE(L, R, "cmptmp"));
+	case BinOp::and_lex:
+		return CGExpr(Builder->CreateAnd(L, R, "cmptmp"));
+	case BinOp::or_lex:
+		return CGExpr(Builder->CreateOr(L, R, "cmptmp"));
+	default:
+		return NotImpl();
+	}
 }
 
 CGResult<CGExpr>

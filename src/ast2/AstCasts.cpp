@@ -84,6 +84,15 @@ ast::as_assign(ast::AstNode* node)
 	return &node->data.assign;
 }
 
+Cast<AstBinOp>
+ast::as_binop(ast::AstNode* node)
+{
+	if( node->type != AstBinOp::nt )
+		return Cast<AstBinOp>();
+
+	return &node->data.binop;
+}
+
 Cast<AstId>
 ast::as_id(ast::AstNode* node)
 {

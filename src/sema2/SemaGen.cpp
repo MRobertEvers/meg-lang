@@ -202,6 +202,22 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 
 		return sema.Expr(litr.unwrap());
 	}
+	case NodeType::Expr:
+	{
+		auto litr = sema_expr(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return litr.unwrap();
+	}
+	case NodeType::BinOp:
+	{
+		auto litr = sema_binop(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
 	default:
 		break;
 	}
@@ -403,6 +419,33 @@ sema::sema_assign(Sema2& sema, ast::AstNode* ast)
 			" != " + sema::to_string(rhs->type_instance));
 
 	return sema.Assign(ast, assign.op, lhs, rhs);
+}
+
+SemaResult<ir::IRBinOp*>
+sema::sema_binop(Sema2& sema, ast::AstNode* ast)
+{
+	auto binopr = expected(ast, ast::as_binop);
+	if( !binopr.ok() )
+		return binopr;
+	auto binop = binopr.unwrap();
+
+	auto lhs_exprr = sema_expr(sema, binop.left);
+	if( !lhs_exprr.ok() )
+		return lhs_exprr;
+	auto lhs = lhs_exprr.unwrap();
+
+	auto rhs_exprr = sema_expr(sema, binop.right);
+	if( !rhs_exprr.ok() )
+		return rhs_exprr;
+	auto rhs = rhs_exprr.unwrap();
+
+	// TODO: Int conversions?
+	if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+		return SemaError(
+			"Mismatched types: " + sema::to_string(lhs->type_instance) +
+			" != " + sema::to_string(rhs->type_instance));
+
+	return sema.BinOp(ast, binop.op, lhs, rhs);
 }
 
 SemaResult<ir::IRBlock*>

@@ -300,7 +300,7 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 		}
 
 		// Merge LHS/RHS.
-		lhs = ast.BinOp(trail.mark(), op, lhs, rhs.unwrap());
+		lhs = ast.Expr(trail.mark(), ast.BinOp(trail.mark(), op, lhs, rhs.unwrap()));
 	}
 }
 
@@ -875,8 +875,7 @@ AstGen::parse_postfix_expr()
 		}
 	}
 done:
-	return expr.unwrap();
-	// return aExpression{trail.mark(), expr.unwrap()};
+	return ast.Expr(trail.mark(), expr.unwrap());
 }
 
 ParseResult<ast::AstNode*>
@@ -885,17 +884,13 @@ AstGen::parse_expr()
 	auto trail = get_parse_trail();
 	auto lhs = parse_postfix_expr();
 	if( !lhs.ok() )
-	{
 		return lhs;
-	}
 
 	auto op = parse_bin_op(0, lhs.unwrap());
 	if( !op.ok() )
-	{
 		return op;
-	}
 
-	return op.unwrap();
+	return ast.Expr(trail.mark(), op.unwrap());
 }
 
 ParseResult<ast::AstNode*>
