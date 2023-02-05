@@ -13,7 +13,7 @@ NotImpl()
 
 static void
 establish_llvm_builtin_types(
-	CG& cg, sema::Types& types, std::map<sema::Type const*, llvm::Type*> lut)
+	CG& cg, sema::Types& types, std::map<sema::Type const*, llvm::Type*>& lut)
 {
 	lut.emplace(types.u8_type(), llvm::Type::getInt8Ty(*cg.Context));
 	lut.emplace(types.u16_type(), llvm::Type::getInt16Ty(*cg.Context));
@@ -36,7 +36,7 @@ CG::CG(sema::Sema2& sema)
 	establish_llvm_builtin_types(*this, sema.types, this->types);
 }
 
-CGResult<CGed>
+CGResult<CGExpr>
 CG::codegen_module(ir::IRModule* mod)
 {
 	for( auto tls : *mod->stmts )
@@ -47,7 +47,7 @@ CG::codegen_module(ir::IRModule* mod)
 	}
 }
 
-CGResult<CGed>
+CGResult<CGExpr>
 CG::codegen_tls(ir::IRTopLevelStmt* tls)
 {
 	switch( tls->type )
@@ -70,23 +70,28 @@ get_base_type(CG& cg, ir::IRTypeDeclaraor* decl)
 
 	return maybe_llvm_type.value();
 }
+
+static CGResult<llvm::Type*>
+get_type(CG& cg, ir::IRTypeDeclaraor* decl)
+{
+	auto maybe_llvm_type = get_base_type(cg, decl);
+	if( !maybe_llvm_type.ok() )
+		return maybe_llvm_type;
+
+	auto type = maybe_llvm_type.unwrap();
+
+	// TODO: Try to use opaque pointers? We have to keep track of the pointer
+	// type ourselves.
+	for( int i = 0; i < decl->type_instance.indirection_level; i++ )
+		type = type->getPointerTo();
+
+	return type;
+}
+
 static CGResult<llvm::Type*>
 codegen_fn_param(CG& cg, ir::IRValueDecl* decl)
 {
-	return get_base_type(cg, decl->type_decl);
-	// auto value_declr = ::expected(node, ast::as_value_decl);
-	// if( !value_declr.ok() )
-	// 	return value_declr;
-
-	// auto type_declr = ::expected(node, ast::as_type_decl);
-	// if( !type_declr.ok() )
-	// 	return type_declr;
-
-	// auto type_decl = type_declr.unwrap();
-	// auto type_name = type_decl.name;
-
-	// auto scope = cg.get_scope(node);
-	// // scope
+	return get_type(cg, decl->type_decl);
 }
 
 static CGResult<Vec<llvm::Type*>>
@@ -105,7 +110,7 @@ codegen_fn_params(CG& cg, ir::IRProto* proto)
 	return args;
 }
 
-CGResult<CGed>
+CGResult<CGExpr>
 CG::codegen_extern_fn(ir::IRExternFn* extern_fn)
 {
 	auto name = extern_fn->proto->name;
@@ -127,7 +132,7 @@ CG::codegen_extern_fn(ir::IRExternFn* extern_fn)
 
 	Functions.emplace(*name, Function);
 
-	return NotImpl();
+	return CGExpr();
 }
 
 std::optional<llvm::Type*>

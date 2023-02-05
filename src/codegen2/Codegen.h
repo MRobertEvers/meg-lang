@@ -37,9 +37,9 @@ public:
 
 	// CGResult<CGed> codegen(ast::AstNode* node);
 
-	CGResult<CGed> codegen_module(ir::IRModule*);
-	CGResult<CGed> codegen_tls(ir::IRTopLevelStmt*);
-	CGResult<CGed> codegen_extern_fn(ir::IRExternFn*);
+	CGResult<CGExpr> codegen_module(ir::IRModule*);
+	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);
+	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
 	// CGResult<CGed> codegen_fn_proto(ast::AstNode* node);
 	// CGResult<CGed> codegen_id(ast::AstNode* node);
 	// CGResult<CGed> codegen_block(ast::AstNode* node);

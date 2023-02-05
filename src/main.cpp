@@ -74,11 +74,11 @@ main(int argc, char* argv[])
 	CG cg{sema};
 
 	auto cgr = cg.codegen_module(sema_result.unwrap());
-	if( !cgr.ok() )
-	{
-		cgr.unwrap_error()->print();
-		return 0;
-	}
+	// if( !cgr.ok() )
+	// {
+	// 	cgr.unwrap_error()->print();
+	// 	return 0;
+	// }
 
 	std::string Str;
 	raw_string_ostream OS(Str);

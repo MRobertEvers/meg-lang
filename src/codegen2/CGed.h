@@ -14,7 +14,7 @@ enum CGedType
 	Value
 };
 
-struct CGed
+struct CGExpr
 {
 	enum CGedType type = CGedType::Empty;
 	union
@@ -22,8 +22,8 @@ struct CGed
 		llvm::Value* value;
 	} data;
 
-	CGed(){};
-	CGed(llvm::Value* value)
+	CGExpr(){};
+	CGExpr(llvm::Value* value)
 		: type(CGedType::Value)
 	{
 		data.value = value;
