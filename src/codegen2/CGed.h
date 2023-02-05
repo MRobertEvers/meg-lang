@@ -8,25 +8,34 @@
 
 namespace cg
 {
-enum CGedType
+enum CGExprType
 {
 	Empty,
-	Value
+	Value,
+	FunctionValue,
 };
 
 struct CGExpr
 {
-	enum CGedType type = CGedType::Empty;
+	enum CGExprType type = CGExprType::Empty;
 	union
 	{
 		llvm::Value* value;
+		llvm::Function* fn;
 	} data;
 
 	CGExpr(){};
 	CGExpr(llvm::Value* value)
-		: type(CGedType::Value)
+		: type(CGExprType::Value)
 	{
 		data.value = value;
 	};
+	CGExpr(llvm::Function* value)
+		: type(CGExprType::FunctionValue)
+	{
+		data.fn = value;
+	};
+
+	llvm::Value* as_value();
 };
 } // namespace cg

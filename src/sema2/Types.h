@@ -40,6 +40,9 @@ public:
 
 	bool equal_types(TypeInstance l, TypeInstance r);
 
+	TypeInstance VoidType();
+	TypeInstance InferType();
+
 private:
 };
 

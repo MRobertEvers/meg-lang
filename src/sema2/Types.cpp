@@ -93,3 +93,15 @@ Types::equal_types(TypeInstance l, TypeInstance r)
 
 	return l == r;
 }
+
+TypeInstance
+Types::VoidType()
+{
+	return TypeInstance::OfType(void_type_);
+}
+
+TypeInstance
+Types::InferType()
+{
+	return TypeInstance::OfType(infer_type_);
+}

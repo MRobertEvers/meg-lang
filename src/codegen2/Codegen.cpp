@@ -24,6 +24,71 @@ establish_llvm_builtin_types(
 	lut.emplace(types.void_type(), llvm::Type::getVoidTy(*cg.Context));
 }
 
+static CGResult<llvm::Type*>
+get_base_type(CG& cg, sema::TypeInstance ty)
+{
+	auto maybe_llvm_type = cg.find_type(ty.type);
+	if( !maybe_llvm_type.has_value() )
+		return CGError("Missing Type!");
+
+	return maybe_llvm_type.value();
+}
+
+static CGResult<llvm::Type*>
+get_type(CG& cg, sema::TypeInstance ty)
+{
+	auto maybe_llvm_type = get_base_type(cg, ty);
+	if( !maybe_llvm_type.ok() )
+		return maybe_llvm_type;
+
+	auto type = maybe_llvm_type.unwrap();
+
+	// TODO: Try to use opaque pointers? We have to keep track of the pointer
+	// type ourselves.
+	for( int i = 0; i < ty.indirection_level; i++ )
+		type = type->getPointerTo();
+
+	return type;
+}
+
+static CGResult<llvm::Type*>
+get_type(CG& cg, ir::IRTypeDeclaraor* decl)
+{
+	return get_type(cg, decl->type_instance);
+}
+
+static CGResult<llvm::Type*>
+get_type(CG& cg, ir::IRValueDecl* decl)
+{
+	return get_type(cg, decl->type_decl);
+}
+
+static CGResult<Vec<llvm::Type*>>
+get_params_types(CG& cg, ir::IRProto* proto)
+{
+	Vec<llvm::Type*> args;
+	for( auto& arg : *proto->args )
+	{
+		auto argsr = get_type(cg, arg);
+		if( !argsr.ok() )
+			return argsr;
+
+		args.push_back(argsr.unwrap());
+	}
+
+	return args;
+}
+
+static std::optional<CGExpr>
+get_value(CG& cg, String const& name)
+{
+	auto iter_value = cg.values.find(name);
+	if( iter_value != cg.values.end() )
+		return iter_value->second;
+	else
+		return std::optional<CGExpr>();
+}
+
 CG::CG(sema::Sema2& sema)
 	: sema(sema)
 {
@@ -45,6 +110,8 @@ CG::codegen_module(ir::IRModule* mod)
 		if( !tlsr.ok() )
 			return tlsr;
 	}
+
+	return CGExpr();
 }
 
 CGResult<CGExpr>
@@ -55,72 +122,86 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 	case ir::IRTopLevelType::ExternFn:
 		return codegen_extern_fn(tls->stmt.extern_fn);
 	case ir::IRTopLevelType::Function:
-		break;
+		return codegen_function(tls->stmt.fn);
 	}
 
 	return NotImpl();
 }
 
-static CGResult<llvm::Type*>
-get_base_type(CG& cg, ir::IRTypeDeclaraor* decl)
+CGResult<CGExpr>
+CG::codegen_stmt(ir::IRStmt* stmt)
 {
-	auto maybe_llvm_type = cg.find_type(decl->type_instance.type);
-	if( !maybe_llvm_type.has_value() )
-		return CGError("Missing Type!");
-
-	return maybe_llvm_type.value();
-}
-
-static CGResult<llvm::Type*>
-get_type(CG& cg, ir::IRTypeDeclaraor* decl)
-{
-	auto maybe_llvm_type = get_base_type(cg, decl);
-	if( !maybe_llvm_type.ok() )
-		return maybe_llvm_type;
-
-	auto type = maybe_llvm_type.unwrap();
-
-	// TODO: Try to use opaque pointers? We have to keep track of the pointer
-	// type ourselves.
-	for( int i = 0; i < decl->type_instance.indirection_level; i++ )
-		type = type->getPointerTo();
-
-	return type;
-}
-
-static CGResult<llvm::Type*>
-codegen_fn_param(CG& cg, ir::IRValueDecl* decl)
-{
-	return get_type(cg, decl->type_decl);
-}
-
-static CGResult<Vec<llvm::Type*>>
-codegen_fn_params(CG& cg, ir::IRProto* proto)
-{
-	Vec<llvm::Type*> args;
-	for( auto& arg : *proto->args )
+	switch( stmt->type )
 	{
-		auto argsr = codegen_fn_param(cg, arg);
-		if( !argsr.ok() )
-			return argsr;
-
-		args.push_back(argsr.unwrap());
+	case ir::IRStmtType::ExprStmt:
+		return codegen_expr(stmt->stmt.expr);
+	case ir::IRStmtType::Return:
+		return codegen_return(stmt->stmt.ret);
 	}
 
-	return args;
+	return NotImpl();
+}
+
+CGResult<CGExpr>
+CG::codegen_expr(ir::IRExpr* expr)
+{
+	switch( expr->type )
+	{
+	case ir::IRExprType::Call:
+		return codegen_call(expr->expr.call);
+	case ir::IRExprType::Id:
+		return codegen_id(expr->expr.id);
+	case ir::IRExprType::NumberLiteral:
+		return codegen_number_literal(expr->expr.num_literal);
+	case ir::IRExprType::StringLiteral:
+		return codegen_string_literal(expr->expr.str_literal);
+	}
+
+	return NotImpl();
 }
 
 CGResult<CGExpr>
 CG::codegen_extern_fn(ir::IRExternFn* extern_fn)
 {
-	auto name = extern_fn->proto->name;
+	return codegen_function_proto(extern_fn->proto);
+}
 
-	auto paramsr = codegen_fn_params(*this, extern_fn->proto);
+CGResult<CGExpr>
+CG::codegen_return(ir::IRReturn* ret)
+{
+	auto maybe_fn_ctx = current_function;
+	assert(maybe_fn_ctx.has_value());
+
+	auto fn_ctx = current_function.value();
+
+	auto exprr = codegen_expr(ret->expr);
+	if( !exprr.ok() )
+		return exprr;
+
+	auto rt = fn_ctx.fn_type->get_return_type().value();
+	if( sema.types.equal_types(rt, sema.types.VoidType()) )
+	{
+		Builder->CreateRetVoid();
+	}
+	else
+	{
+		Builder->CreateRet(exprr.unwrap().as_value());
+	}
+
+	return CGExpr();
+}
+
+CGResult<CGFunctionContext>
+CG::codegen_function_proto(ir::IRProto* proto)
+{
+	auto name = proto->name;
+
+	auto paramsr = get_params_types(*this, proto);
 	if( !paramsr.ok() )
 		return paramsr;
 	auto ParamsTys = paramsr.unwrap();
 
-	auto retr = get_base_type(*this, extern_fn->proto->rt);
+	auto retr = get_type(*this, proto->rt);
 	if( !retr.ok() )
 		return retr;
 	auto ReturnTy = retr.unwrap();
@@ -131,8 +212,163 @@ CG::codegen_extern_fn(ir::IRExternFn* extern_fn)
 		llvm::Function::Create(FT, llvm::Function::ExternalLinkage, *name, Module.get());
 
 	Functions.emplace(*name, Function);
+	auto fn_type = proto->fn_type;
+	types.emplace(fn_type, FT);
+	values.emplace(*name, Function);
+
+	return CGFunctionContext(Function, fn_type);
+}
+
+static cg::CGResult<cg::CGExpr>
+codegen_function_entry(CG& cg, cg::CGFunctionContext ctx)
+{
+	auto Function = ctx.Fn;
+
+	llvm::BasicBlock* BB = llvm::BasicBlock::Create(*cg.Context, "entry", Function);
+	cg.Builder->SetInsertPoint(BB);
+
+	auto args = Function->args();
+	if( args.empty() )
+		return CGExpr();
+
+	for( auto& Arg : args )
+	{
+		// Create an alloca for this variable.
+		llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(Arg.getType(), nullptr, Arg.getName());
+
+		// Store the initial value into the alloca.
+		cg.Builder->CreateStore(&Arg, Alloca);
+	}
 
 	return CGExpr();
+}
+
+CGResult<CGExpr>
+CG::codegen_function(ir::IRFunction* fn)
+{
+	auto protor = codegen_function_proto(fn->proto);
+	if( !protor.ok() )
+		return protor;
+
+	current_function = protor.unwrap();
+
+	auto entryr = codegen_function_entry(*this, current_function.value());
+	if( !entryr.ok() )
+		return entryr;
+
+	auto bodyr = codegen_function_body(fn->block);
+	if( !bodyr.ok() )
+		return bodyr;
+
+	current_function.reset();
+
+	return protor;
+}
+
+CGResult<CGExpr>
+CG::codegen_function_body(ir::IRBlock* block)
+{
+	for( auto stmt : *block->stmts )
+	{
+		//
+		auto stmtr = codegen_stmt(stmt);
+		if( !stmtr.ok() )
+			return stmtr;
+	}
+
+	return CGExpr();
+}
+
+CGResult<CGExpr>
+CG::codegen_number_literal(ir::IRNumberLiteral* lit)
+{
+	//
+	llvm::Value* ConstInt = llvm::ConstantInt::get(*Context, llvm::APInt(32, lit->val, true));
+
+	return CGExpr(ConstInt);
+}
+
+CGResult<CGExpr>
+CG::codegen_string_literal(ir::IRStringLiteral* lit)
+{
+	//
+	auto Literal = llvm::ConstantDataArray::getString(*Context, lit->value->c_str(), true);
+
+	llvm::GlobalVariable* GVStr = new llvm::GlobalVariable(
+		*Module, Literal->getType(), true, llvm::GlobalValue::InternalLinkage, Literal);
+	llvm::Constant* zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(*Context));
+	llvm::Constant* indices[] = {zero, zero};
+	llvm::Constant* StrVal =
+		llvm::ConstantExpr::getGetElementPtr(Literal->getType(), GVStr, indices);
+
+	return CGExpr(StrVal);
+}
+
+CGResult<CGExpr>
+CG::codegen_call(ir::IRCall* call)
+{
+	auto call_target_type = call->call_target->type_instance;
+	assert(call_target_type.type->is_function_type() && call_target_type.indirection_level <= 1);
+
+	auto exprr = codegen_expr(call->call_target);
+	if( !exprr.ok() )
+		return exprr;
+
+	auto expr = exprr.unwrap();
+	if( expr.type != CGExprType::FunctionValue )
+		return CGError("Call target is not a value??"); // Assert here?
+
+	auto Function = expr.data.fn;
+
+	// Assert value is correct?
+	// Semantic analysis should've guaranteed this is a function.
+	// if( !Value->getType()->isPointerTy() &&
+	// 	!Value->getType()->getPointerElementType()->isFunctionTy() )
+	// {
+	// 	std::cout << "Expected function type" << std::endl;
+	// 	return;
+	// }
+
+	// llvm::Function* Function = static_cast<llvm::Function*>(Value);
+
+	std::vector<llvm::Value*> ArgsV;
+	for( auto arg_expr_node : *call->args->args )
+	{
+		auto arg_exprr = codegen_expr(arg_expr_node);
+		if( !arg_exprr.ok() )
+			return arg_exprr;
+
+		auto arg_expr = arg_exprr.unwrap();
+		if( arg_expr.type != CGExprType::Value )
+			return CGError("Arg is not a value??"); // Assert here?
+
+		auto ArgValue = arg_expr.data.value;
+		ArgsV.push_back(ArgValue);
+	}
+
+	// https://github.com/ark-lang/ark/issues/362
+	auto rt = call_target_type.type->get_return_type().value();
+	if( sema.types.equal_types(rt, sema.types.VoidType()) )
+	{
+		auto CallValue = Builder->CreateCall(Function, ArgsV);
+		return CGExpr(CallValue);
+	}
+	else
+	{
+		auto CallValue = Builder->CreateCall(Function, ArgsV, "call");
+		return CGExpr(CallValue);
+	}
+}
+
+CGResult<CGExpr>
+CG::codegen_id(ir::IRId* id)
+{
+	// auto iter_type = types.find(id->type_instance.type);
+	auto value = get_value(*this, *id->name);
+	if( !value.has_value() )
+		return CGError("Undeclared identifier!");
+
+	return value.value();
 }
 
 std::optional<llvm::Type*>
