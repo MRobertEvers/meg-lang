@@ -46,6 +46,8 @@ private:
 	ParseResult<AstNode*> parse_postfix_expr();
 	ParseResult<AstNode*> parse_expr();
 
+	ParseResult<AstNode*> parse_non_var_arg_fn_param();
+	ParseResult<AstNode*> parse_fn_param();
 	ParseResult<AstNode*> parse_function_parameter_list();
 	ParseResult<AstNode*> parse_function_proto();
 	ParseResult<AstNode*> parse_extern_function();

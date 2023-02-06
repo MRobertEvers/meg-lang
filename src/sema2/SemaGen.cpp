@@ -262,10 +262,16 @@ sema::sema_expr(Sema2& sema, ast::AstNode* ast)
 }
 
 static void
-inject_function_args(sema::Sema2& sema, Vec<ir::IRValueDecl*>& args)
+inject_function_args(sema::Sema2& sema, Vec<ir::IRParam*>& args)
 {
 	for( auto arg : args )
-		sema.add_value_identifier(*arg->name, arg->type_decl->type_instance);
+	{
+		if( arg->type == ir::IRParamType::ValueDecl )
+		{
+			auto value_decl = arg->data.value_decl;
+			sema.add_value_identifier(*value_decl->name, value_decl->type_decl->type_instance);
+		}
+	}
 }
 
 SemaResult<ir::IRFunction*>
@@ -558,17 +564,41 @@ sema::sema_extern_fn(Sema2& sema, ast::AstNode* ast)
 	return sema.ExternFn(ast, protor.unwrap());
 }
 
-static Vec<TypedMember>
-params_to_members(Vec<ir::IRValueDecl*>* params)
+struct params_to_members_t
 {
-	Vec<TypedMember> mems;
+	std::vector<TypedMember> vec;
+	bool is_var_arg;
+};
+
+static sema::SemaResult<params_to_members_t>
+params_to_members(Vec<ir::IRParam*>* params)
+{
+	params_to_members_t result;
 
 	int idx = 0;
 	for( auto param : *params )
 	{
-		mems.emplace_back(param->type_decl->type_instance, *param->name, idx++);
+		switch( param->type )
+		{
+		case ir::IRParamType::ValueDecl:
+		{
+			auto value_decl = param->data.value_decl;
+			// TODO: Should functions have named members too?
+			result.vec.emplace_back(value_decl->type_decl->type_instance, *value_decl->name, idx++);
+			break;
+		}
+		case ir::IRParamType::VarArg:
+			result.is_var_arg = true;
+			idx++;
+			goto done;
+		}
 	}
-	return mems;
+
+done:
+	if( idx != params->size() )
+		return SemaError("Cannot have varargs before named args.");
+
+	return result;
 }
 
 static std::map<String, TypedMember>
@@ -584,6 +614,26 @@ members_to_members(std::map<String, ir::IRValueDecl*>& params)
 			param.first, TypedMember(param.second->type_decl->type_instance, param.first, idx++));
 	}
 	return map;
+}
+
+SemaResult<ir::IRParam*>
+sema::sema_fn_param(Sema2& sema, ast::AstNode* ast)
+{
+	switch( ast->type )
+	{
+	case AstValueDecl::nt:
+	{
+		auto value_declr = sema_value_decl(sema, ast);
+		if( !value_declr.ok() )
+			return value_declr;
+
+		return sema.IRParam(ast, value_declr.unwrap());
+	}
+	case AstVarArg::nt:
+		return sema.IRParam(ast, sema.VarArg(ast));
+	}
+
+	return NotImpl();
 }
 
 SemaResult<ir::IRProto*>
@@ -609,11 +659,11 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 	auto argslist = sema.create_argslist();
 	for( auto arg : args.params )
 	{
-		auto value_declr = sema_value_decl(sema, arg);
-		if( !value_declr.ok() )
-			return value_declr;
+		auto paramr = sema_fn_param(sema, arg);
+		if( !paramr.ok() )
+			return paramr;
 
-		argslist->push_back(value_declr.unwrap());
+		argslist->push_back(paramr.unwrap());
 	}
 
 	auto rt_type_declr = sema_type_decl(sema, fn_proto.return_type);
@@ -622,8 +672,11 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 
 	auto rt = rt_type_declr.unwrap();
 
-	auto fn_type =
-		sema.CreateType(Type::Function(*name, params_to_members(argslist), rt->type_instance));
+	auto membersr = params_to_members(argslist);
+	if( !membersr.ok() )
+		return membersr;
+	auto members = membersr.unwrap();
+	auto fn_type = sema.CreateType(Type::Function(*name, members.vec, rt->type_instance));
 	sema.add_type_identifier(fn_type);
 	sema.add_value_identifier(*name, TypeInstance::OfType(fn_type));
 

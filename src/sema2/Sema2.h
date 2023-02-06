@@ -15,6 +15,7 @@
 
 namespace sema
 {
+
 class Sema2
 {
 	using TagType = SemaTag;
@@ -30,32 +31,6 @@ class Sema2
 public:
 	Types types;
 	Sema2();
-	// Types types;
-	// Vec<Scope> scopes;
-	// Scope* current_scope = nullptr;
-
-	// SemaTag* query(ast::AstNode* node);
-
-	// SemaResult<ir::IRModule> sema(ast::AstNode* node);
-
-	// SemaResult<TypeInstance> sema_module(ast::AstNode* node);
-	// SemaResult<TypeInstance> sema_fn(ast::AstNode* node);
-	// SemaResult<Vec<TypedMember>> sema_fn_param_list(ast::AstNode* node);
-	// SemaResult<TypeInstance> sema_fn_param_decl(ast::AstNode* node);
-
-	// SemaResult<TypeInstance> sema_fn_return(ast::AstNode* node);
-	// SemaResult<TypeInstance> sema_fn_block(ast::AstNode* node, Vec<TypedMember>& members);
-	// SemaResult<TypeInstance> sema_block(ast::AstNode* node, Vec<TypedMember>& members);
-	// SemaResult<TypeInstance> sema_id(ast::AstNode* node);
-	// SemaResult<TypeInstance> sema_type_decl(ast::AstNode* node);
-	// SemaResult<TypeInstance> sema_fn_call(ast::AstNode* node);
-	// SemaResult<TypeInstance> sema_number_literal(ast::AstNode* node);
-	// SemaResult<TypeInstance> sema_stmt(ast::AstNode* node);
-	// SemaResult<TypeInstance> sema_expr(ast::AstNode* node);
-
-	// SemaResult<TypedMember> typecheck_value_decl(ast::AstValueDecl* decl);
-
-	// SemaResult<TypeInstance> Ok();
 
 	Scope* push_scope();
 	void pop_scope();
@@ -77,7 +52,7 @@ public:
 	std::map<String, ir::IRValueDecl*>* create_member_map();
 	Vec<ir::IRStmt*>* create_slist();
 	Vec<ir::IRExpr*>* create_elist();
-	Vec<ir::IRValueDecl*>* create_argslist();
+	Vec<ir::IRParam*>* create_argslist();
 	String* create_name(char const* s, int size);
 
 	ir::IRModule* Module(ast::AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts);
@@ -90,7 +65,7 @@ public:
 	ir::IRProto* Proto(
 		ast::AstNode* node,
 		String* name,
-		Vec<ir::IRValueDecl*>* args,
+		Vec<ir::IRParam*>* args,
 		ir::IRTypeDeclaraor* rt,
 		Type const* fn_type);
 	ir::IRBlock* Block(ast::AstNode* node, Vec<ir::IRStmt*>* stmts);
@@ -119,6 +94,9 @@ public:
 	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*);
 	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
+	ir::IRVarArg* VarArg(ast::AstNode*);
+	ir::IRParam* IRParam(ast::AstNode*, ir::IRValueDecl* decl);
+	ir::IRParam* IRParam(ast::AstNode*, ir::IRVarArg* var_arg);
 };
 
 } // namespace sema

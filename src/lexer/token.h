@@ -13,6 +13,9 @@ enum class TokenType
 	// Comment
 	line_comment,
 
+	// ...
+	var_args,
+
 	exclam,
 	mul_equal,
 	div_equal,

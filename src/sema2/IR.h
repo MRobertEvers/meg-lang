@@ -23,6 +23,7 @@ struct IRValueDecl;
 struct IRExpr;
 struct IRAssign;
 struct IRStruct;
+struct IRParam;
 
 struct IRModule
 {
@@ -71,7 +72,7 @@ struct IRProto
 	//
 	ast::AstNode* node;
 	String* name;
-	Vec<ir::IRValueDecl*>* args;
+	Vec<ir::IRParam*>* args;
 	ir::IRTypeDeclaraor* rt;
 
 	// Function
@@ -84,6 +85,28 @@ struct IRValueDecl
 	ast::AstNode* node;
 	IRTypeDeclaraor* type_decl;
 	String* name;
+};
+
+struct IRVarArg
+{
+	ast::AstNode* node;
+};
+
+enum class IRParamType
+{
+	VarArg,
+	ValueDecl
+};
+
+struct IRParam
+{
+	ast::AstNode* node;
+	union
+	{
+		IRValueDecl* value_decl;
+		IRVarArg* var_arg;
+	} data;
+	IRParamType type;
 };
 
 struct IRTypeDeclaraor

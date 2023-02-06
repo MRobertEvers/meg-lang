@@ -67,9 +67,9 @@ Lexer::lex()
 		case ';':
 		case ':':
 		case ',':
-		case '.':
 			tokens.push_back(lex_consume_single());
 			break;
+		case '.':
 		case '/':
 		case '>':
 		case '=':
@@ -233,6 +233,15 @@ Lexer::lex_consume_ambiguous_lexeme()
 
 	switch( c )
 	{
+	case '.':
+		if( peek("..") )
+		{
+			return new_token(TokenType::var_args, 3);
+		}
+		else
+		{
+			token.type = TokenType::dot;
+		}
 	case '&':
 		if( peek("&") )
 		{

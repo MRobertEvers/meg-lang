@@ -28,6 +28,60 @@ using namespace ast;
 using namespace llvm;
 
 int
+emit(llvm::Module* Module)
+{
+	auto& Mod = *Module;
+
+	auto CPU = "generic";
+	auto Features = "";
+
+	InitializeNativeTarget();
+	InitializeNativeTargetAsmParser();
+	InitializeNativeTargetAsmPrinter();
+	TargetOptions opt;
+	auto RM = Optional<Reloc::Model>();
+
+	// auto TargetTriple = sys::getDefaultTargetTriple();
+	std::string TargetTriple = "aarch64-app-darwin";
+	// std::cout << "Target: " << TargetTriple << std::endl;
+
+	std::string Error;
+	auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
+	if( !Target )
+	{
+		errs() << Error;
+		return -1;
+	}
+
+	auto TheTargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+
+	Mod.setDataLayout(TheTargetMachine->createDataLayout());
+	Mod.setTargetTriple(TargetTriple);
+
+	auto Filename = "output.o";
+	std::error_code EC;
+	raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
+
+	if( EC )
+	{
+		errs() << "Could not open file: " << EC.message();
+		return -1;
+	}
+
+	legacy::PassManager pass;
+	auto FileType = CGFT_ObjectFile;
+
+	if( TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType) )
+	{
+		errs() << "TheTargetMachine can't emit a file of this type";
+		return -1;
+	}
+
+	pass.run(Mod);
+	dest.flush();
+}
+
+int
 main(int argc, char* argv[])
 {
 	if( argc == 1 )
@@ -86,4 +140,6 @@ main(int argc, char* argv[])
 	cg.Module->print(OS, nullptr);
 
 	std::cout << Str;
+
+	return emit(cg.Module.get());
 }

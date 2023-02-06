@@ -16,6 +16,7 @@ enum class NodeType
 	FnProto,
 	FnParamList,
 	ValueDecl,
+	VarArg,
 	FnCall,
 	ExprList,
 	Block,
@@ -142,6 +143,11 @@ struct AstValueDecl
 		: name(name)
 		, type_name(type_name)
 	{}
+};
+
+struct AstVarArg
+{
+	static constexpr NodeType nt = NodeType::VarArg;
 };
 
 struct AstFnCall
@@ -437,6 +443,7 @@ struct AstNode
 		AstFnProto fn_proto;
 		AstFnParamList fn_params;
 		AstValueDecl value_decl;
+		AstVarArg var_arg;
 		AstFnCall fn_call;
 		AstExprList expr_list;
 		AstBlock block;

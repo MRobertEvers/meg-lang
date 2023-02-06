@@ -897,6 +897,47 @@ AstGen::parse_expr()
 }
 
 ParseResult<ast::AstNode*>
+AstGen::parse_non_var_arg_fn_param()
+{
+	auto param_trail = get_parse_trail();
+	auto identifer = parse_identifier();
+	if( !identifer.ok() )
+	{
+		return identifer;
+	}
+
+	auto tok = cursor.consume(TokenType::colon);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ':'", tok.as());
+	}
+
+	auto type_decl = parse_type_decl(false);
+	if( !type_decl.ok() )
+	{
+		return type_decl;
+	}
+
+	return ast.ValueDecl(param_trail.mark(), identifer.unwrap(), type_decl.unwrap());
+}
+
+ParseResult<ast::AstNode*>
+AstGen::parse_fn_param()
+{
+	auto param_trail = get_parse_trail();
+	if( cursor.peek().type != TokenType::var_args )
+	{
+		return parse_non_var_arg_fn_param();
+	}
+	else
+	{
+		auto param_trail = get_parse_trail();
+		cursor.consume(TokenType::var_args);
+		return ast.VarArg(param_trail.mark());
+	}
+}
+
+ParseResult<ast::AstNode*>
 AstGen::parse_function_parameter_list()
 {
 	auto trail = get_parse_trail();
@@ -906,31 +947,14 @@ AstGen::parse_function_parameter_list()
 	Token curr_tok = cursor.peek();
 	while( curr_tok.type != TokenType::close_paren )
 	{
-		auto param_trail = get_parse_trail();
-		auto identifer = parse_identifier();
-		if( !identifer.ok() )
-		{
-			return identifer;
-		}
-
-		auto tok = cursor.consume(TokenType::colon);
-		if( !tok.ok() )
-		{
-			return ParseError("Expected ':'", tok.as());
-		}
-
-		auto type_decl = parse_type_decl(false);
-		if( !type_decl.ok() )
-		{
-			return type_decl;
-		}
+		auto decl = parse_fn_param();
+		if( !decl.ok() )
+			return decl;
 
 		// Also catches trailing comma.
 		cursor.consume_if_expected(TokenType::comma);
 
-		auto decl = ast.ValueDecl(param_trail.mark(), identifer.unwrap(), type_decl.unwrap());
-
-		result->append(decl);
+		result->append(decl.unwrap());
 		curr_tok = cursor.peek();
 	}
 

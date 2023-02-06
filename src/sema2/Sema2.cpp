@@ -114,10 +114,10 @@ Sema2::create_elist()
 	return new Vec<ir::IRExpr*>();
 }
 
-Vec<ir::IRValueDecl*>*
+Vec<ir::IRParam*>*
 Sema2::create_argslist()
 {
-	return new Vec<ir::IRValueDecl*>();
+	return new Vec<ir::IRParam*>();
 }
 
 String*
@@ -213,7 +213,7 @@ ir::IRProto*
 Sema2::Proto(
 	ast::AstNode* node,
 	String* name,
-	Vec<ir::IRValueDecl*>* args,
+	Vec<ir::IRParam*>* args,
 	ir::IRTypeDeclaraor* rt,
 	Type const* fn_type)
 {
@@ -523,6 +523,40 @@ Sema2::MemberAccess(
 	nod->member_name = member_name;
 	nod->type_instance = member_type;
 	nod->expr = expr;
+
+	return nod;
+}
+
+ir::IRVarArg*
+Sema2::VarArg(ast::AstNode* node)
+{
+	auto nod = new ir::IRVarArg;
+
+	nod->node = node;
+
+	return nod;
+}
+
+ir::IRParam*
+Sema2::IRParam(ast::AstNode* node, ir::IRValueDecl* decl)
+{
+	auto nod = new ir::IRParam;
+
+	nod->node = node;
+	nod->data.value_decl = decl;
+	nod->type = ir::IRParamType::ValueDecl;
+
+	return nod;
+}
+
+ir::IRParam*
+Sema2::IRParam(ast::AstNode* node, ir::IRVarArg* var_arg)
+{
+	auto nod = new ir::IRParam;
+
+	nod->node = node;
+	nod->data.var_arg = var_arg;
+	nod->type = ir::IRParamType::VarArg;
 
 	return nod;
 }

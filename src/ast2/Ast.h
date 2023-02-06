@@ -58,6 +58,7 @@ public:
 	AstNode* MemberAccess(Span span, AstNode* expr, AstNode* member_name);
 	AstNode* Expr(Span span, AstNode* expr);
 	AstNode* Stmt(Span span, AstNode* expr);
+	AstNode* VarArg(Span span);
 };
 
 template<typename T, typename Enable>

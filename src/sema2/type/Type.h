@@ -39,12 +39,13 @@ private:
 
 	// For functions return type
 	TypeInstance return_type;
+	bool is_var_arg;
 
 	String name;
 
 	Type(String name);
 	Type(String name, std::map<String, TypedMember> members);
-	Type(String name, Vec<TypedMember> args, TypeInstance return_type);
+	Type(String name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg);
 
 public:
 	~Type();
@@ -57,7 +58,8 @@ public:
 	std::optional<TypedMember> get_member(String const& name) const;
 	TypedMember get_member(int idx) const;
 
-	static Type Function(String const& name, Vec<TypedMember> args, TypeInstance return_type);
+	static Type Function(String const&, Vec<TypedMember>, TypeInstance, bool);
+	static Type Function(String const&, Vec<TypedMember>, TypeInstance);
 	static Type Struct(String const& name, std::map<String, TypedMember> members);
 	static Type Primitive(String name);
 };

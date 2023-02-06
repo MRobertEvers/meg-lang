@@ -13,10 +13,11 @@ Type::Type(String name, std::map<String, TypedMember> members)
 	, members(members)
 	, cls(TypeClassification::struct_cls){};
 
-Type::Type(String name, Vec<TypedMember> args, TypeInstance return_type)
+Type::Type(String name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg)
 	: name(name)
 	, members_order(args)
 	, return_type(return_type)
+	, is_var_arg(is_var_arg)
 	, cls(TypeClassification::function)
 {
 	for( auto arg : args )
@@ -134,9 +135,15 @@ Type::get_return_type() const
 }
 
 Type
+Type::Function(String const& name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg)
+{
+	return Type{name, args, return_type, is_var_arg};
+}
+
+Type
 Type::Function(String const& name, Vec<TypedMember> args, TypeInstance return_type)
 {
-	return Type{name, args, return_type};
+	return Type{name, args, return_type, false};
 }
 
 Type

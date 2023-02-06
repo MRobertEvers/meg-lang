@@ -81,17 +81,33 @@ get_type(CG& cg, ir::IRValueDecl* decl)
 	return get_type(cg, decl->type_decl);
 }
 
-static CGResult<Vec<llvm::Type*>>
+struct get_params_types_t
+{
+	Vec<llvm::Type*> types;
+	bool is_var_arg;
+};
+
+static CGResult<get_params_types_t>
 get_params_types(CG& cg, ir::IRProto* proto)
 {
-	Vec<llvm::Type*> args;
+	get_params_types_t args;
+	args.is_var_arg = false;
+
 	for( auto& arg : *proto->args )
 	{
-		auto argsr = get_type(cg, arg);
-		if( !argsr.ok() )
-			return argsr;
+		if( arg->type == ir::IRParamType::ValueDecl )
+		{
+			auto value_decl = arg->data.value_decl;
+			auto argsr = get_type(cg, value_decl);
+			if( !argsr.ok() )
+				return argsr;
 
-		args.push_back(argsr.unwrap());
+			args.types.push_back(argsr.unwrap());
+		}
+		else
+		{
+			args.is_var_arg = true;
+		}
 	}
 
 	return args;
@@ -358,14 +374,16 @@ CG::codegen_function_proto(ir::IRProto* proto)
 	auto paramsr = get_params_types(*this, proto);
 	if( !paramsr.ok() )
 		return paramsr;
-	auto ParamsTys = paramsr.unwrap();
+	auto params_info = paramsr.unwrap();
+	auto ParamsTys = params_info.types;
+	auto is_var_arg = params_info.is_var_arg;
 
 	auto retr = get_type(*this, proto->rt);
 	if( !retr.ok() )
 		return retr;
 	auto ReturnTy = retr.unwrap();
 
-	llvm::FunctionType* FT = llvm::FunctionType::get(ReturnTy, ParamsTys, false);
+	llvm::FunctionType* FT = llvm::FunctionType::get(ReturnTy, ParamsTys, is_var_arg);
 
 	llvm::Function* Function =
 		llvm::Function::Create(FT, llvm::Function::ExternalLinkage, *name, Module.get());
@@ -382,6 +400,7 @@ static cg::CGResult<cg::CGExpr>
 codegen_function_entry(CG& cg, cg::CGFunctionContext ctx)
 {
 	auto Function = ctx.Fn;
+	auto fn_type = ctx.fn_type;
 
 	llvm::BasicBlock* BB = llvm::BasicBlock::Create(*cg.Context, "entry", Function);
 	cg.Builder->SetInsertPoint(BB);
@@ -390,13 +409,18 @@ codegen_function_entry(CG& cg, cg::CGFunctionContext ctx)
 	if( args.empty() )
 		return CGExpr();
 
+	auto idx = 0;
 	for( auto& Arg : args )
 	{
+		auto arg_info = fn_type->get_member(idx++);
 		// Create an alloca for this variable.
-		llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(Arg.getType(), nullptr, Arg.getName());
+		auto arg_name = arg_info.name;
+		llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(Arg.getType(), nullptr, arg_name);
 
 		// Store the initial value into the alloca.
 		cg.Builder->CreateStore(&Arg, Alloca);
+
+		cg.values.emplace(arg_name, Alloca);
 	}
 
 	return CGExpr();
@@ -597,6 +621,8 @@ CG::codegen_id(ir::IRId* id)
 	// TODO: This supports 'let my_point = Point' initialization.
 	// I can see the "Codegen Id" function getting a little wild.
 	// Need to rethink it.
+	// TODO: This should be get type by name...
+	// Otherwise bad codegen.
 	auto maybe_type = get_type(*this, id->type_instance);
 	if( maybe_type.ok() )
 		return CGExpr();

@@ -243,3 +243,11 @@ Ast::Stmt(Span span, AstNode* expr)
 	node->data.stmt = AstStmt{expr};
 	return node;
 }
+
+AstNode*
+Ast::VarArg(Span span)
+{
+	auto node = make_empty<AstVarArg>(span);
+	node->data.var_arg = AstVarArg{};
+	return node;
+}
