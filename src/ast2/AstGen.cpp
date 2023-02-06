@@ -861,6 +861,7 @@ AstGen::parse_postfix_expr()
 			{
 				return expr;
 			}
+			expr = ast.Expr(trail.mark(), expr.unwrap());
 			break;
 		case TokenType::open_paren:
 			expr = parse_call(expr.unwrap());
@@ -868,14 +869,16 @@ AstGen::parse_postfix_expr()
 			{
 				return expr;
 			}
+			expr = ast.Expr(trail.mark(), expr.unwrap());
 			break;
 		default:
+			expr = ast.Expr(trail.mark(), expr.unwrap());
 			goto done;
 			break;
 		}
 	}
 done:
-	return ast.Expr(trail.mark(), expr.unwrap());
+	return expr;
 }
 
 ParseResult<ast::AstNode*>
