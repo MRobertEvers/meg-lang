@@ -173,3 +173,11 @@ ast::as_expr(ast::AstNode* node)
 
 	return &node->data.expr;
 }
+Cast<AstStruct>
+ast::as_struct(ast::AstNode* node)
+{
+	if( node->type != AstStruct::nt )
+		return Cast<AstStruct>();
+
+	return &node->data.structstmt;
+}

@@ -40,8 +40,8 @@ ast::to_string(NodeType type)
 		return "Return";
 	case NodeType::Struct:
 		return "Struct";
-	case NodeType::MemberDef:
-		return "MemberDef";
+	// case NodeType::MemberDef:
+	// 	return "MemberDef";
 	case NodeType::While:
 		return "While";
 	case NodeType::For:

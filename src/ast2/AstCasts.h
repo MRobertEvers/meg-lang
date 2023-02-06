@@ -37,6 +37,7 @@ Cast<AstNumberLiteral> as_number_literal(ast::AstNode* node);
 Cast<AstStringLiteral> as_string_literal(ast::AstNode* node);
 Cast<AstStmt> as_stmt(ast::AstNode* node);
 Cast<AstExpr> as_expr(ast::AstNode* node);
+Cast<AstStruct> as_struct(ast::AstNode* node);
 
 // template<template<typename> typename Container, typename NodeType>
 // Container<NodeType>

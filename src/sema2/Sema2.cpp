@@ -95,6 +95,12 @@ Sema2::create_tlslist()
 	return new Vec<ir::IRTopLevelStmt*>();
 }
 
+std::map<String, ir::IRValueDecl*>*
+Sema2::create_member_map()
+{
+	return new std::map<String, ir::IRValueDecl*>();
+}
+
 Vec<ir::IRStmt*>*
 Sema2::create_slist()
 {
@@ -152,6 +158,18 @@ Sema2::TLS(ir::IRFunction* fn)
 	nod->node = fn->node;
 	nod->stmt.fn = fn;
 	nod->type = ir::IRTopLevelType::Function;
+
+	return nod;
+}
+
+ir::IRTopLevelStmt*
+Sema2::TLS(ir::IRStruct* st)
+{
+	auto nod = new ir::IRTopLevelStmt;
+
+	nod->node = st->node;
+	nod->stmt.struct_decl = st;
+	nod->type = ir::IRTopLevelType::Struct;
 
 	return nod;
 }
@@ -465,6 +483,19 @@ Sema2::BinOp(ast::AstNode* node, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs
 	nod->node = node;
 	nod->lhs = lhs;
 	nod->rhs = rhs;
+
+	return nod;
+}
+
+ir::IRStruct*
+Sema2::Struct(
+	ast::AstNode* node, sema::Type const* type, std::map<String, ir::IRValueDecl*>* members)
+{
+	auto nod = new ir::IRStruct;
+
+	nod->node = node;
+	nod->members = members;
+	nod->struct_type = type;
 
 	return nod;
 }

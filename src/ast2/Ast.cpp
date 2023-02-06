@@ -162,13 +162,13 @@ Ast::Struct(Span span, AstNode* type_name, AstList<AstNode*>* members)
 	return node;
 }
 
-AstNode*
-Ast::Member(Span span, AstNode* identifier, AstNode* type_declarator)
-{
-	auto node = make_empty<AstMemberDef>(span);
-	node->data.member = AstMemberDef{identifier, type_declarator};
-	return node;
-}
+// AstNode*
+// Ast::Member(Span span, AstNode* identifier, AstNode* type_declarator)
+// {
+// 	auto node = make_empty<AstMemberDef>(span);
+// 	node->data.member = AstMemberDef{identifier, type_declarator};
+// 	return node;
+// }
 
 AstNode*
 Ast::While(Span span, AstNode* condition, AstNode* block)

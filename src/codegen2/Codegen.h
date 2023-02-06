@@ -68,6 +68,7 @@ public:
 	CGResult<CGExpr> codegen_binop(ir::IRBinOp*);
 	CGResult<CGExpr> codegen_call(ir::IRCall*);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
+	CGResult<CGExpr> codegen_struct(ir::IRStruct* st);
 
 	std::optional<llvm::Type*> find_type(sema::Type const*);
 };

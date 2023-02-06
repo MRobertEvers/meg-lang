@@ -5,6 +5,8 @@
 #include "common/Vec.h"
 #include "type/Type.h"
 
+#include <map>
+
 namespace ir
 {
 struct IRModule;
@@ -20,6 +22,7 @@ struct IRExpr;
 struct IRValueDecl;
 struct IRExpr;
 struct IRAssign;
+struct IRStruct;
 
 struct IRModule
 {
@@ -31,7 +34,8 @@ struct IRModule
 enum IRTopLevelType
 {
 	Function,
-	ExternFn
+	ExternFn,
+	Struct
 };
 
 struct IRTopLevelStmt
@@ -40,6 +44,7 @@ struct IRTopLevelStmt
 	//
 	union
 	{
+		IRStruct* struct_decl;
 		IRFunction* fn;
 		IRExternFn* extern_fn;
 	} stmt;
@@ -85,6 +90,15 @@ struct IRTypeDeclaraor
 {
 	ast::AstNode* node;
 	sema::TypeInstance type_instance;
+};
+
+struct IRStruct
+{
+	ast::AstNode* node;
+	// TODO: Support non-member decls.
+	std::map<String, ir::IRValueDecl*>* members;
+
+	sema::Type const* struct_type;
 };
 
 struct IRBlock

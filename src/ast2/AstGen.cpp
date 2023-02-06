@@ -203,7 +203,7 @@ AstGen::parse_struct()
 			return ParseError("Expected ';'.", consume_tok.as());
 		}
 
-		members->append(ast.Member(member_trail.mark(), name, decl.unwrap()));
+		members->append(ast.ValueDecl(member_trail.mark(), name, decl.unwrap()));
 
 		tok = cursor.peek();
 	}

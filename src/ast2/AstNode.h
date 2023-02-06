@@ -26,7 +26,7 @@ enum class NodeType
 	Let,
 	Return,
 	Struct,
-	MemberDef,
+	// MemberDef,
 	While,
 	For,
 	StringLiteral,
@@ -301,19 +301,19 @@ struct AstStruct
 	{}
 };
 
-struct AstMemberDef
-{
-	static constexpr NodeType nt = NodeType::MemberDef;
+// struct AstMemberDef
+// {
+// 	static constexpr NodeType nt = NodeType::MemberDef;
 
-	AstNode* identifier;
-	AstNode* type_declarator;
+// 	AstNode* identifier;
+// 	AstNode* type_declarator;
 
-	AstMemberDef() = default;
-	AstMemberDef(AstNode* identifier, AstNode* type_declarator)
-		: identifier(identifier)
-		, type_declarator(type_declarator)
-	{}
-};
+// 	AstMemberDef() = default;
+// 	AstMemberDef(AstNode* identifier, AstNode* type_declarator)
+// 		: identifier(identifier)
+// 		, type_declarator(type_declarator)
+// 	{}
+// };
 
 struct AstWhile
 {
@@ -447,7 +447,7 @@ struct AstNode
 		AstLet let;
 		AstReturn returnexpr;
 		AstStruct structstmt;
-		AstMemberDef member;
+		// AstMemberDef member;
 		AstWhile whilestmt;
 		AstFor forstmt;
 		AstStringLiteral string_literal;

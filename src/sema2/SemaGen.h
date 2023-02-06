@@ -26,6 +26,7 @@ expected(ast::AstNode* node, ast::Cast<NodeType> (*cast)(ast::AstNode* node))
 SemaResult<ir::IRModule*> sema_module(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRTopLevelStmt*> sema_tls(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRStmt*> sema_stmt(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRValueDecl*> sema_struct_tls(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExpr*> sema_expr_any(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExpr*> sema_expr(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExternFn*> sema_extern_fn(Sema2& sema, ast::AstNode* ast);
@@ -39,9 +40,12 @@ SemaResult<ir::IRAssign*> sema_assign(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRBinOp*> sema_binop(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRBlock*> sema_block(Sema2& sema, ast::AstNode* ast, bool new_scope);
 SemaResult<ir::IRProto*> sema_fn_proto(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRStruct*> sema_struct(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRValueDecl*> sema_value_decl(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRNumberLiteral*> sema_number_literal(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRStringLiteral*> sema_string_literal(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRTypeDeclaraor*> sema_type_decl(Sema2& sema, ast::AstNode* ast);
+
+SemaResult<ir::IRFunction*> generate_constructor(Sema2& sema, ast::AstNode* ast);
 
 }; // namespace sema

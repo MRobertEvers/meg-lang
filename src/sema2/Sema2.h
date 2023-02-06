@@ -10,6 +10,7 @@
 #include "common/Vec.h"
 #include "type/Type.h"
 
+#include <map>
 #include <optional>
 
 namespace sema
@@ -20,6 +21,10 @@ class Sema2
 
 	Vec<Scope> scopes;
 	Scope* current_scope = nullptr;
+
+	// We must track the current module so we can emit
+	// generated functions.
+	ir::IRModule* current_module = nullptr;
 
 public:
 	Types types;
@@ -68,6 +73,7 @@ public:
 	Type const* lookup_type(String const& name);
 
 	Vec<ir::IRTopLevelStmt*>* create_tlslist();
+	std::map<String, ir::IRValueDecl*>* create_member_map();
 	Vec<ir::IRStmt*>* create_slist();
 	Vec<ir::IRExpr*>* create_elist();
 	Vec<ir::IRValueDecl*>* create_argslist();
@@ -76,6 +82,7 @@ public:
 	ir::IRModule* Module(ast::AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts);
 	ir::IRTopLevelStmt* TLS(ir::IRExternFn*);
 	ir::IRTopLevelStmt* TLS(ir::IRFunction*);
+	ir::IRTopLevelStmt* TLS(ir::IRStruct*);
 	ir::IRFunction* Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block);
 	ir::IRCall* FnCall(ast::AstNode* node, ir::IRExpr* call_target, ir::IRArgs* args);
 	ir::IRExternFn* ExternFn(ast::AstNode* node, ir::IRProto* stmts);
@@ -106,8 +113,9 @@ public:
 	StringLiteral(ast::AstNode* node, TypeInstance type_instance, String* name);
 	ir::IRId* Id(ast::AstNode* node, String* name, sema::TypeInstance type);
 	ir::IRLet* Let(ast::AstNode* node, String* name, ir::IRAssign* assign);
-	ir::IRAssign* Assign(ast::AstNode* node, ast::AssignOp op, ir::IRExpr* lhs, ir::IRExpr* rhs);
-	ir::IRBinOp* BinOp(ast::AstNode* node, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs);
+	ir::IRAssign* Assign(ast::AstNode*, ast::AssignOp, ir::IRExpr*, ir::IRExpr*);
+	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*);
+	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 };
 
 } // namespace sema

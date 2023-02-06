@@ -2,8 +2,14 @@
 
 extern fn printf(str: i8*): void;
 
+struct Point {
+    x: i32;
+    y: i32;
+}
+
 fn main(): i32 
 {
+    let billy: Point = Point;
     let harg = 10;
     let my_var = 5*6 + harg;
     printf("Hello world");

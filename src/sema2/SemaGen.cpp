@@ -111,6 +111,14 @@ sema::sema_tls(Sema2& sema, AstNode* ast)
 
 		return sema.TLS(ex.unwrap());
 	}
+	case NodeType::Struct:
+	{
+		auto ex = sema_struct(sema, ast);
+		if( !ex.ok() )
+			return ex;
+
+		return sema.TLS(ex.unwrap());
+	}
 	default:
 		return SemaError("Unsupported NodeType as TLS.");
 	}
@@ -163,6 +171,13 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 	}
 
 	return NotImpl();
+}
+
+SemaResult<ir::IRValueDecl*>
+sema::sema_struct_tls(Sema2& sema, ast::AstNode* ast)
+{
+	// TODO: variadic type
+	return sema_value_decl(sema, ast);
 }
 
 SemaResult<ir::IRExpr*>
@@ -309,6 +324,9 @@ sema::sema_fn_call(Sema2& sema, ast::AstNode* ast)
 		return call_targetr;
 	auto call_target = call_targetr.unwrap();
 
+	if( !call_target->type_instance.type->is_function_type() )
+		return SemaError("...is not a function!");
+
 	auto argsr = sema_fn_args(sema, fn_call.args);
 	if( !argsr.ok() )
 		return argsr;
@@ -324,11 +342,22 @@ sema::sema_id(Sema2& sema, ast::AstNode* ast)
 		return idr;
 	auto id = idr.unwrap();
 
-	auto maybe_type = sema.lookup_name(*id.name);
-	if( !maybe_type.has_value() )
-		return SemaError("Unrecognized variable '" + *id.name + "'");
+	auto maybe_value = sema.lookup_name(*id.name);
+	if( maybe_value.has_value() )
+		return sema.Id(ast, id.name, maybe_value.value());
 
-	return sema.Id(ast, id.name, maybe_type.value());
+	// Struct name?
+	auto maybe_struct = sema.lookup_type(*id.name);
+	if( maybe_struct && maybe_struct->is_struct_type() )
+	{
+		// Lookup constructor.
+		// Note that we need to generate a constructor?
+		auto str_name = maybe_struct->get_name();
+		auto name = sema.create_name(str_name.c_str(), str_name.size());
+		return sema.Id(ast, name, TypeInstance::OfType(maybe_struct));
+	}
+
+	return SemaError("Unrecognized variable '" + *id.name + "'");
 }
 
 SemaResult<ir::IRReturn*>
@@ -502,6 +531,19 @@ params_to_members(Vec<ir::IRValueDecl*>* params)
 	return mems;
 }
 
+static std::map<String, TypedMember>
+members_to_members(std::map<String, ir::IRValueDecl*>& params)
+{
+	std::map<String, TypedMember> map;
+
+	for( auto param : params )
+	{
+		// TODO: Should functions have named members too?
+		map.emplace(param.first, TypedMember(param.second->type_decl->type_instance, param.first));
+	}
+	return map;
+}
+
 SemaResult<ir::IRProto*>
 sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 {
@@ -544,6 +586,38 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 	sema.add_value_identifier(*name, TypeInstance::OfType(fn_type));
 
 	return sema.Proto(ast, name, argslist, rt, fn_type);
+}
+
+SemaResult<ir::IRStruct*>
+sema::sema_struct(Sema2& sema, ast::AstNode* ast)
+{
+	auto structr = expected(ast, ast::as_struct);
+	if( !structr.ok() )
+		return structr;
+	auto struct_node = structr.unwrap();
+
+	auto namer = as_name(sema, struct_node.type_name);
+	if( !namer.ok() )
+		return namer;
+
+	auto name = namer.unwrap();
+
+	auto members = sema.create_member_map();
+	for( auto stmt : struct_node.members )
+	{
+		auto memberr = sema_struct_tls(sema, stmt);
+		if( !memberr.ok() )
+			return memberr;
+
+		auto member = memberr.unwrap();
+
+		members->emplace(*member->name, member);
+	}
+
+	auto fn_type = sema.CreateType(Type::Struct(*name, members_to_members(*members)));
+	sema.add_type_identifier(fn_type);
+
+	return sema.Struct(ast, fn_type, members);
 }
 
 SemaResult<ir::IRValueDecl*>
@@ -613,3 +687,7 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 		return sema.TypeDecl(ast, TypeInstance::OfType(sema.types.infer_type()));
 	}
 }
+
+SemaResult<ir::IRFunction*>
+sema::generate_constructor(Sema2& sema, ast::AstNode* ast)
+{}

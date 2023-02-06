@@ -142,6 +142,8 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 		return codegen_extern_fn(tls->stmt.extern_fn);
 	case ir::IRTopLevelType::Function:
 		return codegen_function(tls->stmt.fn);
+	case ir::IRTopLevelType::Struct:
+		return codegen_struct(tls->stmt.struct_decl);
 	}
 
 	return NotImpl();
@@ -539,9 +541,32 @@ CG::codegen_id(ir::IRId* id)
 	// auto iter_type = types.find(id->type_instance.type);
 	auto value = get_value(*this, *id->name);
 	if( !value.has_value() )
-		return CGError("Undeclared identifier!");
+		return CGError("Undeclared identifier! " + *id->name);
 
 	return value.value();
+}
+
+CGResult<CGExpr>
+CG::codegen_struct(ir::IRStruct* st)
+{
+	Vec<llvm::Type*> members;
+	for( auto& member : *st->members )
+	{
+		auto value_decl = member.second;
+		auto typerr = get_type(*this, value_decl->type_decl);
+		if( !typerr.ok() )
+			return typerr;
+
+		members.push_back(typerr.unwrap());
+	}
+
+	auto struct_type = st->struct_type;
+	auto name = struct_type->get_name();
+	llvm::StructType* StructTy = llvm::StructType::create(*Context, members, name);
+
+	this->types.emplace(struct_type, StructTy);
+
+	return CGExpr();
 }
 
 std::optional<llvm::Type*>
