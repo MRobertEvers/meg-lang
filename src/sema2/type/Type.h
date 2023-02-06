@@ -54,6 +54,9 @@ public:
 	bool is_struct_type() const { return cls == TypeClassification::struct_cls; }
 	String get_name() const;
 
+	std::optional<TypedMember> get_member(String const& name) const;
+	TypedMember get_member(int idx) const;
+
 	static Type Function(String const& name, Vec<TypedMember> args, TypeInstance return_type);
 	static Type Struct(String const& name, std::map<String, TypedMember> members);
 	static Type Primitive(String name);

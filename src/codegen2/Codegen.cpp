@@ -184,6 +184,8 @@ CG::codegen_expr(ir::IRExpr* expr)
 		return codegen_value_decl(expr->expr.decl);
 	case ir::IRExprType::BinOp:
 		return codegen_binop(expr->expr.binop);
+	case ir::IRExprType::MemberAccess:
+		return codegen_member_access(expr->expr.member_access);
 	}
 
 	return NotImpl();
@@ -221,6 +223,40 @@ CG::codegen_return(ir::IRReturn* ret)
 }
 
 CGResult<CGExpr>
+CG::codegen_member_access(ir::IRMemberAccess* ma)
+{
+	auto exprr = codegen_expr(ma->expr);
+	if( !exprr.ok() )
+		return exprr;
+	auto expr = exprr.unwrap();
+	auto ExprValue = expr.as_value();
+
+	auto expr_ty = ma->expr->type_instance;
+	assert(expr_ty.type->is_struct_type() && expr_ty.indirection_level == 0);
+	auto llvm_expr_tyr = get_type(*this, expr_ty);
+	if( !llvm_expr_tyr.ok() )
+		return llvm_expr_tyr;
+	auto ExprTy = llvm_expr_tyr.unwrap();
+
+	auto struct_ty_name = expr_ty.type->get_name();
+
+	auto member_name = *ma->member_name;
+	auto maybe_member = expr_ty.type->get_member(member_name);
+	assert(maybe_member.has_value());
+
+	auto member = maybe_member.value();
+	auto llvm_member_tyr = get_type(*this, member.type);
+	if( !llvm_member_tyr.ok() )
+		return llvm_member_tyr;
+	auto MemberTy = llvm_member_tyr.unwrap();
+
+	auto MemberPtr =
+		Builder->CreateStructGEP(ExprTy, ExprValue, member.idx, struct_ty_name + "." + member_name);
+
+	return CGExpr(MemberPtr);
+}
+
+CGResult<CGExpr>
 CG::codegen_let(ir::IRLet* let)
 {
 	auto name = let->name;
@@ -253,6 +289,17 @@ CG::codegen_assign(ir::IRAssign* assign)
 
 	auto lexpr = lhsr.unwrap();
 	auto rexpr = rhsr.unwrap();
+
+	// TODO: The RHS might be a Struct type name.
+	// E.g.
+	//
+	// let my_point = Point;
+	//
+	// In this case, assignment is a no op.
+	// TODO: Later, insert a constructor call?
+	if( rexpr.type == CGExprType::Empty )
+		return CGExpr();
+
 	// TODO: lvalue rvalue?
 	auto LValue = lexpr.as_value();
 	auto RValue = rexpr.as_value();
@@ -292,7 +339,11 @@ CG::codegen_assign(ir::IRAssign* assign)
 	}
 	break;
 	case ast::AssignOp::assign:
-		Builder->CreateStore(RValue, LValue);
+		// TODO: Constant expressions return their exact values,
+		// LValue expressions return a pointer to them, so LValues need
+		// to be promoted. Need to create LValue type
+		auto RValuePromoted = __deprecate_promote_to_value(*this, RValue);
+		Builder->CreateStore(RValuePromoted, LValue);
 		break;
 	}
 
@@ -540,10 +591,17 @@ CG::codegen_id(ir::IRId* id)
 {
 	// auto iter_type = types.find(id->type_instance.type);
 	auto value = get_value(*this, *id->name);
-	if( !value.has_value() )
-		return CGError("Undeclared identifier! " + *id->name);
+	if( value.has_value() )
+		return value.value();
 
-	return value.value();
+	// TODO: This supports 'let my_point = Point' initialization.
+	// I can see the "Codegen Id" function getting a little wild.
+	// Need to rethink it.
+	auto maybe_type = get_type(*this, id->type_instance);
+	if( maybe_type.ok() )
+		return CGExpr();
+
+	return CGError("Undeclared identifier! " + *id->name);
 }
 
 CGResult<CGExpr>

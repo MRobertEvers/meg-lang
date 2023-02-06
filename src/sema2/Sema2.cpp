@@ -354,6 +354,19 @@ Sema2::Expr(ir::IRBinOp* nl)
 	return nod;
 }
 
+ir::IRExpr*
+Sema2::Expr(ir::IRMemberAccess* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.member_access = nl;
+	nod->type = ir::IRExprType::MemberAccess;
+	nod->type_instance = nl->type_instance;
+
+	return nod;
+}
+
 ir::IRStmt*
 Sema2::Stmt(ir::IRReturn* ret)
 {
@@ -496,6 +509,20 @@ Sema2::Struct(
 	nod->node = node;
 	nod->members = members;
 	nod->struct_type = type;
+
+	return nod;
+}
+
+ir::IRMemberAccess*
+Sema2::MemberAccess(
+	ast::AstNode* node, ir::IRExpr* expr, sema::TypeInstance member_type, String* member_name)
+{
+	auto nod = new ir::IRMemberAccess;
+
+	nod->node = node;
+	nod->member_name = member_name;
+	nod->type_instance = member_type;
+	nod->expr = expr;
 
 	return nod;
 }

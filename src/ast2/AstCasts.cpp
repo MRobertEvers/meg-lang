@@ -181,3 +181,12 @@ ast::as_struct(ast::AstNode* node)
 
 	return &node->data.structstmt;
 }
+
+Cast<AstMemberAccess>
+ast::as_member_access(ast::AstNode* node)
+{
+	if( node->type != AstMemberAccess::nt )
+		return Cast<AstMemberAccess>();
+
+	return &node->data.member_access;
+}

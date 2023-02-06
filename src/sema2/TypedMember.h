@@ -8,9 +8,11 @@ struct TypedMember
 {
 	TypeInstance type;
 	String name;
+	int idx;
 
-	TypedMember(TypeInstance type, String name)
+	TypedMember(TypeInstance type, String name, int idx)
 		: type(type)
-		, name(name){};
+		, name(name)
+		, idx(idx){};
 };
 }; // namespace sema

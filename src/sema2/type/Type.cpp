@@ -46,6 +46,24 @@ Type::get_name() const
 	return name;
 }
 
+std::optional<TypedMember>
+Type::get_member(String const& name) const
+{
+	auto iter_member = members.find(name);
+	if( iter_member != members.end() )
+		return iter_member->second;
+
+	return std::optional<TypedMember>();
+}
+
+TypedMember
+Type::get_member(int idx) const
+{
+	assert(idx < members_order.size());
+
+	return members_order.at(idx);
+}
+
 // static TypeInstance const*
 // find(std::map<String, TypedMember>& members, String& name)
 // {

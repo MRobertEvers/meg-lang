@@ -24,7 +24,8 @@ class Sema2
 
 	// We must track the current module so we can emit
 	// generated functions.
-	ir::IRModule* current_module = nullptr;
+
+	Vec<ir::IRTopLevelStmt*> generated;
 
 public:
 	Types types;
@@ -102,6 +103,7 @@ public:
 	ir::IRExpr* Expr(ir::IRId*);
 	ir::IRExpr* Expr(ir::IRValueDecl*);
 	ir::IRExpr* Expr(ir::IRBinOp*);
+	ir::IRExpr* Expr(ir::IRMemberAccess*);
 	ir::IRStmt* Stmt(ir::IRReturn*);
 	ir::IRStmt* Stmt(ir::IRExpr*);
 	ir::IRStmt* Stmt(ir::IRLet*);
@@ -116,6 +118,7 @@ public:
 	ir::IRAssign* Assign(ast::AstNode*, ast::AssignOp, ir::IRExpr*, ir::IRExpr*);
 	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*);
 	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
+	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
 };
 
 } // namespace sema

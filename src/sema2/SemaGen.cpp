@@ -233,6 +233,14 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 
 		return sema.Expr(litr.unwrap());
 	}
+	case NodeType::MemberAccess:
+	{
+		auto litr = sema_member_access(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
 	default:
 		break;
 	}
@@ -358,6 +366,37 @@ sema::sema_id(Sema2& sema, ast::AstNode* ast)
 	}
 
 	return SemaError("Unrecognized variable '" + *id.name + "'");
+}
+
+SemaResult<ir::IRMemberAccess*>
+sema::sema_member_access(Sema2& sema, ast::AstNode* ast)
+{
+	auto mar = expected(ast, ast::as_member_access);
+	if( !mar.ok() )
+		return mar;
+	auto ma = mar.unwrap();
+
+	auto namer = as_name(sema, ma.member_name);
+	if( !namer.ok() )
+		return namer;
+	auto name = namer.unwrap();
+
+	auto val_exprr = sema_expr(sema, ma.expr);
+	if( !val_exprr.ok() )
+		return val_exprr;
+	auto val_expr = val_exprr.unwrap();
+
+	auto expr_type = val_expr->type_instance;
+	if( !expr_type.type->is_struct_type() || expr_type.indirection_level != 0 )
+		return SemaError("Cannot access member '" + *name + "' of '" + to_string(expr_type) + "'");
+
+	auto member = expr_type.type->get_member(*name);
+	if( !member.has_value() )
+		return SemaError(
+			"Cannot access member '" + *name + "' of '" + to_string(expr_type) + "' because '" +
+			*name + "' does not exist");
+	auto member_type = member.value();
+	return sema.MemberAccess(ast, val_expr, member_type.type, name);
 }
 
 SemaResult<ir::IRReturn*>
@@ -524,9 +563,10 @@ params_to_members(Vec<ir::IRValueDecl*>* params)
 {
 	Vec<TypedMember> mems;
 
+	int idx = 0;
 	for( auto param : *params )
 	{
-		mems.emplace_back(param->type_decl->type_instance, *param->name);
+		mems.emplace_back(param->type_decl->type_instance, *param->name, idx++);
 	}
 	return mems;
 }
@@ -536,10 +576,12 @@ members_to_members(std::map<String, ir::IRValueDecl*>& params)
 {
 	std::map<String, TypedMember> map;
 
+	int idx = 0;
 	for( auto param : params )
 	{
 		// TODO: Should functions have named members too?
-		map.emplace(param.first, TypedMember(param.second->type_decl->type_instance, param.first));
+		map.emplace(
+			param.first, TypedMember(param.second->type_decl->type_instance, param.first, idx++));
 	}
 	return map;
 }

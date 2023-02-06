@@ -181,6 +181,15 @@ struct IRStringLiteral
 	sema::TypeInstance type_instance;
 };
 
+struct IRMemberAccess
+{
+	//
+	ast::AstNode* node;
+	String* member_name;
+	sema::TypeInstance type_instance;
+	IRExpr* expr;
+};
+
 enum class IRStmtType
 {
 	Return,
@@ -210,6 +219,7 @@ enum class IRExprType
 	Id,
 	BinOp,
 	ValueDecl,
+	MemberAccess
 };
 
 struct IRExpr
@@ -224,6 +234,7 @@ struct IRExpr
 		IRNumberLiteral* num_literal;
 		IRCall* call;
 		IRBinOp* binop;
+		IRMemberAccess* member_access;
 	} expr;
 	IRExprType type;
 

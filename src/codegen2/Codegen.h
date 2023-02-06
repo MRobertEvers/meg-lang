@@ -55,6 +55,7 @@ public:
 	CGResult<CGExpr> codegen_expr(ir::IRExpr*);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
 	CGResult<CGExpr> codegen_return(ir::IRReturn*);
+	CGResult<CGExpr> codegen_member_access(ir::IRMemberAccess*);
 	CGResult<CGExpr> codegen_let(ir::IRLet*);
 	CGResult<CGExpr> codegen_assign(ir::IRAssign*);
 	CGResult<CGFunctionContext> codegen_function_proto(ir::IRProto*);
