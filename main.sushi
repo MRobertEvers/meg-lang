@@ -10,13 +10,13 @@ struct Name {
 struct Point {
     x: i32;
     y: i32;
-    name: Name;
 }
 
 fn make_point(x: i32, y: i32): Point {
     let result = Point;
     result.x = x;
     result.y = y;
+
     return result;
 }
 
@@ -30,8 +30,9 @@ fn main(): i32
 
     let my_point = make_point(7, 8);
 
+
     // let harg = billy.y;
     // let my_var = 5*6 + harg;
-    printf("Hello world %d", 9);
+    printf("Point (%d, %d)", my_point.x, my_point.y);
     return 1;
 }

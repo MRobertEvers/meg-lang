@@ -57,6 +57,7 @@ public:
 
 	std::optional<TypedMember> get_member(String const& name) const;
 	TypedMember get_member(int idx) const;
+	int get_member_count() const;
 
 	static Type Function(String const&, Vec<TypedMember>, TypeInstance, bool);
 	static Type Function(String const&, Vec<TypedMember>, TypeInstance);

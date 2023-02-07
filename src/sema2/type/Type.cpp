@@ -65,6 +65,15 @@ Type::get_member(int idx) const
 	return members_order.at(idx);
 }
 
+int
+Type::get_member_count() const
+{
+	if( cls == TypeClassification::function )
+		return members_order.size();
+	else
+		return members.size();
+}
+
 // static TypeInstance const*
 // find(std::map<String, TypedMember>& members, String& name)
 // {

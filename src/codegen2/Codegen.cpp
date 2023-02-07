@@ -186,10 +186,16 @@ CG::codegen_stmt(ir::IRStmt* stmt)
 CGResult<CGExpr>
 CG::codegen_expr(ir::IRExpr* expr)
 {
+	return codegen_expr(expr, std::optional<CGExpr>());
+}
+
+CGResult<CGExpr>
+CG::codegen_expr(ir::IRExpr* expr, std::optional<CGExpr> lvalue)
+{
 	switch( expr->type )
 	{
 	case ir::IRExprType::Call:
-		return codegen_call(expr->expr.call);
+		return codegen_call(expr->expr.call, lvalue);
 	case ir::IRExprType::Id:
 		return codegen_id(expr->expr.id);
 	case ir::IRExprType::NumberLiteral:
@@ -224,15 +230,43 @@ CG::codegen_return(ir::IRReturn* ret)
 	auto exprr = codegen_expr(ret->expr);
 	if( !exprr.ok() )
 		return exprr;
+	auto expr = exprr.unwrap();
 
 	auto rt = fn_ctx.fn_type->get_return_type().value();
 	if( sema.types.equal_types(rt, sema.types.VoidType()) )
 	{
 		Builder->CreateRetVoid();
 	}
+	else if( rt.type->is_struct_type() && rt.indirection_level == 0 )
+	{
+		auto Function = fn_ctx.Fn;
+		auto MaybeSRet = Function->getArg(0);
+		if( MaybeSRet->hasAttribute(llvm::Attribute::StructRet) )
+		{
+			auto SRet = Function->getArg(0);
+			auto Expr = expr.as_value();
+
+			// TODO: Compute alignment from member
+			auto Size =
+				Module->getDataLayout().getTypeAllocSize(Expr->getType()->getPointerElementType());
+			auto Align =
+				Module->getDataLayout().getPrefTypeAlign(Expr->getType()->getPointerElementType());
+
+			// llvm::AllocaInst* Alloca = Builder->CreateAlloca(Expr->getType(), nullptr);
+			// Builder->CreateStore(SRet, Alloca);
+
+			Builder->CreateMemCpy(SRet, Align, Expr, Align, Size);
+			Builder->CreateRetVoid();
+		}
+		else
+		{
+			assert(0); // ???
+			Builder->CreateRetVoid();
+		}
+	}
 	else
 	{
-		Builder->CreateRet(exprr.unwrap().as_value());
+		Builder->CreateRet(expr.as_value());
 	}
 
 	return CGExpr();
@@ -292,6 +326,12 @@ CG::codegen_let(ir::IRLet* let)
 	return CGExpr(Alloca);
 }
 
+// CGResult<CGExpr>
+// CG::codegen_assign(ir::IRAssign* assign)
+// {
+// 	return codegen_assign(assign, std::optional<CGExpr>());
+// }
+
 CGResult<CGExpr>
 CG::codegen_assign(ir::IRAssign* assign)
 {
@@ -299,11 +339,11 @@ CG::codegen_assign(ir::IRAssign* assign)
 	if( !lhsr.ok() )
 		return lhsr;
 
-	auto rhsr = codegen_expr(assign->rhs);
+	auto lexpr = lhsr.unwrap();
+	auto rhsr = codegen_expr(assign->rhs, lexpr);
 	if( !rhsr.ok() )
 		return rhsr;
 
-	auto lexpr = lhsr.unwrap();
 	auto rexpr = rhsr.unwrap();
 
 	// TODO: The RHS might be a Struct type name.
@@ -383,21 +423,48 @@ CG::codegen_function_proto(ir::IRProto* proto)
 		return retr;
 	auto ReturnTy = retr.unwrap();
 
-	llvm::FunctionType* FT = llvm::FunctionType::get(ReturnTy, ParamsTys, is_var_arg);
+	auto rt_ty = proto->rt->type_instance;
+	if( rt_ty.type->is_struct_type() && rt_ty.indirection_level == 0 )
+	{
+		ParamsTys.insert(ParamsTys.begin(), ReturnTy->getPointerTo());
+		auto VoidReturnTy = llvm::Type::getVoidTy(*Context);
 
-	llvm::Function* Function =
-		llvm::Function::Create(FT, llvm::Function::ExternalLinkage, *name, Module.get());
+		llvm::FunctionType* FT = llvm::FunctionType::get(VoidReturnTy, ParamsTys, is_var_arg);
 
-	Functions.emplace(*name, Function);
-	auto fn_type = proto->fn_type;
-	types.emplace(fn_type, FT);
-	values.emplace(*name, Function);
+		llvm::Function* Function =
+			llvm::Function::Create(FT, llvm::Function::ExternalLinkage, *name, Module.get());
 
-	return CGFunctionContext(Function, fn_type);
+		// Function->getArg(0)->addAttr(
+		// 	llvm::Attribute::get(*Context, llvm::Attribute::AttrKind::StructRet));
+		auto& Builder = llvm::AttrBuilder().addStructRetAttr(ReturnTy);
+
+		Function->getArg(0)->addAttrs(Builder);
+
+		Functions.emplace(*name, Function);
+		auto fn_type = proto->fn_type;
+		types.emplace(fn_type, FT);
+		values.emplace(*name, Function);
+
+		return CGFunctionContext(Function, fn_type);
+	}
+	else
+	{
+		llvm::FunctionType* FT = llvm::FunctionType::get(ReturnTy, ParamsTys, is_var_arg);
+
+		llvm::Function* Function =
+			llvm::Function::Create(FT, llvm::Function::ExternalLinkage, *name, Module.get());
+
+		Functions.emplace(*name, Function);
+		auto fn_type = proto->fn_type;
+		types.emplace(fn_type, FT);
+		values.emplace(*name, Function);
+
+		return CGFunctionContext(Function, fn_type);
+	}
 }
 
 static cg::CGResult<cg::CGExpr>
-codegen_function_entry(CG& cg, cg::CGFunctionContext ctx)
+codegen_function_entry(CG& cg, cg::CGFunctionContext& ctx)
 {
 	auto Function = ctx.Fn;
 	auto fn_type = ctx.fn_type;
@@ -409,10 +476,21 @@ codegen_function_entry(CG& cg, cg::CGFunctionContext ctx)
 	if( args.empty() )
 		return CGExpr();
 
+	// TODO: Need a better way to generate an SRet function
 	auto idx = 0;
+	auto skip_first = Function->getArg(0)->hasAttribute(llvm::Attribute::StructRet) ? 1 : 0;
+	idx += skip_first;
+	bool skipped = false;
+
 	for( auto& Arg : args )
 	{
-		auto arg_info = fn_type->get_member(idx++);
+		if( skip_first == 1 && !skipped )
+		{
+			skipped = true;
+			continue;
+		}
+
+		auto arg_info = fn_type->get_member(idx - skip_first);
 		// Create an alloca for this variable.
 		auto arg_name = arg_info.name;
 		llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(Arg.getType(), nullptr, arg_name);
@@ -421,6 +499,8 @@ codegen_function_entry(CG& cg, cg::CGFunctionContext ctx)
 		cg.Builder->CreateStore(&Arg, Alloca);
 
 		cg.values.emplace(arg_name, Alloca);
+		ctx.Args.push_back(Alloca);
+		idx++;
 	}
 
 	return CGExpr();
@@ -435,7 +515,8 @@ CG::codegen_function(ir::IRFunction* fn)
 
 	current_function = protor.unwrap();
 
-	auto entryr = codegen_function_entry(*this, current_function.value());
+	auto&& val = current_function.value();
+	auto entryr = codegen_function_entry(*this, val);
 	if( !entryr.ok() )
 		return entryr;
 
@@ -468,7 +549,7 @@ CG::codegen_number_literal(ir::IRNumberLiteral* lit)
 	//
 	llvm::Value* ConstInt = llvm::ConstantInt::get(*Context, llvm::APInt(32, lit->val, true));
 
-	return CGExpr(ConstInt);
+	return CGExpr(ConstInt, true);
 }
 
 CGResult<CGExpr>
@@ -484,7 +565,7 @@ CG::codegen_string_literal(ir::IRStringLiteral* lit)
 	llvm::Constant* StrVal =
 		llvm::ConstantExpr::getGetElementPtr(Literal->getType(), GVStr, indices);
 
-	return CGExpr(StrVal);
+	return CGExpr(StrVal, true);
 }
 
 CGResult<CGExpr>
@@ -555,7 +636,7 @@ CG::codegen_binop(ir::IRBinOp* binop)
 }
 
 CGResult<CGExpr>
-CG::codegen_call(ir::IRCall* call)
+CG::codegen_call(ir::IRCall* call, std::optional<CGExpr> lvalue)
 {
 	auto call_target_type = call->call_target->type_instance;
 	assert(call_target_type.type->is_function_type() && call_target_type.indirection_level <= 1);
@@ -569,6 +650,7 @@ CG::codegen_call(ir::IRCall* call)
 		return CGError("Call target is not a value??"); // Assert here?
 
 	auto Function = expr.data.fn;
+	auto return_type = call_target_type.type->get_return_type().value();
 
 	// Assert value is correct?
 	// Semantic analysis should've guaranteed this is a function.
@@ -582,6 +664,27 @@ CG::codegen_call(ir::IRCall* call)
 	// llvm::Function* Function = static_cast<llvm::Function*>(Value);
 
 	std::vector<llvm::Value*> ArgsV;
+	if( Function->getArg(0)->hasAttribute(llvm::Attribute::StructRet) )
+	{
+		// Call with sret
+		auto rtr = get_type(*this, return_type);
+		if( !rtr.ok() )
+			return rtr;
+		auto SRetType = rtr.unwrap();
+
+		if( lvalue.has_value() )
+		{
+			ArgsV.push_back(lvalue.value().as_value());
+		}
+		else
+		{
+			llvm::AllocaInst* SRetAlloca = Builder->CreateAlloca(SRetType, nullptr, "Wow");
+			ArgsV.push_back(SRetAlloca);
+		}
+
+		return_type = sema::TypeInstance::OfType(sema.types.void_type());
+	}
+
 	for( auto arg_expr_node : *call->args->args )
 	{
 		auto arg_exprr = codegen_expr(arg_expr_node);
@@ -593,15 +696,23 @@ CG::codegen_call(ir::IRCall* call)
 			return CGError("Arg is not a value??"); // Assert here?
 
 		auto ArgValue = arg_expr.data.value;
-		ArgsV.push_back(ArgValue);
+
+		// TODO: Again, constants return as values, and allocas are pointers.
+		// Need to consolidate this.
+		auto ArgValuePromoted =
+			arg_expr.literal ? ArgValue : __deprecate_promote_to_value(*this, ArgValue);
+		ArgsV.push_back(ArgValuePromoted);
 	}
 
 	// https://github.com/ark-lang/ark/issues/362
-	auto rt = call_target_type.type->get_return_type().value();
-	if( sema.types.equal_types(rt, sema.types.VoidType()) )
+
+	if( sema.types.equal_types(return_type, sema.types.VoidType()) )
 	{
 		auto CallValue = Builder->CreateCall(Function, ArgsV);
-		return CGExpr(CallValue);
+		if( Function->getArg(0)->hasAttribute(llvm::Attribute::StructRet) )
+			return CGExpr();
+		else
+			return CGExpr();
 	}
 	else
 	{

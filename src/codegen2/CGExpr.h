@@ -17,6 +17,7 @@ enum CGExprType
 
 struct CGExpr
 {
+	bool literal = false;
 	enum CGExprType type = CGExprType::Empty;
 	union
 	{
@@ -27,11 +28,19 @@ struct CGExpr
 	CGExpr(){};
 	CGExpr(llvm::Value* value)
 		: type(CGExprType::Value)
+		, literal(false)
+	{
+		data.value = value;
+	};
+	CGExpr(llvm::Value* value, bool literal)
+		: type(CGExprType::Value)
+		, literal(literal)
 	{
 		data.value = value;
 	};
 	CGExpr(llvm::Function* value)
 		: type(CGExprType::FunctionValue)
+		, literal(false)
 	{
 		data.fn = value;
 	};

@@ -79,6 +79,7 @@ emit(llvm::Module* Module)
 
 	pass.run(Mod);
 	dest.flush();
+	return 0;
 }
 
 int

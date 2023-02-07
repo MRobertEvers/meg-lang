@@ -23,6 +23,8 @@ namespace cg
 struct CGFunctionContext
 {
 	llvm::Function* Fn;
+	Vec<llvm::Value*> Args;
+
 	sema::Type const* fn_type;
 	CGFunctionContext(llvm::Function* Fn, sema::Type const* fn_type)
 		: Fn(Fn)
@@ -53,11 +55,13 @@ public:
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);
 	CGResult<CGExpr> codegen_stmt(ir::IRStmt*);
 	CGResult<CGExpr> codegen_expr(ir::IRExpr*);
+	CGResult<CGExpr> codegen_expr(ir::IRExpr*, std::optional<CGExpr>);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
 	CGResult<CGExpr> codegen_return(ir::IRReturn*);
 	CGResult<CGExpr> codegen_member_access(ir::IRMemberAccess*);
 	CGResult<CGExpr> codegen_let(ir::IRLet*);
 	CGResult<CGExpr> codegen_assign(ir::IRAssign*);
+	// CGResult<CGExpr> codegen_assign(ir::IRAssign*, std::optional<CGExpr>);
 	CGResult<CGFunctionContext> codegen_function_proto(ir::IRProto*);
 	CGResult<CGExpr> codegen_function(ir::IRFunction*);
 	CGResult<CGExpr> codegen_function_body(ir::IRBlock*);
@@ -67,7 +71,7 @@ public:
 	CGResult<CGExpr> codegen_string_literal(ir::IRStringLiteral*);
 	CGResult<CGExpr> codegen_value_decl(ir::IRValueDecl*);
 	CGResult<CGExpr> codegen_binop(ir::IRBinOp*);
-	CGResult<CGExpr> codegen_call(ir::IRCall*);
+	CGResult<CGExpr> codegen_call(ir::IRCall*, std::optional<CGExpr>);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
 	CGResult<CGExpr> codegen_struct(ir::IRStruct* st);
 
