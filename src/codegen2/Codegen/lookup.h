@@ -28,9 +28,24 @@ CGResult<llvm::Type*> get_type(CG& cg, ir::IRTypeDeclaraor* decl);
 
 CGResult<llvm::Type*> get_type(CG& cg, ir::IRValueDecl* decl);
 
+enum class ArgumentAttr
+{
+	Default,
+	Value,
+};
+
+struct ArgumentType
+{
+	ArgumentAttr attr = ArgumentAttr::Default;
+	llvm::Type* type;
+
+	ArgumentType(ArgumentAttr attr, llvm::Type* type)
+		: attr(attr)
+		, type(type){};
+};
 struct get_params_types_t
 {
-	Vec<llvm::Type*> types;
+	Vec<ArgumentType> args;
 	bool is_var_arg;
 };
 

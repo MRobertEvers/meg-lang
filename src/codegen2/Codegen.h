@@ -2,6 +2,7 @@
 #include "CGExpr.h"
 #include "CGResult.h"
 #include "Codegen/CGFunctionContext.h"
+#include "LValue.h"
 #include "Scope.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"
@@ -49,21 +50,20 @@ public:
 
 	CGResult<CGExpr> codegen_module(ir::IRModule*);
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);
-	CGResult<CGExpr> codegen_stmt(ir::IRStmt*);
-	CGResult<CGExpr> codegen_expr(ir::IRExpr*);
-	CGResult<CGExpr> codegen_expr(ir::IRExpr*, std::optional<CGExpr>);
+	CGResult<CGExpr> codegen_stmt(cg::CGFunctionContext&, ir::IRStmt*);
+	CGResult<CGExpr> codegen_expr(cg::CGFunctionContext&, ir::IRExpr*);
+	CGResult<CGExpr> codegen_expr(cg::CGFunctionContext&, ir::IRExpr*, std::optional<LValue>);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
-	CGResult<CGExpr> codegen_return(ir::IRReturn*);
-	CGResult<CGExpr> codegen_member_access(ir::IRMemberAccess*);
-	CGResult<CGExpr> codegen_let(ir::IRLet*);
-	CGResult<CGExpr> codegen_assign(ir::IRAssign*);
+	CGResult<CGExpr> codegen_return(cg::CGFunctionContext&, ir::IRReturn*);
+	CGResult<CGExpr> codegen_member_access(cg::CGFunctionContext&, ir::IRMemberAccess*);
+	CGResult<CGExpr> codegen_let(cg::CGFunctionContext&, ir::IRLet*);
+	CGResult<CGExpr> codegen_assign(cg::CGFunctionContext&, ir::IRAssign*);
 
 	// TODO: Return RValue type?
 	CGResult<CGExpr> codegen_number_literal(ir::IRNumberLiteral*);
 	CGResult<CGExpr> codegen_string_literal(ir::IRStringLiteral*);
 	CGResult<CGExpr> codegen_value_decl(ir::IRValueDecl*);
-	CGResult<CGExpr> codegen_binop(ir::IRBinOp*);
-	CGResult<CGExpr> codegen_call(ir::IRCall*, std::optional<CGExpr>);
+	CGResult<CGExpr> codegen_binop(cg::CGFunctionContext&, ir::IRBinOp*);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
 	CGResult<CGExpr> codegen_struct(ir::IRStruct* st);
 

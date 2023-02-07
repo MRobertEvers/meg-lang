@@ -59,7 +59,16 @@ cg::get_params_types(CG& cg, ir::IRProto* proto)
 			if( !argsr.ok() )
 				return argsr;
 
-			args.types.push_back(argsr.unwrap());
+			auto type = value_decl->type_decl->type_instance;
+			auto ArgType = argsr.unwrap();
+			if( type.type->is_struct_type() )
+			{
+				args.args.push_back(ArgumentType(ArgumentAttr::Value, ArgType));
+			}
+			else
+			{
+				args.args.push_back(ArgumentType(ArgumentAttr::Default, ArgType));
+			}
 		}
 		else
 		{

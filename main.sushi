@@ -3,36 +3,41 @@
 extern fn printf(str: i8*, ...): void;
 
 struct Name {
-    str: i8*;
+    name: i8*;
     size: i32;
+    a: i32;
+    b: i32;
+    c: i32;
 }
 
 struct Point {
+    name: Name;
+    a: i32;
+    b: i32;
+    c: i32;
     x: i32;
     y: i32;
 }
 
-fn make_point(x: i32, y: i32): Point {
+fn copy_point(p: Point): Point {
     let result = Point;
-    result.x = x;
-    result.y = y;
+    result.x = p.x;
+    result.y = p.y;
+    p.x = 11;
+
+    printf("??%d\n", p.x);
 
     return result;
 }
 
 fn main(): i32 
 {
-    //let billy: Point = Point;
-    //billy.x = 8;
-    //billy.y = 9;
-    //
-    //billy.name.size = 8;
+    let my_point = Point;
+    my_point.x = 7;
+    my_point.y = 8;
 
-    let my_point = make_point(7, 8);
+    let point2 = copy_point(my_point);
 
-
-    // let harg = billy.y;
-    // let my_var = 5*6 + harg;
-    printf("Point (%d, %d)", my_point.x, my_point.y);
+    printf("Point (%d, %d) %d\n", point2.x, point2.y, my_point.x);
     return 1;
 }

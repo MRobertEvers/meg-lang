@@ -1,6 +1,7 @@
 #include "Codegen.h"
 
 #include "Codegen/CGNotImpl.h"
+#include "Codegen/codegen_call.h"
 #include "Codegen/codegen_function.h"
 #include "Codegen/lookup.h"
 #include "ast2/AstCasts.h"
@@ -106,36 +107,36 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 }
 
 CGResult<CGExpr>
-CG::codegen_stmt(ir::IRStmt* stmt)
+CG::codegen_stmt(cg::CGFunctionContext& fn, ir::IRStmt* stmt)
 {
 	switch( stmt->type )
 	{
 	case ir::IRStmtType::ExprStmt:
-		return codegen_expr(stmt->stmt.expr);
+		return codegen_expr(fn, stmt->stmt.expr);
 	case ir::IRStmtType::Return:
-		return codegen_return(stmt->stmt.ret);
+		return codegen_return(fn, stmt->stmt.ret);
 	case ir::IRStmtType::Assign:
-		return codegen_assign(stmt->stmt.assign);
+		return codegen_assign(fn, stmt->stmt.assign);
 	case ir::IRStmtType::Let:
-		return codegen_let(stmt->stmt.let);
+		return codegen_let(fn, stmt->stmt.let);
 	}
 
 	return NotImpl();
 }
 
 CGResult<CGExpr>
-CG::codegen_expr(ir::IRExpr* expr)
+CG::codegen_expr(cg::CGFunctionContext& fn, ir::IRExpr* expr)
 {
-	return codegen_expr(expr, std::optional<CGExpr>());
+	return codegen_expr(fn, expr, std::optional<LValue>());
 }
 
 CGResult<CGExpr>
-CG::codegen_expr(ir::IRExpr* expr, std::optional<CGExpr> lvalue)
+CG::codegen_expr(cg::CGFunctionContext& fn, ir::IRExpr* expr, std::optional<LValue> lvalue)
 {
 	switch( expr->type )
 	{
 	case ir::IRExprType::Call:
-		return codegen_call(expr->expr.call, lvalue);
+		return codegen_call(*this, fn, expr->expr.call, lvalue);
 	case ir::IRExprType::Id:
 		return codegen_id(expr->expr.id);
 	case ir::IRExprType::NumberLiteral:
@@ -145,9 +146,9 @@ CG::codegen_expr(ir::IRExpr* expr, std::optional<CGExpr> lvalue)
 	case ir::IRExprType::ValueDecl:
 		return codegen_value_decl(expr->expr.decl);
 	case ir::IRExprType::BinOp:
-		return codegen_binop(expr->expr.binop);
+		return codegen_binop(fn, expr->expr.binop);
 	case ir::IRExprType::MemberAccess:
-		return codegen_member_access(expr->expr.member_access);
+		return codegen_member_access(fn, expr->expr.member_access);
 	}
 
 	return NotImpl();
@@ -160,14 +161,14 @@ CG::codegen_extern_fn(ir::IRExternFn* extern_fn)
 }
 
 CGResult<CGExpr>
-CG::codegen_return(ir::IRReturn* ret)
+CG::codegen_return(cg::CGFunctionContext& fn, ir::IRReturn* ret)
 {
 	auto maybe_fn_ctx = current_function;
 	assert(maybe_fn_ctx.has_value());
 
 	auto fn_ctx = current_function.value();
 
-	auto exprr = codegen_expr(ret->expr);
+	auto exprr = codegen_expr(fn, ret->expr);
 	if( !exprr.ok() )
 		return exprr;
 	auto expr = exprr.unwrap();
@@ -210,9 +211,9 @@ CG::codegen_return(ir::IRReturn* ret)
 }
 
 CGResult<CGExpr>
-CG::codegen_member_access(ir::IRMemberAccess* ma)
+CG::codegen_member_access(cg::CGFunctionContext& fn, ir::IRMemberAccess* ma)
 {
-	auto exprr = codegen_expr(ma->expr);
+	auto exprr = codegen_expr(fn, ma->expr);
 	if( !exprr.ok() )
 		return exprr;
 	auto expr = exprr.unwrap();
@@ -244,7 +245,7 @@ CG::codegen_member_access(ir::IRMemberAccess* ma)
 }
 
 CGResult<CGExpr>
-CG::codegen_let(ir::IRLet* let)
+CG::codegen_let(cg::CGFunctionContext& fn, ir::IRLet* let)
 {
 	auto name = let->name;
 	auto type = let->assign->rhs->type_instance;
@@ -256,7 +257,7 @@ CG::codegen_let(ir::IRLet* let)
 	llvm::AllocaInst* Alloca = Builder->CreateAlloca(Type, nullptr, *name);
 	values.emplace(*name, Alloca);
 
-	auto assignr = codegen_assign(let->assign);
+	auto assignr = codegen_assign(fn, let->assign);
 	if( !assignr.ok() )
 		return assignr;
 
@@ -270,14 +271,16 @@ CG::codegen_let(ir::IRLet* let)
 // }
 
 CGResult<CGExpr>
-CG::codegen_assign(ir::IRAssign* assign)
+CG::codegen_assign(cg::CGFunctionContext& fn, ir::IRAssign* assign)
 {
-	auto lhsr = codegen_expr(assign->lhs);
+	auto lhsr = codegen_expr(fn, assign->lhs);
 	if( !lhsr.ok() )
 		return lhsr;
 
+	LValue __temp_replace = LValue(lhsr.unwrap().as_value(), lhsr.unwrap().as_value()->getType());
+
 	auto lexpr = lhsr.unwrap();
-	auto rhsr = codegen_expr(assign->rhs, lexpr);
+	auto rhsr = codegen_expr(fn, assign->rhs, __temp_replace);
 	if( !rhsr.ok() )
 		return rhsr;
 
@@ -378,13 +381,13 @@ CG::codegen_value_decl(ir::IRValueDecl* decl)
 }
 
 CGResult<CGExpr>
-CG::codegen_binop(ir::IRBinOp* binop)
+CG::codegen_binop(cg::CGFunctionContext& fn, ir::IRBinOp* binop)
 {
-	auto lhsr = codegen_expr(binop->lhs);
+	auto lhsr = codegen_expr(fn, binop->lhs);
 	if( !lhsr.ok() )
 		return lhsr;
 
-	auto rhsr = codegen_expr(binop->rhs);
+	auto rhsr = codegen_expr(fn, binop->rhs);
 	if( !rhsr.ok() )
 		return rhsr;
 
@@ -432,92 +435,6 @@ CG::codegen_binop(ir::IRBinOp* binop)
 		return CGExpr(Builder->CreateOr(L, R, "cmptmp"));
 	default:
 		return NotImpl();
-	}
-}
-
-CGResult<CGExpr>
-CG::codegen_call(ir::IRCall* call, std::optional<CGExpr> lvalue)
-{
-	auto call_target_type = call->call_target->type_instance;
-	assert(call_target_type.type->is_function_type() && call_target_type.indirection_level <= 1);
-
-	auto exprr = codegen_expr(call->call_target);
-	if( !exprr.ok() )
-		return exprr;
-
-	auto expr = exprr.unwrap();
-	if( expr.type != CGExprType::FunctionValue )
-		return CGError("Call target is not a value??"); // Assert here?
-
-	auto Function = expr.data.fn;
-	auto return_type = call_target_type.type->get_return_type().value();
-
-	// Assert value is correct?
-	// Semantic analysis should've guaranteed this is a function.
-	// if( !Value->getType()->isPointerTy() &&
-	// 	!Value->getType()->getPointerElementType()->isFunctionTy() )
-	// {
-	// 	std::cout << "Expected function type" << std::endl;
-	// 	return;
-	// }
-
-	// llvm::Function* Function = static_cast<llvm::Function*>(Value);
-
-	std::vector<llvm::Value*> ArgsV;
-	if( Function->getArg(0)->hasAttribute(llvm::Attribute::StructRet) )
-	{
-		// Call with sret
-		auto rtr = get_type(*this, return_type);
-		if( !rtr.ok() )
-			return rtr;
-		auto SRetType = rtr.unwrap();
-
-		if( lvalue.has_value() )
-		{
-			ArgsV.push_back(lvalue.value().as_value());
-		}
-		else
-		{
-			llvm::AllocaInst* SRetAlloca = Builder->CreateAlloca(SRetType, nullptr, "Wow");
-			ArgsV.push_back(SRetAlloca);
-		}
-
-		return_type = sema::TypeInstance::OfType(sema.types.void_type());
-	}
-
-	for( auto arg_expr_node : *call->args->args )
-	{
-		auto arg_exprr = codegen_expr(arg_expr_node);
-		if( !arg_exprr.ok() )
-			return arg_exprr;
-
-		auto arg_expr = arg_exprr.unwrap();
-		if( arg_expr.type != CGExprType::Value )
-			return CGError("Arg is not a value??"); // Assert here?
-
-		auto ArgValue = arg_expr.data.value;
-
-		// TODO: Again, constants return as values, and allocas are pointers.
-		// Need to consolidate this.
-		auto ArgValuePromoted =
-			arg_expr.literal ? ArgValue : __deprecate_promote_to_value(*this, ArgValue);
-		ArgsV.push_back(ArgValuePromoted);
-	}
-
-	// https://github.com/ark-lang/ark/issues/362
-
-	if( sema.types.equal_types(return_type, sema.types.VoidType()) )
-	{
-		auto CallValue = Builder->CreateCall(Function, ArgsV);
-		if( Function->getArg(0)->hasAttribute(llvm::Attribute::StructRet) )
-			return CGExpr();
-		else
-			return CGExpr();
-	}
-	else
-	{
-		auto CallValue = Builder->CreateCall(Function, ArgsV, "call");
-		return CGExpr(CallValue);
 	}
 }
 
