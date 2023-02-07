@@ -66,7 +66,9 @@ add_executable(sushi
     src/codegen2/Codegen.cpp
     src/codegen2/CGResult.cpp
     src/codegen2/CGExpr.cpp
-    src/codegen2/CGTag.cpp
+    src/codegen2/Codegen/codegen_function.cpp
+    src/codegen2/Codegen/lookup.cpp
+    src/codegen2/Codegen/CGNotImpl.cpp
 )
 
 # # Now build our tools

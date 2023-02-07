@@ -2,6 +2,7 @@
 #include "CGExpr.h"
 #include "CGResult.h"
 #include "CGTag.h"
+#include "Codegen/CGFunctionContext.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"
 #include "common/String.h"
@@ -20,16 +21,6 @@
 
 namespace cg
 {
-struct CGFunctionContext
-{
-	llvm::Function* Fn;
-	Vec<llvm::Value*> Args;
-
-	sema::Type const* fn_type;
-	CGFunctionContext(llvm::Function* Fn, sema::Type const* fn_type)
-		: Fn(Fn)
-		, fn_type(fn_type){};
-};
 
 class CG
 {
@@ -61,10 +52,6 @@ public:
 	CGResult<CGExpr> codegen_member_access(ir::IRMemberAccess*);
 	CGResult<CGExpr> codegen_let(ir::IRLet*);
 	CGResult<CGExpr> codegen_assign(ir::IRAssign*);
-	// CGResult<CGExpr> codegen_assign(ir::IRAssign*, std::optional<CGExpr>);
-	CGResult<CGFunctionContext> codegen_function_proto(ir::IRProto*);
-	CGResult<CGExpr> codegen_function(ir::IRFunction*);
-	CGResult<CGExpr> codegen_function_body(ir::IRBlock*);
 
 	// TODO: Return RValue type?
 	CGResult<CGExpr> codegen_number_literal(ir::IRNumberLiteral*);
