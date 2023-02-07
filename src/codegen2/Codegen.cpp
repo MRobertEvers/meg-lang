@@ -51,6 +51,31 @@ CG::CG(sema::Sema2& sema)
 	establish_llvm_builtin_types(*this, sema.types, this->types);
 }
 
+void
+CG::add_function(String const& name, llvm::Function* Fn, llvm::Type* FT, sema::Type const* type)
+{
+	Functions.emplace(name, Fn);
+	types.emplace(type, FT);
+	values.emplace(name, Fn);
+}
+
+// Scope*
+// CG::push_scope()
+// {
+// 	auto s = Scope(current_scope);
+// 	scopes.push_back(s);
+// 	current_scope = &scopes.back();
+
+// 	return current_scope;
+// }
+
+// void
+// CG::pop_scope()
+// {
+// 	assert(current_scope->get_parent());
+// 	current_scope = current_scope->get_parent();
+// }
+
 CGResult<CGExpr>
 CG::codegen_module(ir::IRModule* mod)
 {

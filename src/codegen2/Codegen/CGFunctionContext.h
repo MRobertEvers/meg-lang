@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Scope.h"
 #include "common/Vec.h"
 #include "sema2/type/Type.h"
 #include <llvm-c/Core.h>
@@ -21,16 +22,28 @@ struct CGFunctionContext
 
 	llvm::Function* Fn;
 	llvm::Type* FnType;
+	Vec<llvm::Type*> ArgsTypes;
 
-	Vec<llvm::Value*> Args;
+	union
+	{
+		LValue sret;
+	};
+
 	sema::Type const* fn_type;
 	RetType ret_type = RetType::Default;
 
+	Vec<Scope> scopes;
+	Scope* current_scope;
+
 	CGFunctionContext(
-		llvm::Function* Fn, llvm::Type* Type, sema::Type const* fn_type, RetType ret_type)
-		: Fn(Fn)
-		, FnType(Type)
-		, fn_type(fn_type)
-		, ret_type(ret_type){};
+		llvm::Function* Fn,
+		llvm::Type* Type,
+		Vec<llvm::Type*> ArgsTypes,
+		sema::Type const* fn_type,
+		RetType ret_type);
+
+	void add_arg_type(llvm::Type*);
+	llvm::Type* arg_type(int idx);
+	void add_lvalue(String const& name, LValue lvalue);
 };
 } // namespace cg

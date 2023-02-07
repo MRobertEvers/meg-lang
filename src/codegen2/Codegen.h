@@ -2,6 +2,7 @@
 #include "CGExpr.h"
 #include "CGResult.h"
 #include "Codegen/CGFunctionContext.h"
+#include "Scope.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"
 #include "common/String.h"
@@ -35,8 +36,16 @@ public:
 	std::map<sema::Type const*, llvm::Type*> types;
 	std::map<String, CGExpr> values;
 
+	// Vec<cg::Scope> scopes;
+	// Scope* current_scope;
+
 	sema::Sema2& sema;
 	CG(sema::Sema2& sema);
+
+	// Scope* push_scope();
+	// void pop_scope();
+
+	void add_function(String const& name, llvm::Function*, llvm::Type*, sema::Type const*);
 
 	CGResult<CGExpr> codegen_module(ir::IRModule*);
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);

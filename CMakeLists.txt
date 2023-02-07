@@ -66,8 +66,12 @@ add_executable(sushi
     src/codegen2/Codegen.cpp
     src/codegen2/CGResult.cpp
     src/codegen2/CGExpr.cpp
+    src/codegen2/Scope.cpp
+    src/codegen2/LValue.cpp
     src/codegen2/Codegen/codegen_function.cpp
+    src/codegen2/Codegen/codegen_statement.cpp
     src/codegen2/Codegen/lookup.cpp
+    src/codegen2/Codegen/CGFunctionContext.cpp
     src/codegen2/Codegen/CGNotImpl.cpp
 )
 

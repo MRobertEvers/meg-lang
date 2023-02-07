@@ -7,17 +7,36 @@
 using namespace cg;
 
 static cg::CGResult<cg::CGExpr>
+codegen_function_entry_param(
+	CG& cg,
+	cg::CGFunctionContext& ctx,
+	String const& name,
+	llvm::Argument& Arg,
+	llvm::Type* ArgType)
+{
+	llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(ArgType, nullptr, name);
+	// TODO: Struct by value
+	cg.Builder->CreateStore(&Arg, Alloca);
+
+	ctx.add_lvalue(name, LValue(Alloca, ArgType));
+
+	// TODO: Remove this once exprs get ctx arg
+	cg.values.emplace(name, Alloca);
+
+	return CGExpr();
+}
+
+static cg::CGResult<cg::CGExpr>
 codegen_function_entry_sret(CG& cg, cg::CGFunctionContext& ctx)
 {
 	assert(ctx.ret_type == CGFunctionContext::RetType::SRet);
 	auto Function = ctx.Fn;
 	auto fn_type = ctx.fn_type;
 
+	// SRet should always have at least one arg.
 	auto args = Function->args();
-	if( args.empty() )
-		return CGExpr();
+	assert(!args.empty());
 
-	// TODO: Need a better way to generate an SRet function
 	int idx = 0;
 	bool skipped = false;
 	for( auto& Arg : args )
@@ -28,16 +47,14 @@ codegen_function_entry_sret(CG& cg, cg::CGFunctionContext& ctx)
 			continue;
 		}
 
-		auto arg_info = fn_type->get_member(idx - 1);
-		// Create an alloca for this variable.
+		auto arg_info = fn_type->get_member(idx);
+		auto ArgType = ctx.arg_type(idx + 1);
 		auto arg_name = arg_info.name;
-		llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(Arg.getType(), nullptr, arg_name);
 
-		// Store the initial value into the alloca.
-		cg.Builder->CreateStore(&Arg, Alloca);
+		auto genr = codegen_function_entry_param(cg, ctx, arg_name, Arg, ArgType);
+		if( !genr.ok() )
+			return genr;
 
-		cg.values.emplace(arg_name, Alloca);
-		ctx.Args.push_back(Alloca);
 		idx++;
 	}
 
@@ -52,23 +69,18 @@ codegen_function_entry_default(CG& cg, cg::CGFunctionContext& ctx)
 	auto fn_type = ctx.fn_type;
 
 	auto args = Function->args();
-	if( args.empty() )
-		return CGExpr();
 
 	auto idx = 0;
-
 	for( auto& Arg : args )
 	{
 		auto arg_info = fn_type->get_member(idx);
-		// Create an alloca for this variable.
+		auto ArgType = ctx.arg_type(idx);
 		auto arg_name = arg_info.name;
-		llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(Arg.getType(), nullptr, arg_name);
 
-		// Store the initial value into the alloca.
-		cg.Builder->CreateStore(&Arg, Alloca);
+		auto genr = codegen_function_entry_param(cg, ctx, arg_name, Arg, ArgType);
+		if( !genr.ok() )
+			return genr;
 
-		cg.values.emplace(arg_name, Alloca);
-		ctx.Args.push_back(Alloca);
 		idx++;
 	}
 
@@ -94,20 +106,20 @@ codegen_function_entry(CG& cg, cg::CGFunctionContext& ctx)
 }
 
 CGResult<CGExpr>
-cg::codegen_function(CG& cg, ir::IRFunction* fn)
+cg::codegen_function(CG& cg, ir::IRFunction* ir_fn)
 {
-	auto protor = codegen_function_proto(cg, fn->proto);
+	auto protor = codegen_function_proto(cg, ir_fn->proto);
 	if( !protor.ok() )
 		return protor;
 
-	cg.current_function = protor.unwrap();
+	auto fn = protor.unwrap();
 
-	auto&& ctx = cg.current_function.value();
-	auto entryr = codegen_function_entry(cg, ctx);
+	cg.current_function = fn;
+	auto entryr = codegen_function_entry(cg, fn);
 	if( !entryr.ok() )
 		return entryr;
 
-	auto bodyr = codegen_function_body(cg, fn->block, ctx);
+	auto bodyr = codegen_function_body(cg, fn, ir_fn->block);
 	if( !bodyr.ok() )
 		return bodyr;
 
@@ -131,12 +143,10 @@ codegen_function_proto_default(
 	llvm::Function* Function =
 		llvm::Function::Create(FT, llvm::Function::ExternalLinkage, *name, codegen.Module.get());
 
-	codegen.Functions.emplace(*name, Function);
 	auto fn_type = proto->fn_type;
-	codegen.types.emplace(fn_type, FT);
-	codegen.values.emplace(*name, Function);
+	codegen.add_function(*name, Function, FT, fn_type);
 
-	return CGFunctionContext(Function, FT, fn_type, CGFunctionContext::RetType::Default);
+	return CGFunctionContext(Function, FT, ParamsTys, fn_type, CGFunctionContext::RetType::Default);
 }
 
 static CGResult<CGFunctionContext>
@@ -150,6 +160,7 @@ codegen_function_proto_sret(
 	auto ParamsTys = params_info.types;
 	auto is_var_arg = params_info.is_var_arg;
 
+	// TODO: Opaque pointer.
 	ParamsTys.insert(ParamsTys.begin(), ReturnTy->getPointerTo());
 	auto VoidReturnTy = llvm::Type::getVoidTy(*codegen.Context);
 
@@ -158,18 +169,13 @@ codegen_function_proto_sret(
 	llvm::Function* Function =
 		llvm::Function::Create(FT, llvm::Function::ExternalLinkage, *name, codegen.Module.get());
 
-	// Function->getArg(0)->addAttr(
-	// 	llvm::Attribute::get(*Context, llvm::Attribute::AttrKind::StructRet));
 	auto& Builder = llvm::AttrBuilder().addStructRetAttr(ReturnTy);
-
 	Function->getArg(0)->addAttrs(Builder);
 
-	codegen.Functions.emplace(*name, Function);
 	auto fn_type = proto->fn_type;
-	codegen.types.emplace(fn_type, FT);
-	codegen.values.emplace(*name, Function);
+	codegen.add_function(*name, Function, FT, fn_type);
 
-	return CGFunctionContext(Function, FT, fn_type, CGFunctionContext::RetType::SRet);
+	return CGFunctionContext(Function, FT, ParamsTys, fn_type, CGFunctionContext::RetType::SRet);
 }
 
 CGResult<CGFunctionContext>
@@ -201,7 +207,7 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* proto)
 }
 
 CGResult<CGExpr>
-cg::codegen_function_body(CG& cg, ir::IRBlock* block, cg::CGFunctionContext& ctx)
+cg::codegen_function_body(CG& cg, cg::CGFunctionContext& ctx, ir::IRBlock* block)
 {
 	for( auto stmt : *block->stmts )
 	{
