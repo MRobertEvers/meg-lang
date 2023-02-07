@@ -10,14 +10,27 @@
 
 namespace cg
 {
+
 struct CGFunctionContext
 {
-	llvm::Function* Fn;
-	Vec<llvm::Value*> Args;
+	enum class RetType
+	{
+		SRet,
+		Default
+	};
 
+	llvm::Function* Fn;
+	llvm::Type* FnType;
+
+	Vec<llvm::Value*> Args;
 	sema::Type const* fn_type;
-	CGFunctionContext(llvm::Function* Fn, sema::Type const* fn_type)
+	RetType ret_type = RetType::Default;
+
+	CGFunctionContext(
+		llvm::Function* Fn, llvm::Type* Type, sema::Type const* fn_type, RetType ret_type)
 		: Fn(Fn)
-		, fn_type(fn_type){};
+		, FnType(Type)
+		, fn_type(fn_type)
+		, ret_type(ret_type){};
 };
 } // namespace cg

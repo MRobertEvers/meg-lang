@@ -1,7 +1,6 @@
 #pragma once
 #include "CGExpr.h"
 #include "CGResult.h"
-#include "CGTag.h"
 #include "Codegen/CGFunctionContext.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"
@@ -35,9 +34,6 @@ public:
 	// TODO: Need scoping on these types.
 	std::map<sema::Type const*, llvm::Type*> types;
 	std::map<String, CGExpr> values;
-	using TagType = CGTag;
-
-	std::map<sema::Scope*, CGScope> scopes;
 
 	sema::Sema2& sema;
 	CG(sema::Sema2& sema);
