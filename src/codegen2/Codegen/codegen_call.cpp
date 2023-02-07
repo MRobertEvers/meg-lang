@@ -5,6 +5,24 @@
 
 using namespace cg;
 
+static llvm::Value*
+promote_to_value(CG& cg, llvm::Value* Val)
+{
+	// TODO: Opaque pointers, don't rel
+	auto PointedToType = Val->getType()->getPointerElementType();
+	return cg.Builder->CreateLoad(PointedToType, Val);
+}
+
+static llvm::Value*
+__deprecate_promote_to_value(CG& cg, llvm::Value* Val)
+{
+	// TODO: Opaque pointers, don't rel
+	if( Val->getType()->isPointerTy() )
+		return promote_to_value(cg, Val);
+	else
+		return Val;
+}
+
 CGResult<CGExpr>
 cg::codegen_call(CG& codegen, cg::CGFunctionContext& fn, ir::IRCall* ir_call)
 {
@@ -74,10 +92,10 @@ cg::codegen_call(
 
 		// TODO: Again, constants return as values, and allocas are pointers.
 		// Need to consolidate this.
-		// auto ArgValuePromoted =
-		// 	arg_expr.literal ? ArgValue : __deprecate_promote_to_value(*this, ArgValue);
+		auto ArgValuePromoted =
+			arg_expr.literal ? ArgValue : __deprecate_promote_to_value(codegen, ArgValue);
 
-		ArgsV.push_back(ArgValue);
+		ArgsV.push_back(ArgValuePromoted);
 	}
 
 	// https://github.com/ark-lang/ark/issues/362

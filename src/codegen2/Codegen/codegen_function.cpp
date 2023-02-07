@@ -208,10 +208,10 @@ codegen_function_proto_sret(
 	{
 		auto Arg = Function->getArg(i);
 		auto arg_type = args.at(i);
-		if( arg_type.attr == ArgumentAttr::Value )
-		{
-			Arg->addAttrs(llvm::AttrBuilder().addByValAttr(arg_type.type));
-		}
+		// if( arg_type.attr == ArgumentAttr::Value )
+		// {
+		// 	Arg->addAttrs(llvm::AttrBuilder().addByValAttr(arg_type.type));
+		// }
 	}
 
 	auto fn_type = proto->fn_type;
