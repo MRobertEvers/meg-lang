@@ -54,11 +54,11 @@ CG::CG(sema::Sema2& sema)
 }
 
 void
-CG::add_function(String const& name, llvm::Function* Fn, llvm::Type* FT, sema::Type const* type)
+CG::add_function(String const& name, CGFunctionContext context)
 {
-	Functions.emplace(name, Fn);
-	types.emplace(type, FT);
-	values.emplace(name, Fn);
+	Functions.emplace(name, context);
+	types.emplace(context.fn_type, context.FnType);
+	values.emplace(name, context.Fn);
 }
 
 // Scope*

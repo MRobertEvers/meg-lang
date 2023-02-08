@@ -182,9 +182,12 @@ codegen_function_proto_default(
 	}
 
 	auto fn_type = proto->fn_type;
-	codegen.add_function(*name, Function, FT, fn_type);
 
-	return CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::Default);
+	auto context =
+		CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::Default);
+	codegen.add_function(*name, context);
+
+	return context;
 }
 
 /**
@@ -236,9 +239,10 @@ codegen_function_proto_sret(
 	}
 
 	auto fn_type = proto->fn_type;
-	codegen.add_function(*name, Function, FT, fn_type);
+	auto context = CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::SRet);
+	codegen.add_function(*name, context);
 
-	return CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::SRet);
+	return context;
 }
 
 CGResult<CGFunctionContext>
