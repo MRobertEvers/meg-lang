@@ -58,7 +58,7 @@ codegen_function_entry_sret(CG& cg, cg::CGFunctionContext& ctx)
 		auto ArgType = ctx.arg_type(idx + 1);
 		auto arg_name = arg_info.name;
 
-		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType);
+		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType.type);
 		if( !genr.ok() )
 			return genr;
 
@@ -84,7 +84,7 @@ codegen_function_entry_default(CG& cg, cg::CGFunctionContext& ctx)
 		auto ArgType = ctx.arg_type(idx);
 		auto arg_name = arg_info.name;
 
-		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType);
+		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType.type);
 		if( !genr.ok() )
 			return genr;
 
@@ -176,7 +176,7 @@ codegen_function_proto_default(
 	auto fn_type = proto->fn_type;
 	codegen.add_function(*name, Function, FT, fn_type);
 
-	return CGFunctionContext(Function, FT, ParamsTys, fn_type, CGFunctionContext::RetType::Default);
+	return CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::Default);
 }
 
 static CGResult<CGFunctionContext>
@@ -217,7 +217,7 @@ codegen_function_proto_sret(
 	auto fn_type = proto->fn_type;
 	codegen.add_function(*name, Function, FT, fn_type);
 
-	return CGFunctionContext(Function, FT, ParamsTys, fn_type, CGFunctionContext::RetType::SRet);
+	return CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::SRet);
 }
 
 CGResult<CGFunctionContext>

@@ -5,7 +5,7 @@ using namespace cg;
 CGFunctionContext::CGFunctionContext(
 	llvm::Function* Fn,
 	llvm::Type* Type,
-	Vec<llvm::Type*> ArgsTypes,
+	Vec<ArgumentType> ArgsTypes,
 	sema::Type const* fn_type,
 	RetType ret_type)
 	: Fn(Fn)
@@ -19,12 +19,12 @@ CGFunctionContext::CGFunctionContext(
 };
 
 void
-CGFunctionContext::add_arg_type(llvm::Type* Type)
+CGFunctionContext::add_arg_type(ArgumentType Type)
 {
 	ArgsTypes.push_back(Type);
 }
 
-llvm::Type*
+ArgumentType
 CGFunctionContext::arg_type(int idx)
 {
 	assert(idx < ArgsTypes.size());

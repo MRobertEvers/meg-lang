@@ -3,6 +3,7 @@
 #include "Codegen/CGNotImpl.h"
 #include "Codegen/codegen_call.h"
 #include "Codegen/codegen_function.h"
+#include "Codegen/codegen_return.h"
 #include "Codegen/lookup.h"
 #include "ast2/AstCasts.h"
 
@@ -114,7 +115,7 @@ CG::codegen_stmt(cg::CGFunctionContext& fn, ir::IRStmt* stmt)
 	case ir::IRStmtType::ExprStmt:
 		return codegen_expr(fn, stmt->stmt.expr);
 	case ir::IRStmtType::Return:
-		return codegen_return(fn, stmt->stmt.ret);
+		return codegen_return(*this, fn, stmt->stmt.ret);
 	case ir::IRStmtType::Assign:
 		return codegen_assign(fn, stmt->stmt.assign);
 	case ir::IRStmtType::Let:
@@ -158,56 +159,6 @@ CGResult<CGExpr>
 CG::codegen_extern_fn(ir::IRExternFn* extern_fn)
 {
 	return codegen_function_proto(*this, extern_fn->proto);
-}
-
-CGResult<CGExpr>
-CG::codegen_return(cg::CGFunctionContext& fn, ir::IRReturn* ret)
-{
-	auto maybe_fn_ctx = current_function;
-	assert(maybe_fn_ctx.has_value());
-
-	auto fn_ctx = current_function.value();
-
-	auto exprr = codegen_expr(fn, ret->expr);
-	if( !exprr.ok() )
-		return exprr;
-	auto expr = exprr.unwrap();
-
-	auto rt = fn_ctx.fn_type->get_return_type().value();
-	if( sema.types.equal_types(rt, sema.types.VoidType()) )
-	{
-		Builder->CreateRetVoid();
-	}
-	else if( rt.type->is_struct_type() && rt.indirection_level == 0 )
-	{
-		auto Function = fn_ctx.Fn;
-		auto MaybeSRet = Function->getArg(0);
-		if( MaybeSRet->hasAttribute(llvm::Attribute::StructRet) )
-		{
-			auto SRet = Function->getArg(0);
-			auto Expr = expr.as_value();
-
-			// TODO: Compute alignment from member
-			auto Size =
-				Module->getDataLayout().getTypeAllocSize(Expr->getType()->getPointerElementType());
-			auto Align =
-				Module->getDataLayout().getPrefTypeAlign(Expr->getType()->getPointerElementType());
-
-			Builder->CreateMemCpy(SRet, Align, Expr, Align, Size);
-			Builder->CreateRetVoid();
-		}
-		else
-		{
-			assert(0); // ???
-			Builder->CreateRetVoid();
-		}
-	}
-	else
-	{
-		Builder->CreateRet(expr.as_value());
-	}
-
-	return CGExpr();
 }
 
 CGResult<CGExpr>

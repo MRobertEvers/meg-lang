@@ -3,6 +3,7 @@
 
 #include "../CGExpr.h"
 #include "../CGResult.h"
+#include "CGFunctionContext.h"
 #include "common/Vec.h"
 #include "sema2/IR.h"
 #include "sema2/Scope.h"
@@ -28,21 +29,6 @@ CGResult<llvm::Type*> get_type(CG& cg, ir::IRTypeDeclaraor* decl);
 
 CGResult<llvm::Type*> get_type(CG& cg, ir::IRValueDecl* decl);
 
-enum class ArgumentAttr
-{
-	Default,
-	Value,
-};
-
-struct ArgumentType
-{
-	ArgumentAttr attr = ArgumentAttr::Default;
-	llvm::Type* type;
-
-	ArgumentType(ArgumentAttr attr, llvm::Type* type)
-		: attr(attr)
-		, type(type){};
-};
 struct get_params_types_t
 {
 	Vec<ArgumentType> args;

@@ -54,7 +54,6 @@ public:
 	CGResult<CGExpr> codegen_expr(cg::CGFunctionContext&, ir::IRExpr*);
 	CGResult<CGExpr> codegen_expr(cg::CGFunctionContext&, ir::IRExpr*, std::optional<LValue>);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
-	CGResult<CGExpr> codegen_return(cg::CGFunctionContext&, ir::IRReturn*);
 	CGResult<CGExpr> codegen_member_access(cg::CGFunctionContext&, ir::IRMemberAccess*);
 	CGResult<CGExpr> codegen_let(cg::CGFunctionContext&, ir::IRLet*);
 	CGResult<CGExpr> codegen_assign(cg::CGFunctionContext&, ir::IRAssign*);
