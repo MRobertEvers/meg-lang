@@ -2,39 +2,59 @@
 
 using namespace cg;
 
+LLVMFnArgInfo::LLVMFnArgInfo(LLVMArgABIInfo abi, LValue lvalue)
+	: name_("")
+	, abi(abi)
+	, lvalue(lvalue)
+{}
+
+LLVMFnArgInfo::LLVMFnArgInfo(String name, LLVMArgABIInfo abi, LValue lvalue)
+	: name_(name)
+	, abi(abi)
+	, lvalue(lvalue)
+{}
+
+bool
+LLVMFnArgInfo::is_sret() const
+{
+	return abi.attr == LLVMArgABIInfo::SRet;
+}
+
+String const&
+LLVMFnArgInfo::name() const
+{
+	return name_;
+}
+
+LLVMFnArgInfo
+LLVMFnArgInfo::Named(String name, LLVMArgABIInfo abi, LValue lvalue)
+{
+	return LLVMFnArgInfo(name, abi, lvalue);
+}
+
+LLVMFnArgInfo
+LLVMFnArgInfo::SRet(LLVMArgABIInfo abi, LValue lvalue)
+{
+	return LLVMFnArgInfo(abi, lvalue);
+}
+
 LLVMFnInfo::LLVMFnInfo(
-	llvm::Function* Fn,
-	llvm::Type* Type,
-	Vec<ArgumentType> ArgsTypes,
-	bool is_var_arg,
-	sema::Type const* fn_type,
-	RetType ret_type)
-	: Fn(Fn)
-	, FnType(Type)
-	, ArgsTypes(ArgsTypes)
-	, is_var_arg(is_var_arg)
-	, fn_type(fn_type)
-	, ret_type(ret_type)
-{
-	scopes.push_back(Scope(nullptr));
-	current_scope = &scopes.back();
-};
+	LLVMFnSigInfo sig_info,
+	std::map<String, LLVMFnArgInfo> named_args,
+	std::optional<LLVMFnArgInfo> sret_arg)
+	: named_args(named_args)
+	, sig_info(sig_info)
+	, sret_arg(sret_arg)
+{}
 
-void
-LLVMFnInfo::add_arg_type(ArgumentType Type)
+bool
+LLVMFnInfo::has_sret_arg() const
 {
-	ArgsTypes.push_back(Type);
+	return sret_arg.has_value();
 }
 
-ArgumentType
-LLVMFnInfo::arg_type(int idx)
+LLVMFnArgInfo
+LLVMFnInfo::sret() const
 {
-	assert(idx < ArgsTypes.size());
-	return ArgsTypes.at(idx);
-}
-
-void
-LLVMFnInfo::add_lvalue(String const& name, LValue lvalue)
-{
-	current_scope->add_lvalue(name, lvalue);
+	return sret_arg.value();
 }

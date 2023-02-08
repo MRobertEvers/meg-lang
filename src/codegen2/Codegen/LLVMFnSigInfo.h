@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Scope.h"
+#include "common/String.h"
 #include "common/Vec.h"
 #include "sema2/type/Type.h"
 #include <llvm-c/Core.h>
@@ -9,6 +10,8 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Value.h>
 
+#include <map>
+#include <optional>
 namespace cg
 {
 
@@ -25,49 +28,68 @@ struct LLVMArgABIInfo
 		Default,
 		SRet,
 		Value,
+
+		// When
+		UncheckedVarArg
 	};
 
 	Kind attr = Default;
-	llvm::Type* type;
+	llvm::Type* llvm_type;
 
-	LLVMArgABIInfo(Kind attr, llvm::Type* type)
+	LLVMArgABIInfo(Kind attr, llvm::Type* llvm_type)
 		: attr(attr)
-		, type(type){};
+		, llvm_type(llvm_type){};
+
+	bool is_sret() const { return attr == Default; }
+
+	static LLVMArgABIInfo Unchecked()
+	{
+		return LLVMArgABIInfo(LLVMArgABIInfo::UncheckedVarArg, nullptr);
+	}
 };
 
-/**
- * @brief Captures ABI information about arguments to an LLVM function.
- *
- */
+enum class LLVMFnSigRetType
+{
+	SRet,
+	Default
+};
+
 struct LLVMFnSigInfo
 {
-	enum class RetType
-	{
-		SRet,
-		Default
-	};
+private:
+	bool is_var_arg_;
+	int sret_arg_ind_;
 
-	llvm::Function* Fn;
-	llvm::Type* FnType;
-	Vec<LLVMArgABIInfo> ArgsTypes;
-	bool is_var_arg;
+	std::map<String, int> named_args_info_inds_;
 
-	sema::Type const* fn_type;
-	RetType ret_type = RetType::Default;
+public:
+	String name;
+	sema::Type const* sema_fn_ty;
 
-	Vec<Scope> scopes;
-	Scope* current_scope;
+	llvm::Function* llvm_fn;
+	llvm::Type* llvm_fn_ty;
+	Vec<LLVMArgABIInfo> abi_arg_infos;
+	LLVMFnSigRetType ret_type = LLVMFnSigRetType::Default;
 
 	LLVMFnSigInfo(
-		llvm::Function* Fn,
-		llvm::Type* Type,
-		Vec<LLVMArgABIInfo> ArgsTypes,
-		bool is_var_arg,
-		sema::Type const* fn_type,
-		RetType ret_type);
+		String,
+		llvm::Function*,
+		llvm::Type*,
+		Vec<LLVMArgABIInfo>,
+		std::map<String, int>,
+		sema::Type const*,
+		LLVMFnSigRetType,
+		int,
+		bool);
 
-	void add_arg_type(LLVMArgABIInfo);
-	LLVMArgABIInfo arg_type(int idx);
-	void add_lvalue(String const& name, LValue lvalue);
+	std::optional<String> get_arg_name(int idx);
+
+	LLVMArgABIInfo arg_type(int idx) const;
+	int nonvar_arg_count(void) const;
+	bool is_var_arg(void) const;
+	bool has_sret_arg(void) const;
+	int sret_arg_index(void) const;
+	bool is_void_rt(void) const;
 };
+
 } // namespace cg

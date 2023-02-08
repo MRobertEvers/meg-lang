@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../LValue.h"
 #include "../Scope.h"
+#include "LLVMFnSigInfo.h"
 #include "common/Vec.h"
 #include "sema2/type/Type.h"
 #include <llvm-c/Core.h>
@@ -12,39 +14,42 @@
 namespace cg
 {
 
+struct LLVMFnArgInfo
+{
+private:
+	String name_;
+	LLVMFnArgInfo(LLVMArgABIInfo abi, LValue lvalue);
+	LLVMFnArgInfo(String name, LLVMArgABIInfo abi, LValue lvalue);
+
+public:
+	LLVMArgABIInfo abi;
+	LValue lvalue;
+
+	bool is_sret() const;
+	String const& name() const;
+
+	static LLVMFnArgInfo Named(String name, LLVMArgABIInfo abi, LValue lvalue);
+	static LLVMFnArgInfo SRet(LLVMArgABIInfo abi, LValue lvalue);
+};
+
 /**
  * @brief Contains the llvm argument values and their.
  *
  */
 struct LLVMFnInfo
 {
-	enum class RetType
-	{
-		SRet,
-		Default
-	};
+	LLVMFnSigInfo sig_info;
 
-	llvm::Function* Fn;
-	llvm::Type* FnType;
-	Vec<ArgumentType> ArgsTypes;
-	bool is_var_arg;
+	std::map<String, LLVMFnArgInfo> named_args;
 
-	sema::Type const* fn_type;
-	RetType ret_type = RetType::Default;
-
-	Vec<Scope> scopes;
-	Scope* current_scope;
+	std::optional<LLVMFnArgInfo> sret_arg;
 
 	LLVMFnInfo(
-		llvm::Function* Fn,
-		llvm::Type* Type,
-		Vec<ArgumentType> ArgsTypes,
-		bool is_var_arg,
-		sema::Type const* fn_type,
-		RetType ret_type);
+		LLVMFnSigInfo sig_info,
+		std::map<String, LLVMFnArgInfo> named_args,
+		std::optional<LLVMFnArgInfo> sret_arg);
 
-	void add_arg_type(ArgumentType);
-	ArgumentType arg_type(int idx);
-	void add_lvalue(String const& name, LValue lvalue);
+	bool has_sret_arg() const;
+	LLVMFnArgInfo sret() const;
 };
 } // namespace cg

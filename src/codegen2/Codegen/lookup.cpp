@@ -44,41 +44,6 @@ cg::get_type(CG& cg, ir::IRValueDecl* decl)
 	return get_type(cg, decl->type_decl);
 }
 
-CGResult<get_params_types_t>
-cg::get_params_types(CG& cg, ir::IRProto* proto)
-{
-	get_params_types_t args;
-	args.is_var_arg = false;
-
-	for( auto& arg : *proto->args )
-	{
-		if( arg->type == ir::IRParamType::ValueDecl )
-		{
-			auto value_decl = arg->data.value_decl;
-			auto argsr = get_type(cg, value_decl);
-			if( !argsr.ok() )
-				return argsr;
-
-			auto type = value_decl->type_decl->type_instance;
-			auto ArgType = argsr.unwrap();
-			if( type.type->is_struct_type() )
-			{
-				args.args.push_back(LLVMArgABIInfo(LLVMArgABIInfo::Value, ArgType->getPointerTo()));
-			}
-			else
-			{
-				args.args.push_back(LLVMArgABIInfo(LLVMArgABIInfo::Default, ArgType));
-			}
-		}
-		else
-		{
-			args.is_var_arg = true;
-		}
-	}
-
-	return args;
-}
-
 // Get LValue?
 std::optional<CGExpr>
 cg::get_value(CG& cg, String const& name)

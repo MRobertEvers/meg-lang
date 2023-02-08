@@ -21,6 +21,10 @@ public:
 	}
 	bool operator!=(const TypeInstance& rhs) { return !operator==(rhs); }
 
+	bool is_function_type() const;
+	bool is_struct_type() const;
+	bool is_pointer_type() const { return indirection_level != 0; }
+
 	static TypeInstance OfType(Type const* type);
 	static TypeInstance PointerTo(Type const* type, int indirection);
 };

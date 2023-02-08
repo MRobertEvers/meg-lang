@@ -29,13 +29,5 @@ CGResult<llvm::Type*> get_type(CG& cg, ir::IRTypeDeclaraor* decl);
 
 CGResult<llvm::Type*> get_type(CG& cg, ir::IRValueDecl* decl);
 
-struct get_params_types_t
-{
-	Vec<LLVMArgABIInfo> args;
-	bool is_var_arg;
-};
-
-CGResult<get_params_types_t> get_params_types(CG& cg, ir::IRProto* proto);
-
 std::optional<CGExpr> get_value(CG&, String const&);
 } // namespace cg

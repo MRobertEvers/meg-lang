@@ -24,14 +24,13 @@ __deprecate_promote_to_value(CG& cg, llvm::Value* Val)
 }
 
 CGResult<CGExpr>
-cg::codegen_call(CG& codegen, cg::LLVMFnSigInfo& fn, ir::IRCall* ir_call)
+cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call)
 {
 	return codegen_call(codegen, fn, ir_call, std::optional<LValue>());
 }
 
 CGResult<CGExpr>
-cg::codegen_call(
-	CG& codegen, cg::LLVMFnSigInfo& fn, ir::IRCall* ir_call, std::optional<LValue> lvalue)
+cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::optional<LValue> lvalue)
 {
 	auto call_target_type = ir_call->call_target->type_instance;
 	assert(call_target_type.type->is_function_type() && call_target_type.indirection_level <= 1);
@@ -47,42 +46,28 @@ cg::codegen_call(
 	auto Function = expr.data.fn;
 	auto iter_callee = codegen.Functions.find(Function->getName().str());
 	assert(iter_callee != codegen.Functions.end());
-	auto callee = iter_callee->second;
+	auto callee_sig_info = iter_callee->second;
 
-	auto return_type = call_target_type.type->get_return_type().value();
-
-	// Assert value is correct?
-	// Semantic analysis should've guaranteed this is a function.
-	// if( !Value->getType()->isPointerTy() &&
-	// 	!Value->getType()->getPointerElementType()->isFunctionTy() )
-	// {
-	// 	std::cout << "Expected function type" << std::endl;
-	// 	return;
-	// }
-
-	std::vector<llvm::Value*> ArgsV;
-	if( Function->getArg(0)->hasAttribute(llvm::Attribute::StructRet) )
+	std::vector<llvm::Value*> llvm_arg_values;
+	int arg_ind = 0;
+	if( callee_sig_info.has_sret_arg() )
 	{
-		// Call with sret
-		auto rtr = get_type(codegen, return_type);
-		if( !rtr.ok() )
-			return rtr;
-		auto SRetType = rtr.unwrap();
-
+		// TODO: Assuming sret is first argument always!
+		auto sret_arg_info = callee_sig_info.arg_type(callee_sig_info.sret_arg_index());
 		if( lvalue.has_value() )
 		{
-			ArgsV.push_back(lvalue.value().value());
+			llvm_arg_values.push_back(lvalue.value().value());
 		}
 		else
 		{
-			llvm::AllocaInst* SRetAlloca = codegen.Builder->CreateAlloca(SRetType, nullptr, "Wow");
-			ArgsV.push_back(SRetAlloca);
+			// If no value was provided for the return value create a dummy alloca.
+			llvm::AllocaInst* llvm_sret_alloca =
+				codegen.Builder->CreateAlloca(sret_arg_info.llvm_type, nullptr, ".dummy");
+			llvm_arg_values.push_back(llvm_sret_alloca);
 		}
-
-		return_type = sema::TypeInstance::OfType(codegen.sema.types.void_type());
+		arg_ind += 1;
 	}
 
-	int ir_arg_count = 0;
 	for( auto arg_expr_node : *ir_call->args->args )
 	{
 		auto arg_exprr = codegen.codegen_expr(fn, arg_expr_node);
@@ -93,45 +78,54 @@ cg::codegen_call(
 		if( arg_expr.type != CGExprType::Value )
 			return CGError("Arg is not a value??"); // Assert here?
 
-		auto ArgValue = arg_expr.data.value;
+		auto llvm_arg_expr_value = arg_expr.data.value;
 
-		auto arg_attr = ir_arg_count >= callee.ArgsTypes.size() && callee.is_var_arg
-							? LLVMArgABIInfo::Default
-							: callee.arg_type(ir_arg_count).attr;
-		if( arg_attr == LLVMArgABIInfo::Value )
+		auto abi_info = callee_sig_info.arg_type(arg_ind);
+
+		switch( abi_info.attr )
 		{
-			auto arg_type = callee.arg_type(ir_arg_count);
-			llvm::AllocaInst* ArgAlloca = codegen.Builder->CreateAlloca(arg_type.type, nullptr);
-			auto Size = codegen.Module->getDataLayout().getTypeAllocSize(
-				arg_type.type->getPointerElementType());
-			auto Align = codegen.Module->getDataLayout().getPrefTypeAlign(
-				arg_type.type->getPointerElementType());
-
-			codegen.Builder->CreateMemCpy(ArgAlloca, Align, ArgValue, Align, Size);
-			ArgsV.push_back(ArgAlloca);
-		}
-		else
+		case LLVMArgABIInfo::UncheckedVarArg:
+		case LLVMArgABIInfo::Default:
 		{
-			// TODO: Again, constants return as values, and allocas are pointers.
-			// Need to consolidate this.
-			auto ArgValuePromoted = ArgValue;
-			// arg_expr.literal ? ArgValue : __deprecate_promote_to_value(codegen, ArgValue);
-
-			ArgsV.push_back(ArgValuePromoted);
+			llvm_arg_values.push_back(llvm_arg_expr_value);
+			break;
 		}
-		ir_arg_count += 1;
+		case LLVMArgABIInfo::Value:
+		{
+			// TODO: This is a bit confusing.
+			// Passing struct by values actually passes a pointer.
+			// We need to make a copy in a new alloca, and then pass
+			// that alloca
+			llvm::AllocaInst* llvm_cpy_alloca =
+				codegen.Builder->CreateAlloca(abi_info.llvm_type, nullptr);
+			auto llvm_size = codegen.Module->getDataLayout().getTypeAllocSize(
+				abi_info.llvm_type->getPointerElementType());
+			auto llvm_align = codegen.Module->getDataLayout().getPrefTypeAlign(
+				abi_info.llvm_type->getPointerElementType());
+
+			codegen.Builder->CreateMemCpy(
+				llvm_cpy_alloca, llvm_align, llvm_arg_expr_value, llvm_align, llvm_size);
+
+			auto llvm_cpy_value = codegen.Builder->CreateLoad(abi_info.llvm_type, llvm_cpy_alloca);
+			llvm_arg_values.push_back(llvm_cpy_value);
+			break;
+		}
+		case LLVMArgABIInfo::SRet:
+		{
+			assert(0 && "SRet ABI found in ir!");
+			break;
+		}
+		}
+
+		arg_ind += 1;
 	}
 
 	// https://github.com/ark-lang/ark/issues/362
 
-	if( codegen.sema.types.equal_types(return_type, codegen.sema.types.VoidType()) )
-	{
-		auto CallValue = codegen.Builder->CreateCall(Function, ArgsV);
+	auto llvm_call = codegen.Builder->CreateCall(callee_sig_info.llvm_fn, llvm_arg_values);
+	// If an sret arg was provided, then we have already turned the value.
+	if( callee_sig_info.has_sret_arg() )
 		return CGExpr();
-	}
 	else
-	{
-		auto CallValue = codegen.Builder->CreateCall(Function, ArgsV, "call");
-		return CGExpr(CallValue);
-	}
+		return CGExpr(llvm_call);
 }

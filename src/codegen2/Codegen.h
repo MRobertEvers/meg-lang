@@ -1,7 +1,7 @@
 #pragma once
 #include "CGExpr.h"
 #include "CGResult.h"
-#include "Codegen/LLVMFnSigInfo.h"
+#include "Codegen/LLVMFnInfo.h"
 #include "LValue.h"
 #include "Scope.h"
 #include "ast2/Ast.h"
@@ -50,19 +50,19 @@ public:
 
 	CGResult<CGExpr> codegen_module(ir::IRModule*);
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);
-	CGResult<CGExpr> codegen_stmt(cg::LLVMFnSigInfo&, ir::IRStmt*);
-	CGResult<CGExpr> codegen_expr(cg::LLVMFnSigInfo&, ir::IRExpr*);
-	CGResult<CGExpr> codegen_expr(cg::LLVMFnSigInfo&, ir::IRExpr*, std::optional<LValue>);
+	CGResult<CGExpr> codegen_stmt(cg::LLVMFnInfo&, ir::IRStmt*);
+	CGResult<CGExpr> codegen_expr(cg::LLVMFnInfo&, ir::IRExpr*);
+	CGResult<CGExpr> codegen_expr(cg::LLVMFnInfo&, ir::IRExpr*, std::optional<LValue>);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
-	CGResult<CGExpr> codegen_member_access(cg::LLVMFnSigInfo&, ir::IRMemberAccess*);
-	CGResult<CGExpr> codegen_let(cg::LLVMFnSigInfo&, ir::IRLet*);
-	CGResult<CGExpr> codegen_assign(cg::LLVMFnSigInfo&, ir::IRAssign*);
+	CGResult<CGExpr> codegen_member_access(cg::LLVMFnInfo&, ir::IRMemberAccess*);
+	CGResult<CGExpr> codegen_let(cg::LLVMFnInfo&, ir::IRLet*);
+	CGResult<CGExpr> codegen_assign(cg::LLVMFnInfo&, ir::IRAssign*);
 
 	// TODO: Return RValue type?
 	CGResult<CGExpr> codegen_number_literal(ir::IRNumberLiteral*);
 	CGResult<CGExpr> codegen_string_literal(ir::IRStringLiteral*);
 	CGResult<CGExpr> codegen_value_decl(ir::IRValueDecl*);
-	CGResult<CGExpr> codegen_binop(cg::LLVMFnSigInfo&, ir::IRBinOp*);
+	CGResult<CGExpr> codegen_binop(cg::LLVMFnInfo&, ir::IRBinOp*);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
 	CGResult<CGExpr> codegen_struct(ir::IRStruct* st);
 
