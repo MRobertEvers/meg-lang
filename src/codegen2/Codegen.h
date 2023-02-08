@@ -1,7 +1,7 @@
 #pragma once
 #include "CGExpr.h"
 #include "CGResult.h"
-#include "Codegen/CGFunctionContext.h"
+#include "Codegen/LLVMFnSigInfo.h"
 #include "LValue.h"
 #include "Scope.h"
 #include "ast2/Ast.h"
@@ -26,11 +26,11 @@ namespace cg
 class CG
 {
 public:
-	std::map<std::string, CGFunctionContext> Functions;
+	std::map<std::string, LLVMFnSigInfo> Functions;
 	std::unique_ptr<llvm::LLVMContext> Context;
 	std::unique_ptr<llvm::IRBuilder<>> Builder;
 
-	std::optional<CGFunctionContext> current_function;
+	std::optional<LLVMFnSigInfo> current_function;
 
 	std::unique_ptr<llvm::Module> Module;
 	// TODO: Need scoping on these types.
@@ -46,23 +46,23 @@ public:
 	// Scope* push_scope();
 	// void pop_scope();
 
-	void add_function(String const& name, CGFunctionContext);
+	void add_function(String const& name, LLVMFnSigInfo);
 
 	CGResult<CGExpr> codegen_module(ir::IRModule*);
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);
-	CGResult<CGExpr> codegen_stmt(cg::CGFunctionContext&, ir::IRStmt*);
-	CGResult<CGExpr> codegen_expr(cg::CGFunctionContext&, ir::IRExpr*);
-	CGResult<CGExpr> codegen_expr(cg::CGFunctionContext&, ir::IRExpr*, std::optional<LValue>);
+	CGResult<CGExpr> codegen_stmt(cg::LLVMFnSigInfo&, ir::IRStmt*);
+	CGResult<CGExpr> codegen_expr(cg::LLVMFnSigInfo&, ir::IRExpr*);
+	CGResult<CGExpr> codegen_expr(cg::LLVMFnSigInfo&, ir::IRExpr*, std::optional<LValue>);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
-	CGResult<CGExpr> codegen_member_access(cg::CGFunctionContext&, ir::IRMemberAccess*);
-	CGResult<CGExpr> codegen_let(cg::CGFunctionContext&, ir::IRLet*);
-	CGResult<CGExpr> codegen_assign(cg::CGFunctionContext&, ir::IRAssign*);
+	CGResult<CGExpr> codegen_member_access(cg::LLVMFnSigInfo&, ir::IRMemberAccess*);
+	CGResult<CGExpr> codegen_let(cg::LLVMFnSigInfo&, ir::IRLet*);
+	CGResult<CGExpr> codegen_assign(cg::LLVMFnSigInfo&, ir::IRAssign*);
 
 	// TODO: Return RValue type?
 	CGResult<CGExpr> codegen_number_literal(ir::IRNumberLiteral*);
 	CGResult<CGExpr> codegen_string_literal(ir::IRStringLiteral*);
 	CGResult<CGExpr> codegen_value_decl(ir::IRValueDecl*);
-	CGResult<CGExpr> codegen_binop(cg::CGFunctionContext&, ir::IRBinOp*);
+	CGResult<CGExpr> codegen_binop(cg::LLVMFnSigInfo&, ir::IRBinOp*);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
 	CGResult<CGExpr> codegen_struct(ir::IRStruct* st);
 

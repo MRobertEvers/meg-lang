@@ -1,5 +1,5 @@
 #pragma once
-#include "CGFunctionContext.h"
+#include "LLVMFnSigInfo.h"
 namespace cg
 {
 class CG;

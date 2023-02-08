@@ -1,42 +1,39 @@
 #include "codegen_function.h"
 
 #include "../Codegen.h"
-#include "CGFunctionContext.h"
+#include "LLVMFnSigInfo.h"
 #include "lookup.h"
 
 using namespace cg;
 
 static cg::CGResult<cg::CGExpr>
 codegen_function_entry_param(
-	CG& cg,
-	cg::CGFunctionContext& ctx,
-	String const& name,
-	llvm::Argument* Arg,
-	llvm::Type* ArgType)
+	CG& cg, cg::LLVMFnSigInfo& ctx, String const& name, llvm::Argument* Arg, LLVMArgABIInfo ArgType)
 {
-	// if( ArgType->isStructTy() )
-	// {
-	// 	ctx.add_lvalue(name, LValue(Arg, ArgType));
-	// 	cg.values.emplace(name, Arg);
-	// }
-	// else
-	// {
-	llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(ArgType, nullptr, name);
-	cg.Builder->CreateStore(Arg, Alloca);
+	if( ArgType.attr == LLVMArgABIInfo::Value )
+	{
+		ctx.add_lvalue(name, LValue(Arg, ArgType.type));
 
-	ctx.add_lvalue(name, LValue(Alloca, ArgType));
+		cg.values.emplace(name, Arg);
+	}
+	else
+	{
+		llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(ArgType.type, nullptr, name);
+		cg.Builder->CreateStore(Arg, Alloca);
 
-	// TODO: Remove this once exprs get ctx arg
-	cg.values.emplace(name, Alloca);
-	// }
+		ctx.add_lvalue(name, LValue(Alloca, ArgType.type));
+
+		// TODO: Remove this once exprs get ctx arg
+		cg.values.emplace(name, Alloca);
+	}
 
 	return CGExpr();
 }
 
 static cg::CGResult<cg::CGExpr>
-codegen_function_entry_sret(CG& cg, cg::CGFunctionContext& ctx)
+codegen_function_entry_sret(CG& cg, cg::LLVMFnSigInfo& ctx)
 {
-	assert(ctx.ret_type == CGFunctionContext::RetType::SRet);
+	assert(ctx.ret_type == LLVMFnSigInfo::RetType::SRet);
 	auto Function = ctx.Fn;
 	auto fn_type = ctx.fn_type;
 
@@ -58,7 +55,7 @@ codegen_function_entry_sret(CG& cg, cg::CGFunctionContext& ctx)
 		auto ArgType = ctx.arg_type(idx + 1);
 		auto arg_name = arg_info.name;
 
-		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType.type);
+		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType);
 		if( !genr.ok() )
 			return genr;
 
@@ -69,9 +66,9 @@ codegen_function_entry_sret(CG& cg, cg::CGFunctionContext& ctx)
 }
 
 static cg::CGResult<cg::CGExpr>
-codegen_function_entry_default(CG& cg, cg::CGFunctionContext& ctx)
+codegen_function_entry_default(CG& cg, cg::LLVMFnSigInfo& ctx)
 {
-	assert(ctx.ret_type == CGFunctionContext::RetType::Default);
+	assert(ctx.ret_type == LLVMFnSigInfo::RetType::Default);
 	auto Function = ctx.Fn;
 	auto fn_type = ctx.fn_type;
 
@@ -84,7 +81,7 @@ codegen_function_entry_default(CG& cg, cg::CGFunctionContext& ctx)
 		auto ArgType = ctx.arg_type(idx);
 		auto arg_name = arg_info.name;
 
-		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType.type);
+		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType);
 		if( !genr.ok() )
 			return genr;
 
@@ -95,14 +92,14 @@ codegen_function_entry_default(CG& cg, cg::CGFunctionContext& ctx)
 }
 
 static cg::CGResult<cg::CGExpr>
-codegen_function_entry(CG& cg, cg::CGFunctionContext& ctx)
+codegen_function_entry(CG& cg, cg::LLVMFnSigInfo& ctx)
 {
 	auto Function = ctx.Fn;
 
 	llvm::BasicBlock* BB = llvm::BasicBlock::Create(*cg.Context, "entry", Function);
 	cg.Builder->SetInsertPoint(BB);
 
-	if( ctx.ret_type == CGFunctionContext::RetType::Default )
+	if( ctx.ret_type == LLVMFnSigInfo::RetType::Default )
 	{
 		return codegen_function_entry_default(cg, ctx);
 	}
@@ -144,7 +141,7 @@ cg::codegen_function(CG& cg, ir::IRFunction* ir_fn)
 }
 
 static Vec<llvm::Type*>
-from_argtypes(Vec<ArgumentType>& args)
+from_argtypes(Vec<LLVMArgABIInfo>& args)
 {
 	Vec<llvm::Type*> vec;
 	for( auto arg : args )
@@ -154,7 +151,7 @@ from_argtypes(Vec<ArgumentType>& args)
 	return vec;
 }
 
-static CGResult<CGFunctionContext>
+static CGResult<LLVMFnSigInfo>
 codegen_function_proto_default(
 	CG& codegen,
 	ir::IRProto* proto,
@@ -174,7 +171,7 @@ codegen_function_proto_default(
 	{
 		auto Arg = Function->getArg(i);
 		auto arg_type = args.at(i);
-		if( arg_type.attr == ArgumentAttr::Value )
+		if( arg_type.attr == LLVMArgABIInfo::Value )
 		{
 			auto& Builder = llvm::AttrBuilder().addStructRetAttr(arg_type.type);
 			Arg->addAttrs(Builder);
@@ -184,7 +181,7 @@ codegen_function_proto_default(
 	auto fn_type = proto->fn_type;
 
 	auto context =
-		CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::Default);
+		LLVMFnSigInfo(Function, FT, args, is_var_arg, fn_type, LLVMFnSigInfo::RetType::Default);
 	codegen.add_function(*name, context);
 
 	return context;
@@ -200,10 +197,10 @@ codegen_function_proto_default(
  * @param name
  * @param params_info
  * @param ReturnTy
- * @return CGResult<CGFunctionContext>
+ * @return CGResult<LLVMFnSigInfo>
  */
 
-static CGResult<CGFunctionContext>
+static CGResult<LLVMFnSigInfo>
 codegen_function_proto_sret(
 	CG& codegen,
 	ir::IRProto* proto,
@@ -216,7 +213,7 @@ codegen_function_proto_sret(
 	auto is_var_arg = params_info.is_var_arg;
 
 	// TODO: Opaque pointer.
-	args.insert(args.begin(), ArgumentType(ArgumentAttr::Default, ReturnTy->getPointerTo()));
+	args.insert(args.begin(), LLVMArgABIInfo(LLVMArgABIInfo::Default, ReturnTy->getPointerTo()));
 	ParamsTys.insert(ParamsTys.begin(), ReturnTy->getPointerTo());
 	auto VoidReturnTy = llvm::Type::getVoidTy(*codegen.Context);
 
@@ -232,20 +229,21 @@ codegen_function_proto_sret(
 	{
 		auto Arg = Function->getArg(i);
 		auto arg_type = args.at(i);
-		// if( arg_type.attr == ArgumentAttr::Value )
-		// {
-		// 	Arg->addAttrs(llvm::AttrBuilder().addByValAttr(arg_type.type));
-		// }
+		if( arg_type.attr == LLVMArgABIInfo::Value )
+		{
+			Arg->addAttrs(llvm::AttrBuilder().addByValAttr(arg_type.type));
+		}
 	}
 
 	auto fn_type = proto->fn_type;
-	auto context = CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::SRet);
+	auto context =
+		LLVMFnSigInfo(Function, FT, args, is_var_arg, fn_type, LLVMFnSigInfo::RetType::SRet);
 	codegen.add_function(*name, context);
 
 	return context;
 }
 
-CGResult<CGFunctionContext>
+CGResult<LLVMFnSigInfo>
 cg::codegen_function_proto(CG& codegen, ir::IRProto* proto)
 {
 	auto name = proto->name;
@@ -272,7 +270,7 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* proto)
 }
 
 CGResult<CGExpr>
-cg::codegen_function_body(CG& cg, cg::CGFunctionContext& ctx, ir::IRBlock* block)
+cg::codegen_function_body(CG& cg, cg::LLVMFnSigInfo& ctx, ir::IRBlock* block)
 {
 	for( auto stmt : *block->stmts )
 	{

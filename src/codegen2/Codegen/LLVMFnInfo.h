@@ -12,30 +12,11 @@
 namespace cg
 {
 
-enum class ArgumentAttr
-{
-	Default,
-	SRet,
-	Value,
-};
-
 /**
- * @brief Pass by value still uses pointers.
- * The difference is that by-value structs are copied to their own
- * memory location before the call and a pointer to that is passed in.
+ * @brief Contains the llvm argument values and their.
  *
  */
-struct ArgumentType
-{
-	ArgumentAttr attr = ArgumentAttr::Default;
-	llvm::Type* type;
-
-	ArgumentType(ArgumentAttr attr, llvm::Type* type)
-		: attr(attr)
-		, type(type){};
-};
-
-struct CGFunctionContext
+struct LLVMFnInfo
 {
 	enum class RetType
 	{
@@ -46,11 +27,7 @@ struct CGFunctionContext
 	llvm::Function* Fn;
 	llvm::Type* FnType;
 	Vec<ArgumentType> ArgsTypes;
-
-	union
-	{
-		LValue sret;
-	};
+	bool is_var_arg;
 
 	sema::Type const* fn_type;
 	RetType ret_type = RetType::Default;
@@ -58,10 +35,11 @@ struct CGFunctionContext
 	Vec<Scope> scopes;
 	Scope* current_scope;
 
-	CGFunctionContext(
+	LLVMFnInfo(
 		llvm::Function* Fn,
 		llvm::Type* Type,
 		Vec<ArgumentType> ArgsTypes,
+		bool is_var_arg,
 		sema::Type const* fn_type,
 		RetType ret_type);
 

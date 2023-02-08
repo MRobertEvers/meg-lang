@@ -1,16 +1,18 @@
-#include "CGFunctionContext.h"
+#include "LLVMFnInfo.h"
 
 using namespace cg;
 
-CGFunctionContext::CGFunctionContext(
+LLVMFnInfo::LLVMFnInfo(
 	llvm::Function* Fn,
 	llvm::Type* Type,
 	Vec<ArgumentType> ArgsTypes,
+	bool is_var_arg,
 	sema::Type const* fn_type,
 	RetType ret_type)
 	: Fn(Fn)
 	, FnType(Type)
 	, ArgsTypes(ArgsTypes)
+	, is_var_arg(is_var_arg)
 	, fn_type(fn_type)
 	, ret_type(ret_type)
 {
@@ -19,20 +21,20 @@ CGFunctionContext::CGFunctionContext(
 };
 
 void
-CGFunctionContext::add_arg_type(ArgumentType Type)
+LLVMFnInfo::add_arg_type(ArgumentType Type)
 {
 	ArgsTypes.push_back(Type);
 }
 
 ArgumentType
-CGFunctionContext::arg_type(int idx)
+LLVMFnInfo::arg_type(int idx)
 {
 	assert(idx < ArgsTypes.size());
 	return ArgsTypes.at(idx);
 }
 
 void
-CGFunctionContext::add_lvalue(String const& name, LValue lvalue)
+LLVMFnInfo::add_lvalue(String const& name, LValue lvalue)
 {
 	current_scope->add_lvalue(name, lvalue);
 }

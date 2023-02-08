@@ -73,7 +73,7 @@ add_executable(sushi
     src/codegen2/Codegen/codegen_statement.cpp
     src/codegen2/Codegen/codegen_call.cpp
     src/codegen2/Codegen/lookup.cpp
-    src/codegen2/Codegen/CGFunctionContext.cpp
+    src/codegen2/Codegen/LLVMFnSigInfo.cpp
     src/codegen2/Codegen/CGNotImpl.cpp
 )
 

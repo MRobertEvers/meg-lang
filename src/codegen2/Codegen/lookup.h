@@ -3,7 +3,7 @@
 
 #include "../CGExpr.h"
 #include "../CGResult.h"
-#include "CGFunctionContext.h"
+#include "LLVMFnSigInfo.h"
 #include "common/Vec.h"
 #include "sema2/IR.h"
 #include "sema2/Scope.h"
@@ -31,7 +31,7 @@ CGResult<llvm::Type*> get_type(CG& cg, ir::IRValueDecl* decl);
 
 struct get_params_types_t
 {
-	Vec<ArgumentType> args;
+	Vec<LLVMArgABIInfo> args;
 	bool is_var_arg;
 };
 

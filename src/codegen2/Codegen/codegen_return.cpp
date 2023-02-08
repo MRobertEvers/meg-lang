@@ -5,14 +5,14 @@
 using namespace cg;
 
 CGResult<CGExpr>
-cg::codegen_return(CG& codegen, cg::CGFunctionContext& fn, ir::IRReturn* ir_return)
+cg::codegen_return(CG& codegen, cg::LLVMFnSigInfo& fn, ir::IRReturn* ir_return)
 {
 	auto exprr = codegen.codegen_expr(fn, ir_return->expr);
 	if( !exprr.ok() )
 		return exprr;
 	auto expr = exprr.unwrap();
 
-	if( fn.ret_type == CGFunctionContext::RetType::SRet )
+	if( fn.ret_type == LLVMFnSigInfo::RetType::SRet )
 	{
 		auto Function = fn.Fn;
 		auto SRet = Function->getArg(0);

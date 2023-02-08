@@ -54,7 +54,7 @@ CG::CG(sema::Sema2& sema)
 }
 
 void
-CG::add_function(String const& name, CGFunctionContext context)
+CG::add_function(String const& name, LLVMFnSigInfo context)
 {
 	Functions.emplace(name, context);
 	types.emplace(context.fn_type, context.FnType);
@@ -108,7 +108,7 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 }
 
 CGResult<CGExpr>
-CG::codegen_stmt(cg::CGFunctionContext& fn, ir::IRStmt* stmt)
+CG::codegen_stmt(cg::LLVMFnSigInfo& fn, ir::IRStmt* stmt)
 {
 	switch( stmt->type )
 	{
@@ -126,13 +126,13 @@ CG::codegen_stmt(cg::CGFunctionContext& fn, ir::IRStmt* stmt)
 }
 
 CGResult<CGExpr>
-CG::codegen_expr(cg::CGFunctionContext& fn, ir::IRExpr* expr)
+CG::codegen_expr(cg::LLVMFnSigInfo& fn, ir::IRExpr* expr)
 {
 	return codegen_expr(fn, expr, std::optional<LValue>());
 }
 
 CGResult<CGExpr>
-CG::codegen_expr(cg::CGFunctionContext& fn, ir::IRExpr* expr, std::optional<LValue> lvalue)
+CG::codegen_expr(cg::LLVMFnSigInfo& fn, ir::IRExpr* expr, std::optional<LValue> lvalue)
 {
 	switch( expr->type )
 	{
@@ -162,7 +162,7 @@ CG::codegen_extern_fn(ir::IRExternFn* extern_fn)
 }
 
 CGResult<CGExpr>
-CG::codegen_member_access(cg::CGFunctionContext& fn, ir::IRMemberAccess* ma)
+CG::codegen_member_access(cg::LLVMFnSigInfo& fn, ir::IRMemberAccess* ma)
 {
 	auto exprr = codegen_expr(fn, ma->expr);
 	if( !exprr.ok() )
@@ -196,7 +196,7 @@ CG::codegen_member_access(cg::CGFunctionContext& fn, ir::IRMemberAccess* ma)
 }
 
 CGResult<CGExpr>
-CG::codegen_let(cg::CGFunctionContext& fn, ir::IRLet* let)
+CG::codegen_let(cg::LLVMFnSigInfo& fn, ir::IRLet* let)
 {
 	auto name = let->name;
 	auto type = let->assign->rhs->type_instance;
@@ -222,7 +222,7 @@ CG::codegen_let(cg::CGFunctionContext& fn, ir::IRLet* let)
 // }
 
 CGResult<CGExpr>
-CG::codegen_assign(cg::CGFunctionContext& fn, ir::IRAssign* assign)
+CG::codegen_assign(cg::LLVMFnSigInfo& fn, ir::IRAssign* assign)
 {
 	auto lhsr = codegen_expr(fn, assign->lhs);
 	if( !lhsr.ok() )
@@ -332,7 +332,7 @@ CG::codegen_value_decl(ir::IRValueDecl* decl)
 }
 
 CGResult<CGExpr>
-CG::codegen_binop(cg::CGFunctionContext& fn, ir::IRBinOp* binop)
+CG::codegen_binop(cg::LLVMFnSigInfo& fn, ir::IRBinOp* binop)
 {
 	auto lhsr = codegen_expr(fn, binop->lhs);
 	if( !lhsr.ok() )

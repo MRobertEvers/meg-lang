@@ -1,7 +1,7 @@
 #include "lookup.h"
 
 #include "../Codegen.h"
-#include "CGFunctionContext.h"
+#include "LLVMFnSigInfo.h"
 
 using namespace cg;
 
@@ -63,11 +63,11 @@ cg::get_params_types(CG& cg, ir::IRProto* proto)
 			auto ArgType = argsr.unwrap();
 			if( type.type->is_struct_type() )
 			{
-				args.args.push_back(ArgumentType(ArgumentAttr::Value, ArgType));
+				args.args.push_back(LLVMArgABIInfo(LLVMArgABIInfo::Value, ArgType->getPointerTo()));
 			}
 			else
 			{
-				args.args.push_back(ArgumentType(ArgumentAttr::Default, ArgType));
+				args.args.push_back(LLVMArgABIInfo(LLVMArgABIInfo::Default, ArgType));
 			}
 		}
 		else
