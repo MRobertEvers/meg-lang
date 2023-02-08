@@ -103,10 +103,7 @@ cg::codegen_call(
 	if( codegen.sema.types.equal_types(return_type, codegen.sema.types.VoidType()) )
 	{
 		auto CallValue = codegen.Builder->CreateCall(Function, ArgsV);
-		if( Function->getArg(0)->hasAttribute(llvm::Attribute::StructRet) )
-			return CGExpr();
-		else
-			return CGExpr();
+		return CGExpr();
 	}
 	else
 	{

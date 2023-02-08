@@ -112,6 +112,14 @@ codegen_function_entry(CG& cg, cg::CGFunctionContext& ctx)
 	}
 }
 
+/**
+ * @brief
+ *
+ *
+ * @param cg
+ * @param ir_fn
+ * @return CGResult<CGExpr>
+ */
 CGResult<CGExpr>
 cg::codegen_function(CG& cg, ir::IRFunction* ir_fn)
 {
@@ -178,6 +186,19 @@ codegen_function_proto_default(
 
 	return CGFunctionContext(Function, FT, args, fn_type, CGFunctionContext::RetType::Default);
 }
+
+/**
+ * @brief
+ *
+ * 1.
+ *
+ * @param codegen
+ * @param proto
+ * @param name
+ * @param params_info
+ * @param ReturnTy
+ * @return CGResult<CGFunctionContext>
+ */
 
 static CGResult<CGFunctionContext>
 codegen_function_proto_sret(
