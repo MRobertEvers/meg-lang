@@ -87,7 +87,21 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 		case LLVMArgABIInfo::UncheckedVarArg:
 		case LLVMArgABIInfo::Default:
 		{
-			llvm_arg_values.push_back(llvm_arg_expr_value);
+			// For unchecked args, the ABI doesn't have the arg type,
+			// so we just use the type of the expression.
+			// TODO: Need to return lvalues/rvalues that include the llvm type
+			auto abi_llvm_type = abi_info.attr == LLVMArgABIInfo::UncheckedVarArg
+									 ? !arg_expr.literal
+										   ? llvm_arg_expr_value->getType()->getPointerElementType()
+										   : llvm_arg_expr_value->getType()
+									 : abi_info.llvm_type;
+			// TODO: This is confusing.
+			// When codegening literals, they return the direct value that we want.
+			// When codegening non-literal, they return a pointer to the value we want.
+			auto llvm_value = !arg_expr.literal
+								  ? codegen.Builder->CreateLoad(abi_llvm_type, llvm_arg_expr_value)
+								  : llvm_arg_expr_value;
+			llvm_arg_values.push_back(llvm_value);
 			break;
 		}
 		case LLVMArgABIInfo::Value:
@@ -97,7 +111,7 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			// We need to make a copy in a new alloca, and then pass
 			// that alloca
 			llvm::AllocaInst* llvm_cpy_alloca =
-				codegen.Builder->CreateAlloca(abi_info.llvm_type, nullptr);
+				codegen.Builder->CreateAlloca(abi_info.llvm_type->getPointerElementType(), nullptr);
 			auto llvm_size = codegen.Module->getDataLayout().getTypeAllocSize(
 				abi_info.llvm_type->getPointerElementType());
 			auto llvm_align = codegen.Module->getDataLayout().getPrefTypeAlign(
@@ -106,8 +120,7 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			codegen.Builder->CreateMemCpy(
 				llvm_cpy_alloca, llvm_align, llvm_arg_expr_value, llvm_align, llvm_size);
 
-			auto llvm_cpy_value = codegen.Builder->CreateLoad(abi_info.llvm_type, llvm_cpy_alloca);
-			llvm_arg_values.push_back(llvm_cpy_value);
+			llvm_arg_values.push_back(llvm_cpy_alloca);
 			break;
 		}
 		case LLVMArgABIInfo::SRet:

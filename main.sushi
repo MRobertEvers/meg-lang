@@ -20,6 +20,7 @@ struct Point {
 }
 
 fn copy_point(p: Point): Point {
+    printf("CP Point (%d, %d) %d\n", p.x, p.y);
     let result = Point;
     result.x = p.x;
     result.y = p.y;
