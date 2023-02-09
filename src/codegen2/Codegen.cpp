@@ -312,11 +312,81 @@ CG::codegen_number_literal(ir::IRNumberLiteral* lit)
 	return CGExpr(ConstInt, true);
 }
 
+static char
+escape_char(char c)
+{
+	// \a	07	Alert (Beep, Bell) (added in C89)[1]
+	// \b	08	Backspace
+	// \e	1B	Escape character
+	// \f	0C	Formfeed Page Break
+	// \n	0A	Newline (Line Feed); see notes below
+	// \r	0D	Carriage Return
+	// \t	09	Horizontal Tab
+	// \v	0B	Vertical Tab
+	// \\	5C	Backslash
+	// \'	27	Apostrophe or single quotation mark
+	// \"	22	Double quotation mark
+	// \?	3F	Question mark (used to avoid trigraphs)
+
+	switch( c )
+	{
+	case 'a':
+		return 0x07;
+	case 'b':
+		return 0x08;
+	case 'e':
+		return 0x1B;
+	case 'f':
+		return 0x0C;
+	case 'n':
+		return 0x0A;
+	case 'r':
+		return 0x0D;
+	case 't':
+		return 0x09;
+	case 'v':
+		return 0x0B;
+	case '\\':
+		return '\\';
+	case '\'':
+		return '\'';
+	case '"':
+		return '"';
+	case '?':
+		return '?';
+	default:
+		return c;
+	}
+}
+
+static String
+escape_string(String s)
+{
+	String res;
+	res.reserve(s.size());
+	bool escape = false;
+	for( auto c : s )
+	{
+		if( !escape && c == '\\' )
+		{
+			escape = true;
+			continue;
+		}
+
+		res.push_back(escape ? escape_char(c) : c);
+		escape = false;
+	}
+
+	return res;
+}
+
 CGResult<CGExpr>
 CG::codegen_string_literal(ir::IRStringLiteral* lit)
 {
 	//
-	auto Literal = llvm::ConstantDataArray::getString(*Context, lit->value->c_str(), true);
+
+	auto Literal =
+		llvm::ConstantDataArray::getString(*Context, escape_string(*lit->value).c_str(), true);
 
 	llvm::GlobalVariable* GVStr = new llvm::GlobalVariable(
 		*Module, Literal->getType(), true, llvm::GlobalValue::InternalLinkage, Literal);
