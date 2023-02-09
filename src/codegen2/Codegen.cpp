@@ -375,13 +375,13 @@ CG::codegen_binop(cg::LLVMFnInfo& fn, ir::IRBinOp* binop)
 	case BinOp::slash:
 		return CGExpr(Builder->CreateSDiv(L, R, "divtmp"));
 	case BinOp::gt:
-		return CGExpr(Builder->CreateICmpUGT(L, R, "cmptmp"));
+		return CGExpr(Builder->CreateICmpSGT(L, R, "cmptmp"));
 	case BinOp::gte:
-		return CGExpr(Builder->CreateICmpUGE(L, R, "cmptmp"));
+		return CGExpr(Builder->CreateICmpSGE(L, R, "cmptmp"));
 	case BinOp::lt:
-		return CGExpr(Builder->CreateICmpULT(L, R, "cmptmp"));
+		return CGExpr(Builder->CreateICmpSLT(L, R, "cmptmp"));
 	case BinOp::lte:
-		return CGExpr(Builder->CreateICmpULE(L, R, "cmptmp"));
+		return CGExpr(Builder->CreateICmpSLE(L, R, "cmptmp"));
 	case BinOp::cmp:
 		return CGExpr(Builder->CreateICmpEQ(L, R, "cmptmp"));
 	case BinOp::ne:
@@ -442,13 +442,13 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 	if( !then_stmtr.ok() )
 		return then_stmtr;
 
-	Builder->CreateBr(llvm_else_bb);
+	Builder->CreateBr(llvm_merge_bb);
 	llvm_fn->getBasicBlockList().push_back(llvm_else_bb);
 	Builder->SetInsertPoint(llvm_else_bb);
 
 	if( ir_if->else_stmt != nullptr )
 	{
-		auto then_stmtr = codegen_stmt(fn, ir_if->stmt);
+		auto then_stmtr = codegen_else(fn, ir_if->else_stmt);
 		if( !then_stmtr.ok() )
 			return then_stmtr;
 	}

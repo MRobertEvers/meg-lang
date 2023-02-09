@@ -39,13 +39,17 @@ fn main(): i32
 
     let point2 = copy_point(my_point);
 
-    if (point2.x == my_point.y)
+    if (point2.x == 9)
     {
         point2.x = 11;
     }
-    else 
+    else if (point2.x < 9)
     {
         point2.x = 13;
+    }
+    else 
+    {
+        point2.x = 15;
     }
 
     printf("Point (%d, %d) %d\n", point2.x, point2.y, my_point.x);

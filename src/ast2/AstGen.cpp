@@ -252,8 +252,6 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 	// If this is a binop, find its precedence.
 	while( true )
 	{
-		auto cur = cursor.peek();
-
 		// This is a binary operation because TokPrec would be less than ExprPrec if
 		// the next token was not a bin op (e.g. if statement or so.)
 
@@ -271,6 +269,8 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 			 TokenType::or_lex,
 			 TokenType::cmp,
 			 TokenType::ne});
+		if( !tok.ok() )
+			return lhs;
 
 		auto token_type = tok.as().type;
 		auto op = get_bin_op_from_token_type(token_type);
@@ -288,7 +288,7 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 
 		// If BinOp binds less tightly with RHS than the operator after RHS, let
 		// the pending operator take RHS as its LHS.
-		cur = cursor.peek();
+		auto cur = cursor.peek();
 		token_type = tok.as().type;
 		op = get_bin_op_from_token_type(token_type);
 		int next_precidence = get_token_precedence(op);

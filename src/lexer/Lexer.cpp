@@ -72,6 +72,7 @@ Lexer::lex()
 		case '.':
 		case '/':
 		case '>':
+		case '<':
 		case '=':
 		case '*':
 		case '+':
