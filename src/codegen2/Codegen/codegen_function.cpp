@@ -55,90 +55,6 @@ get_named_params(CG& cg, ir::IRProto* proto)
 	return args;
 }
 
-// static cg::CGResult<cg::CGExpr>
-// codegen_function_entry_param(
-// 	CG& cg, cg::LLVMFnInfo& ctx, String const& name, llvm::Argument* Arg, LLVMArgABIInfo ArgType)
-// {
-// 	if( ArgType.attr == LLVMArgABIInfo::Value )
-// 	{
-// 		ctx.add_lvalue(name, LValue(Arg, ArgType.type));
-
-// 		cg.values.emplace(name, Arg);
-// 	}
-// 	else
-// 	{
-// 		llvm::AllocaInst* Alloca = cg.Builder->CreateAlloca(ArgType.type, nullptr, name);
-// 		cg.Builder->CreateStore(Arg, Alloca);
-
-// 		ctx.add_lvalue(name, LValue(Alloca, ArgType.type));
-
-// 		// TODO: Remove this once exprs get ctx arg
-// 		cg.values.emplace(name, Alloca);
-// 	}
-
-// 	return CGExpr();
-// }
-
-// static cg::CGResult<cg::CGExpr>
-// codegen_function_entry_sret(CG& cg, cg::LLVMFnInfo& ctx)
-// {
-// 	assert(ctx.ret_type == LLVMFnSigInfo::RetType::SRet);
-// 	auto Function = ctx.Fn;
-// 	auto fn_type = ctx.fn_type;
-
-// 	// SRet should always have at least one arg.
-// 	auto args = Function->args();
-// 	assert(!args.empty());
-
-// 	int idx = 0;
-// 	bool skipped = false;
-// 	for( auto& Arg : args )
-// 	{
-// 		if( !skipped )
-// 		{
-// 			skipped = true;
-// 			continue;
-// 		}
-
-// 		auto arg_info = fn_type->get_member(idx);
-// 		auto ArgType = ctx.arg_type(idx + 1);
-// 		auto arg_name = arg_info.name;
-
-// 		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType);
-// 		if( !genr.ok() )
-// 			return genr;
-
-// 		idx++;
-// 	}
-
-// 	return CGExpr();
-// }
-
-// static cg::CGResult<cg::CGExpr>
-// codegen_function_entry_default(CG& cg, cg::LLVMFnInfo& ctx)
-// {
-// 	auto Function = ctx.Fn;
-// 	auto fn_type = ctx.fn_type;
-
-// 	auto args = Function->args();
-
-// 	auto idx = 0;
-// 	for( auto& Arg : args )
-// 	{
-// 		auto arg_info = fn_type->get_member(idx);
-// 		auto ArgType = ctx.arg_type(idx);
-// 		auto arg_name = arg_info.name;
-
-// 		auto genr = codegen_function_entry_param(cg, ctx, arg_name, &Arg, ArgType);
-// 		if( !genr.ok() )
-// 			return genr;
-
-// 		idx++;
-// 	}
-
-// 	return CGExpr();
-// }
-
 static cg::CGResult<LLVMFnInfo>
 codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 {
@@ -240,87 +156,6 @@ from_argtypes(Vec<LLVMArgABIInfo>& args)
 	return vec;
 }
 
-// static CGResult<LLVMFnSigInfo>
-// codegen_function_proto_default(
-// 	CG& codegen,
-// 	ir::IRProto* proto,
-// 	String* name,
-// 	get_params_types_t& params_info,
-// 	llvm::Type* ReturnTy)
-// {
-// 	auto args = params_info.args;
-// 	auto ParamsTys = from_argtypes(args);
-// 	auto is_var_arg = params_info.is_var_arg;
-// 	llvm::FunctionType* FT = llvm::FunctionType::get(ReturnTy, ParamsTys, is_var_arg);
-
-// 	llvm::Function* Function =
-// 		llvm::Function::Create(FT, llvm::Function::ExternalLinkage, *name, codegen.Module.get());
-
-// 	for( int i = 0; i < ParamsTys.size(); i++ )
-// 	{
-// 		auto Arg = Function->getArg(i);
-// 		auto arg_type = args.at(i);
-// 		if( arg_type.attr == LLVMArgABIInfo::Value )
-// 		{
-// 			auto& Builder = llvm::AttrBuilder().addStructRetAttr(arg_type.type);
-// 			Arg->addAttrs(Builder);
-// 		}
-// 	}
-
-// 	auto fn_type = proto->fn_type;
-
-// 	auto context =
-// 		LLVMFnSigInfo(Function, FT, args, is_var_arg, fn_type, LLVMFnSigInfo::RetType::Default);
-// 	codegen.add_function(*name, context);
-
-// 	return context;
-// }
-
-// static CGResult<LLVMFnSigInfo>
-// codegen_function_proto_sret(
-// 	CG& codegen,
-// 	ir::IRProto* proto,
-// 	String* name,
-// 	get_params_types_t& params_info,
-// 	llvm::Type* llvm_return_ty)
-// {
-// 	auto args = params_info.args;
-// 	auto llvm_param_tys = from_argtypes(args);
-// 	auto is_var_arg = params_info.is_var_arg;
-
-// 	// TODO: Opaque pointer.
-// 	args.insert(
-// 		args.begin(), LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_return_ty->getPointerTo()));
-// 	llvm_param_tys.insert(llvm_param_tys.begin(), llvm_return_ty->getPointerTo());
-// 	auto llvm_void_ty = llvm::Type::getVoidTy(*codegen.Context);
-
-// 	llvm::FunctionType* llvm_fn_ty =
-// 		llvm::FunctionType::get(llvm_void_ty, llvm_param_tys, is_var_arg);
-
-// 	llvm::Function* llvm_fn = llvm::Function::Create(
-// 		llvm_fn_ty, llvm::Function::ExternalLinkage, *name, codegen.Module.get());
-
-// 	auto& llvm_attr_builder = llvm::AttrBuilder().addStructRetAttr(llvm_return_ty);
-// 	llvm_fn->getArg(0)->addAttrs(llvm_attr_builder);
-
-// 	for( int i = 0; i < llvm_param_tys.size(); i++ )
-// 	{
-// 		auto llvm_arg = llvm_fn->getArg(i);
-// 		auto arg_type = args.at(i);
-// 		if( arg_type.attr == LLVMArgABIInfo::Value )
-// 		{
-// 			llvm_arg->addAttrs(llvm::AttrBuilder().addByValAttr(arg_type.type));
-// 		}
-// 	}
-
-// 	auto fn_type = proto->fn_type;
-// 	auto context =
-// 		LLVMFnSigInfo(llvm_fn, llvm_fn_ty, args, is_var_arg, fn_type, LLVMFnSigInfo::RetType::SRet);
-// 	codegen.add_function(*name, context);
-
-// 	return context;
-// }
-
 CGResult<LLVMFnSigInfo>
 cg::codegen_function_proto(CG& codegen, ir::IRProto* ir_proto)
 {
@@ -354,9 +189,7 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* ir_proto)
 	}
 
 	for( auto& [arg_name, arg_abi] : params_info.args )
-	{
 		builder.add_arg_type(arg_name, arg_abi);
-	}
 
 	builder.set_is_var_arg(params_info.is_var_arg);
 
