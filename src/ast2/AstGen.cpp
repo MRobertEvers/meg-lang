@@ -781,6 +781,26 @@ AstGen::parse_member_reference(ast::AstNode* base)
 	return ast.MemberAccess(trail.mark(), base, identifier.unwrap());
 }
 
+ParseResult<AstNode*>
+AstGen::parse_addressof()
+{
+	auto trail = get_parse_trail();
+
+	auto tok = cursor.consume(TokenType::and_lex);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '&'", tok.as());
+	}
+
+	auto expr = parse_expr();
+	if( !expr.ok() )
+	{
+		return expr;
+	}
+
+	return ast.AddressOf(trail.mark(), expr.unwrap());
+}
+
 ParseResult<ast::AstNode*>
 AstGen::parse_simple_expr()
 {
@@ -824,6 +844,18 @@ AstGen::parse_simple_expr()
 		if( !ctok.ok() )
 		{
 			return ParseError("Expected ')'", ctok.as());
+		}
+
+		result = expr.unwrap();
+		break;
+	}
+	case TokenType::and_lex:
+	{
+		// TODO: Is this the right place to do this?
+		auto expr = parse_addressof();
+		if( !expr.ok() )
+		{
+			return expr;
 		}
 
 		result = expr.unwrap();

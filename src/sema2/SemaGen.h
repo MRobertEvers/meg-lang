@@ -35,6 +35,7 @@ SemaResult<ir::IRArgs*> sema_fn_args(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRCall*> sema_fn_call(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRId*> sema_id(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRMemberAccess*> sema_member_access(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRMemberAccess*> sema_addressof(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRReturn*> sema_return(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRLet*> sema_let(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRAssign*> sema_assign(Sema2& sema, ast::AstNode* ast);

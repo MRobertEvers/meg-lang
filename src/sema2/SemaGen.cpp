@@ -25,48 +25,6 @@ as_name(Sema2& sema, ast::AstNode* ast)
 	return sema.create_name(id.name->c_str(), id.name->size());
 }
 
-// struct sema_extern_fn_proto_t
-// {
-// 	Type const* fn_type;
-// 	Vec<TypedMember> values;
-// };
-
-// static SemaResult<sema_extern_fn_proto_t>
-// sema_extern_fn_proto(Sema2& sema, ast::AstNode* node)
-// {
-// 	auto fn_protor = expected(node, ast::as_fn_proto);
-// 	if( !fn_protor.ok() )
-// 		return fn_protor;
-
-// 	auto idnode = as_id(sema, mod.name);
-// 	if( !idnode.ok() )
-// 		return result;
-
-// 	auto fn_name = idnode.unwrap()->name;
-
-// 	auto params = sema.sema_fn_param_list(mod.params);
-// 	if( !params.ok() )
-// 		return params;
-
-// 	auto retnode = typecheck_type_decl(sema, mod.return_type);
-// 	if( !retnode.ok() )
-// 		return retnode;
-
-// 	auto return_type = retnode.unwrap();
-
-// 	sema.current_scope->set_expected_return(return_type);
-
-// 	auto newtype = Type::Function(*fn_name, params.unwrap(), return_type);
-// 	auto fn_type = sema.CreateType(newtype);
-// 	sema.add_type_identifier(fn_type);
-// 	sema.add_value_identifier(*fn_name, TypeInstance::OfType(fn_type));
-
-// 	return (struct sema_extern_fn_proto_t){
-// 		.fn_type = fn_type,
-// 		.values = params.unwrap() //
-// 	};
-// }
-
 SemaResult<IRModule*>
 sema::sema_module(Sema2& sema, AstNode* node)
 {
@@ -241,6 +199,14 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 
 		return sema.Expr(litr.unwrap());
 	}
+	case NodeType::AddressOf:
+	{
+		auto litr = sema_member_access(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
 	default:
 		break;
 	}
@@ -403,6 +369,14 @@ sema::sema_member_access(Sema2& sema, ast::AstNode* ast)
 			*name + "' does not exist");
 	auto member_type = member.value();
 	return sema.MemberAccess(ast, val_expr, member_type.type, name);
+}
+
+SemaResult<ir::IRMemberAccess*>
+sema::sema_addressof(Sema2& sema, ast::AstNode* ast)
+{
+	//
+
+	return NotImpl();
 }
 
 SemaResult<ir::IRReturn*>

@@ -29,7 +29,11 @@ struct LLVMArgABIInfo
 		SRet,
 		Value,
 
-		// When
+		// Indicates that this ABI Arg Info contains
+		// no information about the arg becuase it was
+		// provided as a var arg. User must check
+		// the type of the argument by examining
+		// the expression type.
 		UncheckedVarArg
 	};
 
@@ -40,7 +44,7 @@ struct LLVMArgABIInfo
 		: attr(attr)
 		, llvm_type(llvm_type){};
 
-	bool is_sret() const { return attr == Default; }
+	bool is_sret() const { return attr == SRet; }
 
 	static LLVMArgABIInfo Unchecked()
 	{

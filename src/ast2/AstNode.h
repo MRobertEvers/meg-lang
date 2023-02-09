@@ -34,6 +34,7 @@ enum class NodeType
 	NumberLiteral,
 	TypeDeclarator,
 	MemberAccess,
+	AddressOf,
 	Expr,
 	Stmt,
 };
@@ -407,6 +408,18 @@ struct AstMemberAccess
 	{}
 };
 
+struct AstAddressOf
+{
+	static constexpr NodeType nt = NodeType::AddressOf;
+
+	AstNode* expr;
+
+	AstAddressOf() = default;
+	AstAddressOf(AstNode* expr)
+		: expr(expr)
+	{}
+};
+
 struct AstExpr
 {
 	static constexpr NodeType nt = NodeType::Expr;
@@ -461,6 +474,7 @@ struct AstNode
 		AstNumberLiteral number_literal;
 		AstTypeDeclarator type_declarator;
 		AstMemberAccess member_access;
+		AstAddressOf address_of;
 		AstExpr expr;
 		AstStmt stmt;
 	} data;

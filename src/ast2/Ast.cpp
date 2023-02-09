@@ -229,6 +229,14 @@ Ast::MemberAccess(Span span, AstNode* expr, AstNode* member_name)
 }
 
 AstNode*
+Ast::AddressOf(Span span, AstNode* expr)
+{
+	auto node = make_empty<AstAddressOf>(span);
+	node->data.address_of = AstAddressOf{expr};
+	return node;
+}
+
+AstNode*
 Ast::Expr(Span span, AstNode* expr)
 {
 	auto node = make_empty<AstExpr>(span);
