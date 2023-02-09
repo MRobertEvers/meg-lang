@@ -83,6 +83,9 @@ public:
 	ir::IRStmt* Stmt(ir::IRExpr*);
 	ir::IRStmt* Stmt(ir::IRLet*);
 	ir::IRStmt* Stmt(ir::IRAssign*);
+	ir::IRStmt* Stmt(ir::IRIf*);
+	ir::IRStmt* Stmt(ir::IRElse*);
+	ir::IRStmt* Stmt(ir::IRBlock*);
 	ir::IRArgs* Args(ast::AstNode* node, Vec<ir::IRExpr*>* args);
 	ir::IRNumberLiteral*
 	NumberLiteral(ast::AstNode* node, TypeInstance type_instance, long long val);
@@ -90,8 +93,10 @@ public:
 	StringLiteral(ast::AstNode* node, TypeInstance type_instance, String* name);
 	ir::IRId* Id(ast::AstNode* node, String* name, sema::TypeInstance type);
 	ir::IRLet* Let(ast::AstNode* node, String* name, ir::IRAssign* assign);
+	ir::IRIf* If(ast::AstNode* node, ir::IRExpr* bool_expr, ir::IRStmt*, ir::IRElse*);
+	ir::IRElse* Else(ast::AstNode* node, ir::IRStmt* assign);
 	ir::IRAssign* Assign(ast::AstNode*, ast::AssignOp, ir::IRExpr*, ir::IRExpr*);
-	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*);
+	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*, TypeInstance);
 	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
 	ir::IRVarArg* VarArg(ast::AstNode*);

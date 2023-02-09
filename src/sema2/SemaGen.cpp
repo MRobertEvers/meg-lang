@@ -118,6 +118,30 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 
 		return sema.Stmt(fn_callr.unwrap());
 	}
+	case NodeType::If:
+	{
+		auto ifr = sema_if(sema, stmt_node);
+		if( !ifr.ok() )
+			return ifr;
+
+		return sema.Stmt(ifr.unwrap());
+	}
+	case NodeType::Else:
+	{
+		auto ifr = sema_else(sema, stmt_node);
+		if( !ifr.ok() )
+			return ifr;
+
+		return sema.Stmt(ifr.unwrap());
+	}
+	case NodeType::Block:
+	{
+		auto ifr = sema_block(sema, stmt_node, true);
+		if( !ifr.ok() )
+			return ifr;
+
+		return sema.Stmt(ifr.unwrap());
+	}
 	default:
 	{
 		auto exprstmtr = sema_expr_any(sema, stmt_node);
@@ -129,6 +153,58 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 	}
 
 	return NotImpl();
+}
+
+SemaResult<ir::IRIf*>
+sema::sema_if(Sema2& sema, ast::AstNode* ast)
+{
+	auto result = expected(ast, ast::as_if);
+	if( !result.ok() )
+		return result;
+
+	auto ifcond = result.unwrap();
+
+	auto exprr = sema_expr(sema, ifcond.condition);
+	if( !exprr.ok() )
+		return exprr;
+	auto expr = exprr.unwrap();
+
+	if( !sema.types.equal_types(expr->type_instance, sema.types.BoolType()) )
+		return SemaError("If condition expression must be bool type.");
+
+	auto stmtr = sema_stmt(sema, ifcond.then_block);
+	if( !stmtr.ok() )
+		return stmtr;
+	auto stmt = stmtr.unwrap();
+
+	if( ifcond.else_block )
+	{
+		auto else_stmtr = sema_else(sema, ifcond.else_block);
+		if( !else_stmtr.ok() )
+			return else_stmtr;
+
+		return sema.If(ast, expr, stmt, else_stmtr.unwrap());
+	}
+	else
+	{
+		return sema.If(ast, expr, stmt, nullptr);
+	}
+}
+
+SemaResult<ir::IRElse*>
+sema::sema_else(Sema2& sema, ast::AstNode* ast)
+{
+	auto result = expected(ast, ast::as_else);
+	if( !result.ok() )
+		return result;
+
+	auto else_stmt = result.unwrap();
+
+	auto stmtr = sema_stmt(sema, else_stmt.stmt);
+	if( !stmtr.ok() )
+		return stmtr;
+
+	return sema.Else(ast, stmtr.unwrap());
 }
 
 SemaResult<ir::IRValueDecl*>
@@ -469,6 +545,31 @@ sema::sema_assign(Sema2& sema, ast::AstNode* ast)
 	return sema.Assign(ast, assign.op, lhs, rhs);
 }
 
+static TypeInstance
+binop_type(Sema2& sema, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
+{
+	switch( op )
+	{
+	case ast::BinOp::plus:
+	case ast::BinOp::star:
+	case ast::BinOp::minus:
+	case ast::BinOp::slash:
+		return lhs->type_instance;
+	case ast::BinOp::gt:
+	case ast::BinOp::gte:
+	case ast::BinOp::lt:
+	case ast::BinOp::lte:
+	case ast::BinOp::and_lex:
+	case ast::BinOp::or_lex:
+	case ast::BinOp::cmp:
+	case ast::BinOp::ne:
+		return sema.types.BoolType();
+	case ast::BinOp::bad:
+		assert(0);
+		break;
+	}
+}
+
 SemaResult<ir::IRBinOp*>
 sema::sema_binop(Sema2& sema, ast::AstNode* ast)
 {
@@ -493,7 +594,9 @@ sema::sema_binop(Sema2& sema, ast::AstNode* ast)
 			"Mismatched types: " + sema::to_string(lhs->type_instance) +
 			" != " + sema::to_string(rhs->type_instance));
 
-	return sema.BinOp(ast, binop.op, lhs, rhs);
+	auto type = binop_type(sema, binop.op, lhs, rhs);
+
+	return sema.BinOp(ast, binop.op, lhs, rhs, type);
 }
 
 SemaResult<ir::IRBlock*>
@@ -759,4 +862,6 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 
 SemaResult<ir::IRFunction*>
 sema::generate_constructor(Sema2& sema, ast::AstNode* ast)
-{}
+{
+	return NotImpl();
+}

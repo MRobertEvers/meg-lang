@@ -139,6 +139,14 @@ Ast::If(Span span, AstNode* condition, AstNode* then_block, AstNode* else_block)
 }
 
 AstNode*
+Ast::Else(Span span, AstNode* stmt)
+{
+	auto node = make_empty<AstElse>(span);
+	node->data.else_stmt = AstElse{stmt};
+	return node;
+}
+
+AstNode*
 Ast::Let(Span span, AstNode* identifier, AstNode* type_declarator, AstNode* rhs)
 {
 	auto node = make_empty<AstLet>(span);

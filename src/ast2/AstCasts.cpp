@@ -30,6 +30,26 @@ ast::as_module(ast::AstNode* node)
 	return &node->data.mod;
 }
 
+Cast<AstIf>
+ast::as_if(ast::AstNode* node)
+{
+	//
+	if( node->type != AstIf::nt )
+		return Cast<AstIf>();
+
+	return &node->data.ifcond;
+}
+
+Cast<AstElse>
+ast::as_else(ast::AstNode* node)
+{
+	//
+	if( node->type != AstElse::nt )
+		return Cast<AstElse>();
+
+	return &node->data.else_stmt;
+}
+
 Cast<AstFnProto>
 ast::as_fn_proto(ast::AstNode* node)
 {

@@ -26,7 +26,7 @@ Types::Types()
 	this->u8_type_ = define_type(_u8_type);
 	this->u16_type_ = define_type(_u16_type);
 	this->u32_type_ = define_type(_u32_type);
-	define_type(_bool_type);
+	this->bool_type_ = define_type(_bool_type);
 }
 
 Type const*
@@ -85,6 +85,12 @@ Types::u8_type()
 	return this->u8_type_;
 }
 
+Type const*
+Types::bool_type()
+{
+	return this->bool_type_;
+}
+
 bool
 Types::equal_types(TypeInstance l, TypeInstance r)
 {
@@ -101,6 +107,12 @@ Types::non_inferred(TypeInstance l, TypeInstance r)
 		return l;
 	if( r.type != infer_type_ )
 		return r;
+}
+
+TypeInstance
+Types::BoolType()
+{
+	return TypeInstance::OfType(bool_type_);
 }
 
 TypeInstance

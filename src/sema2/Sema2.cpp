@@ -349,7 +349,7 @@ Sema2::Expr(ir::IRBinOp* nl)
 	nod->node = nl->node;
 	nod->expr.binop = nl;
 	nod->type = ir::IRExprType::BinOp;
-	nod->type_instance = nl->lhs->type_instance;
+	nod->type_instance = nl->type_instance;
 
 	return nod;
 }
@@ -415,6 +415,38 @@ Sema2::Stmt(ir::IRAssign* expr)
 	return nod;
 }
 
+ir::IRStmt*
+Sema2::Stmt(ir::IRIf* e)
+{
+	auto nod = new ir::IRStmt;
+	nod->node = e->node;
+	nod->stmt.if_stmt = e;
+	nod->type = ir::IRStmtType::If;
+	return nod;
+}
+
+ir::IRStmt*
+Sema2::Stmt(ir::IRElse* e)
+{
+	auto nod = new ir::IRStmt;
+
+	nod->node = e->node;
+	nod->stmt.else_stmt = e;
+	nod->type = ir::IRStmtType::Else;
+	return nod;
+}
+
+ir::IRStmt*
+Sema2::Stmt(ir::IRBlock* e)
+{
+	auto nod = new ir::IRStmt;
+
+	nod->node = e->node;
+	nod->stmt.block = e;
+	nod->type = ir::IRStmtType::Block;
+	return nod;
+}
+
 ir::IRArgs*
 Sema2::Args(ast::AstNode* node, Vec<ir::IRExpr*>* args)
 {
@@ -474,6 +506,30 @@ Sema2::Let(ast::AstNode* node, String* name, ir::IRAssign* assign)
 	return nod;
 }
 
+ir::IRIf*
+Sema2::If(ast::AstNode* node, ir::IRExpr* bool_expr, ir::IRStmt* body, ir::IRElse* else_stmt)
+{
+	auto nod = new ir::IRIf;
+
+	nod->node = node;
+	nod->expr = bool_expr;
+	nod->stmt = body;
+	nod->else_stmt = else_stmt;
+
+	return nod;
+}
+
+ir::IRElse*
+Sema2::Else(ast::AstNode* node, ir::IRStmt* stmt)
+{
+	auto nod = new ir::IRElse;
+
+	nod->node = node;
+	nod->stmt = stmt;
+
+	return nod;
+}
+
 ir::IRAssign*
 Sema2::Assign(ast::AstNode* node, ast::AssignOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
 {
@@ -488,7 +544,8 @@ Sema2::Assign(ast::AstNode* node, ast::AssignOp op, ir::IRExpr* lhs, ir::IRExpr*
 }
 
 ir::IRBinOp*
-Sema2::BinOp(ast::AstNode* node, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
+Sema2::BinOp(
+	ast::AstNode* node, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs, sema::TypeInstance type)
 {
 	auto nod = new ir::IRBinOp;
 
@@ -496,6 +553,7 @@ Sema2::BinOp(ast::AstNode* node, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs
 	nod->node = node;
 	nod->lhs = lhs;
 	nod->rhs = rhs;
+	nod->type_instance = type;
 
 	return nod;
 }

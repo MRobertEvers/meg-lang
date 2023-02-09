@@ -34,6 +34,7 @@ private:
 	ParseResult<AstNode*> parse_statement();
 
 	ParseResult<AstNode*> parse_if();
+	ParseResult<AstNode*> parse_else();
 	ParseResult<AstNode*> parse_for();
 	ParseResult<AstNode*> parse_literal();
 	ParseResult<AstNode*> parse_type_identifier();

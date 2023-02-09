@@ -24,6 +24,7 @@ enum class NodeType
 	Id,
 	Assign,
 	If,
+	Else,
 	Let,
 	Return,
 	Struct,
@@ -266,6 +267,18 @@ struct AstIf
 	{}
 };
 
+struct AstElse
+{
+	static constexpr NodeType nt = NodeType::Else;
+
+	AstNode* stmt;
+
+	AstElse() = default;
+	AstElse(AstNode* stmt)
+		: stmt(stmt)
+	{}
+};
+
 struct AstLet
 {
 	static constexpr NodeType nt = NodeType::Let;
@@ -464,6 +477,7 @@ struct AstNode
 		AstId id;
 		AstAssign assign;
 		AstIf ifcond;
+		AstElse else_stmt;
 		AstLet let;
 		AstReturn returnexpr;
 		AstStruct structstmt;

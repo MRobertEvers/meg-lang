@@ -24,6 +24,7 @@ struct IRExpr;
 struct IRAssign;
 struct IRStruct;
 struct IRParam;
+struct IRElse;
 
 struct IRModule
 {
@@ -213,12 +214,31 @@ struct IRMemberAccess
 	IRExpr* expr;
 };
 
+struct IRIf
+{
+	//
+	ast::AstNode* node;
+	IRExpr* expr;
+	IRStmt* stmt;
+	IRElse* else_stmt;
+};
+
+struct IRElse
+{
+	//
+	ast::AstNode* node;
+	IRStmt* stmt;
+};
+
 enum class IRStmtType
 {
 	Return,
 	ExprStmt,
 	Let,
 	Assign,
+	If,
+	Else,
+	Block,
 };
 
 struct IRStmt
@@ -226,7 +246,10 @@ struct IRStmt
 	ast::AstNode* node;
 	union
 	{
+		IRIf* if_stmt;
+		IRElse* else_stmt;
 		IRExpr* expr;
+		IRBlock* block;
 		IRReturn* ret;
 		IRLet* let;
 		IRAssign* assign;

@@ -120,6 +120,12 @@ CG::codegen_stmt(cg::LLVMFnInfo& fn, ir::IRStmt* stmt)
 		return codegen_assign(fn, stmt->stmt.assign);
 	case ir::IRStmtType::Let:
 		return codegen_let(fn, stmt->stmt.let);
+	case ir::IRStmtType::If:
+		return codegen_if(fn, stmt->stmt.if_stmt);
+	case ir::IRStmtType::Else:
+		return codegen_else(fn, stmt->stmt.else_stmt);
+	case ir::IRStmtType::Block:
+		return codegen_block(fn, stmt->stmt.block);
 	}
 
 	return NotImpl();
@@ -407,6 +413,77 @@ CG::codegen_id(ir::IRId* id)
 		return CGExpr();
 
 	return CGError("Undeclared identifier! " + *id->name);
+}
+
+CGResult<CGExpr>
+CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
+{
+	//
+	auto exprr = codegen_expr(fn, ir_if->expr);
+	if( !exprr.ok() )
+		return exprr;
+	auto cond_expr = exprr.unwrap();
+	auto llvm_cond_v = cond_expr.as_value();
+
+	auto llvm_fn = fn.sig_info.llvm_fn;
+
+	// Create blocks for the then and else cases.  Insert the 'then' block at the
+	// end of the function.
+	llvm::BasicBlock* llvm_then_bb = llvm::BasicBlock::Create(*Context, "then", llvm_fn);
+	llvm::BasicBlock* llvm_else_bb = llvm::BasicBlock::Create(*Context, "else");
+	llvm::BasicBlock* llvm_merge_bb = llvm::BasicBlock::Create(*Context);
+
+	Builder->CreateCondBr(llvm_cond_v, llvm_then_bb, llvm_else_bb);
+
+	// Emit then value.
+	Builder->SetInsertPoint(llvm_then_bb);
+
+	auto then_stmtr = codegen_stmt(fn, ir_if->stmt);
+	if( !then_stmtr.ok() )
+		return then_stmtr;
+
+	Builder->CreateBr(llvm_else_bb);
+	llvm_fn->getBasicBlockList().push_back(llvm_else_bb);
+	Builder->SetInsertPoint(llvm_else_bb);
+
+	if( ir_if->else_stmt != nullptr )
+	{
+		auto then_stmtr = codegen_stmt(fn, ir_if->stmt);
+		if( !then_stmtr.ok() )
+			return then_stmtr;
+	}
+	Builder->CreateBr(llvm_merge_bb);
+
+	// Codegen of 'Else' can change the current block, update ElseBB for the PHI.
+	llvm_else_bb = Builder->GetInsertBlock();
+
+	// Emit merge block.
+	llvm_fn->getBasicBlockList().push_back(llvm_merge_bb);
+	Builder->SetInsertPoint(llvm_merge_bb);
+
+	return CGExpr();
+}
+
+CGResult<CGExpr>
+CG::codegen_else(cg::LLVMFnInfo& fn, ir::IRElse* ir_else)
+{
+	//
+	return codegen_stmt(fn, ir_else->stmt);
+}
+
+CGResult<CGExpr>
+CG::codegen_block(cg::LLVMFnInfo& fn, ir::IRBlock* ir_block)
+{
+	//
+	for( auto stmt : *ir_block->stmts )
+	{
+		//
+		auto stmtr = codegen_stmt(fn, stmt);
+		if( !stmtr.ok() )
+			return stmtr;
+	}
+
+	return CGExpr();
 }
 
 CGResult<CGExpr>

@@ -22,6 +22,7 @@ private:
 	Type const* u32_type_;
 	Type const* u16_type_;
 	Type const* u8_type_;
+	Type const* bool_type_;
 
 public:
 	std::map<String, Type> types;
@@ -37,10 +38,12 @@ public:
 	Type const* u32_type();
 	Type const* u16_type();
 	Type const* u8_type();
+	Type const* bool_type();
 
 	bool equal_types(TypeInstance l, TypeInstance r);
 	TypeInstance non_inferred(TypeInstance l, TypeInstance r);
 
+	TypeInstance BoolType();
 	TypeInstance VoidType();
 	TypeInstance InferType();
 

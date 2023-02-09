@@ -45,6 +45,7 @@ public:
 	AstNode* ValueId(Span span, String* name);
 	AstNode* Assign(Span span, AssignOp op, AstNode* left, AstNode* right);
 	AstNode* If(Span span, AstNode* condition, AstNode* then_block, AstNode* else_block);
+	AstNode* Else(Span span, AstNode* stmt);
 	AstNode* Let(Span span, AstNode* identifier, AstNode* type_declarator, AstNode* rhs);
 	AstNode* Return(Span span, AstNode* expr);
 	AstNode* Struct(Span span, AstNode* type_name, AstList<AstNode*>* members);

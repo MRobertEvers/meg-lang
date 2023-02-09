@@ -565,10 +565,10 @@ AstGen::parse_if()
 	}
 
 	// Else block is optional
-	cursor.consume_if_expected(TokenType::else_keyword);
-	if( tok.ok() )
+	auto peek = cursor.peek();
+	if( peek.type == TokenType::else_keyword )
 	{
-		auto else_block_result = parse_statement();
+		auto else_block_result = parse_else();
 		if( !else_block_result.ok() )
 		{
 			return else_block_result;
@@ -581,6 +581,25 @@ AstGen::parse_if()
 	{
 		return ast.If(trail.mark(), condition.unwrap(), then_block.unwrap(), nullptr);
 	}
+}
+
+ParseResult<AstNode*>
+AstGen::parse_else()
+{
+	auto trail = get_parse_trail();
+	auto tok = cursor.consume(TokenType::else_keyword);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected 'else'", tok.as());
+	}
+
+	auto else_block_result = parse_statement();
+	if( !else_block_result.ok() )
+	{
+		return else_block_result;
+	}
+
+	return ast.Else(trail.mark(), else_block_result.unwrap());
 }
 
 ParseResult<ast::AstNode*>

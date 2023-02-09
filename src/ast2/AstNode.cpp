@@ -34,6 +34,8 @@ ast::to_string(NodeType type)
 		return "Assign";
 	case NodeType::If:
 		return "If";
+	case NodeType::Else:
+		return "Else";
 	case NodeType::Let:
 		return "Let";
 	case NodeType::Return:
@@ -58,5 +60,7 @@ ast::to_string(NodeType type)
 		return "Expr";
 	case NodeType::Stmt:
 		return "Stmt";
+	case NodeType::AddressOf:
+		return "&";
 	}
 }
