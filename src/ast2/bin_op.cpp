@@ -48,10 +48,10 @@ ast::get_bin_op_from_token_type(TokenType token_type)
 		op = BinOp::lte;
 		break;
 	case TokenType::and_lex:
-		op = BinOp::and_lex;
+		op = BinOp::and_op;
 		break;
-	case TokenType::or_lex:
-		op = BinOp::or_lex;
+	case TokenType::or_or_lex:
+		op = BinOp::or_op;
 		break;
 	case TokenType::cmp:
 		op = BinOp::cmp;
@@ -70,8 +70,8 @@ ast::init_bin_op_lookup()
 {
 	BinopPrecedence[BinOp::ne] = 10;
 	BinopPrecedence[BinOp::cmp] = 10;
-	BinopPrecedence[BinOp::or_lex] = 10;
-	BinopPrecedence[BinOp::and_lex] = 10;
+	BinopPrecedence[BinOp::or_op] = 10;
+	BinopPrecedence[BinOp::and_op] = 10;
 	BinopPrecedence[BinOp::lte] = 10;
 	BinopPrecedence[BinOp::gte] = 10;
 	BinopPrecedence[BinOp::lt] = 10;

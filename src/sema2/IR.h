@@ -230,6 +230,22 @@ struct IRElse
 	IRStmt* stmt;
 };
 
+struct IRAddressOf
+{
+	//
+	ast::AstNode* node;
+	IRExpr* expr;
+	sema::TypeInstance type_instance;
+};
+
+struct IRDeref
+{
+	//
+	ast::AstNode* node;
+	IRExpr* expr;
+	sema::TypeInstance type_instance;
+};
+
 enum class IRStmtType
 {
 	Return,
@@ -265,7 +281,9 @@ enum class IRExprType
 	Id,
 	BinOp,
 	ValueDecl,
-	MemberAccess
+	MemberAccess,
+	AddressOf,
+	Deref
 };
 
 struct IRExpr
@@ -280,6 +298,8 @@ struct IRExpr
 		IRNumberLiteral* num_literal;
 		IRCall* call;
 		IRBinOp* binop;
+		IRAddressOf* addr_of;
+		IRDeref* deref;
 		IRMemberAccess* member_access;
 	} expr;
 	IRExprType type;

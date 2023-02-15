@@ -277,7 +277,15 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 	}
 	case NodeType::AddressOf:
 	{
-		auto litr = sema_member_access(sema, expr_node);
+		auto litr = sema_addressof(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
+	case NodeType::Deref:
+	{
+		auto litr = sema_deref(sema, expr_node);
 		if( !litr.ok() )
 			return litr;
 
@@ -447,12 +455,38 @@ sema::sema_member_access(Sema2& sema, ast::AstNode* ast)
 	return sema.MemberAccess(ast, val_expr, member_type.type, name);
 }
 
-SemaResult<ir::IRMemberAccess*>
+SemaResult<ir::IRAddressOf*>
 sema::sema_addressof(Sema2& sema, ast::AstNode* ast)
 {
-	//
+	auto addrofr = expected(ast, ast::as_address_of);
+	if( !addrofr.ok() )
+		return addrofr;
+	auto addrof = addrofr.unwrap();
 
-	return NotImpl();
+	auto exprr = sema_expr(sema, addrof.expr);
+	if( !exprr.ok() )
+		return exprr;
+
+	auto expr = exprr.unwrap();
+
+	return sema.AddressOf(ast, expr, expr->type_instance.PointerTo(1));
+}
+
+SemaResult<ir::IRDeref*>
+sema::sema_deref(Sema2& sema, ast::AstNode* ast)
+{
+	auto derefr = expected(ast, ast::as_deref);
+	if( !derefr.ok() )
+		return derefr;
+	auto deref = derefr.unwrap();
+
+	auto exprr = sema_expr(sema, deref.expr);
+	if( !exprr.ok() )
+		return exprr;
+
+	auto expr = exprr.unwrap();
+
+	return sema.Deref(ast, expr, expr->type_instance.PointerElementType());
 }
 
 SemaResult<ir::IRReturn*>
@@ -559,8 +593,8 @@ binop_type(Sema2& sema, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
 	case ast::BinOp::gte:
 	case ast::BinOp::lt:
 	case ast::BinOp::lte:
-	case ast::BinOp::and_lex:
-	case ast::BinOp::or_lex:
+	case ast::BinOp::and_op:
+	case ast::BinOp::or_op:
 	case ast::BinOp::cmp:
 	case ast::BinOp::ne:
 		return sema.types.BoolType();

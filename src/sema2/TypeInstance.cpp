@@ -18,6 +18,19 @@ TypeInstance::is_struct_type() const
 }
 
 TypeInstance
+TypeInstance::PointerTo(int indirection)
+{
+	return TypeInstance(this->type, this->indirection_level + indirection);
+}
+
+TypeInstance
+TypeInstance::PointerElementType()
+{
+	assert(this->indirection_level > 0);
+	return TypeInstance(this->type, this->indirection_level - 1);
+}
+
+TypeInstance
 TypeInstance::OfType(Type const* type)
 {
 	return TypeInstance(type, 0);

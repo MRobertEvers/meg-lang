@@ -43,6 +43,7 @@ private:
 	ParseResult<AstNode*> parse_call(AstNode* base);
 	ParseResult<AstNode*> parse_member_reference(AstNode* base);
 
+	ParseResult<AstNode*> parse_deref();
 	ParseResult<AstNode*> parse_addressof();
 	ParseResult<AstNode*> parse_simple_expr();
 	ParseResult<AstNode*> parse_postfix_expr();

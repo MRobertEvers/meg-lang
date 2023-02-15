@@ -1,7 +1,9 @@
 #include "Codegen.h"
 
 #include "Codegen/CGNotImpl.h"
+#include "Codegen/codegen_addressof.h"
 #include "Codegen/codegen_call.h"
+#include "Codegen/codegen_deref.h"
 #include "Codegen/codegen_function.h"
 #include "Codegen/codegen_return.h"
 #include "Codegen/lookup.h"
@@ -156,6 +158,10 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 		return codegen_binop(fn, expr->expr.binop);
 	case ir::IRExprType::MemberAccess:
 		return codegen_member_access(fn, expr->expr.member_access);
+	case ir::IRExprType::AddressOf:
+		return codegen_addressof(*this, fn, expr->expr.addr_of);
+	case ir::IRExprType::Deref:
+		return codegen_deref(*this, fn, expr->expr.deref);
 	}
 
 	return NotImpl();
@@ -295,8 +301,8 @@ CG::codegen_assign(cg::LLVMFnInfo& fn, ir::IRAssign* assign)
 		// TODO: Constant expressions return their exact values,
 		// LValue expressions return a pointer to them, so LValues need
 		// to be promoted. Need to create LValue type
-		auto RValuePromoted = __deprecate_promote_to_value(*this, RValue);
-		Builder->CreateStore(RValuePromoted, LValue);
+		// auto RValuePromoted = rexpr.literal ? __deprecate_promote_to_value(*this, RValue);
+		Builder->CreateStore(RValue, LValue);
 		break;
 	}
 
@@ -456,9 +462,9 @@ CG::codegen_binop(cg::LLVMFnInfo& fn, ir::IRBinOp* binop)
 		return CGExpr(Builder->CreateICmpEQ(L, R, "cmptmp"));
 	case BinOp::ne:
 		return CGExpr(Builder->CreateICmpNE(L, R, "cmptmp"));
-	case BinOp::and_lex:
+	case BinOp::and_op:
 		return CGExpr(Builder->CreateAnd(L, R, "cmptmp"));
-	case BinOp::or_lex:
+	case BinOp::or_op:
 		return CGExpr(Builder->CreateOr(L, R, "cmptmp"));
 	default:
 		return NotImpl();

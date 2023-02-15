@@ -265,8 +265,8 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 			 TokenType::gte,
 			 TokenType::lt,
 			 TokenType::lte,
-			 TokenType::and_lex,
-			 TokenType::or_lex,
+			 TokenType::and_and_lex,
+			 TokenType::or_or_lex,
 			 TokenType::cmp,
 			 TokenType::ne});
 		if( !tok.ok() )
@@ -801,6 +801,26 @@ AstGen::parse_member_reference(ast::AstNode* base)
 }
 
 ParseResult<AstNode*>
+AstGen::parse_deref()
+{
+	auto trail = get_parse_trail();
+
+	auto tok = cursor.consume(TokenType::star);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '*'", tok.as());
+	}
+
+	auto expr = parse_expr();
+	if( !expr.ok() )
+	{
+		return expr;
+	}
+
+	return ast.Deref(trail.mark(), expr.unwrap());
+}
+
+ParseResult<AstNode*>
 AstGen::parse_addressof()
 {
 	auto trail = get_parse_trail();
@@ -871,7 +891,20 @@ AstGen::parse_simple_expr()
 	case TokenType::and_lex:
 	{
 		// TODO: Is this the right place to do this?
+		// A: Jakt parses prefix expressioons in the same
+		// switch as identifiers and literals too.
 		auto expr = parse_addressof();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		result = expr.unwrap();
+		break;
+	}
+	case TokenType::star:
+	{
+		auto expr = parse_deref();
 		if( !expr.ok() )
 		{
 			return expr;

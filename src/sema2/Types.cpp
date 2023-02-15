@@ -107,6 +107,8 @@ Types::non_inferred(TypeInstance l, TypeInstance r)
 		return l;
 	if( r.type != infer_type_ )
 		return r;
+
+	assert(false);
 }
 
 TypeInstance

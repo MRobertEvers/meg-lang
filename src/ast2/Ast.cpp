@@ -237,6 +237,14 @@ Ast::MemberAccess(Span span, AstNode* expr, AstNode* member_name)
 }
 
 AstNode*
+Ast::Deref(Span span, AstNode* expr)
+{
+	auto node = make_empty<AstDeref>(span);
+	node->data.deref = AstDeref{expr};
+	return node;
+}
+
+AstNode*
 Ast::AddressOf(Span span, AstNode* expr)
 {
 	auto node = make_empty<AstAddressOf>(span);

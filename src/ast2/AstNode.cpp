@@ -62,5 +62,9 @@ ast::to_string(NodeType type)
 		return "Stmt";
 	case NodeType::AddressOf:
 		return "&";
+	case NodeType::VarArg:
+		return "...";
+	case NodeType::Deref:
+		return "*";
 	}
 }

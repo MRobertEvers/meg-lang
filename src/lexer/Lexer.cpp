@@ -246,15 +246,17 @@ Lexer::lex_consume_ambiguous_lexeme()
 	case '&':
 		if( peek("&") )
 		{
-			return new_token(TokenType::and_lex, 2);
+			return new_token(TokenType::and_and_lex, 2);
 		}
 		else
-		{}
+		{
+			return new_token(TokenType::and_lex, 1);
+		}
 		break;
 	case '|':
 		if( peek("|") )
 		{
-			return new_token(TokenType::or_lex, 2);
+			return new_token(TokenType::or_or_lex, 2);
 		}
 		else
 		{}

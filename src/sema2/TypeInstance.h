@@ -25,6 +25,9 @@ public:
 	bool is_struct_type() const;
 	bool is_pointer_type() const { return indirection_level != 0; }
 
+	TypeInstance PointerTo(int indirection);
+	TypeInstance PointerElementType();
+
 	static TypeInstance OfType(Type const* type);
 	static TypeInstance PointerTo(Type const* type, int indirection);
 };

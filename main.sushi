@@ -2,56 +2,12 @@
 
 extern fn printf(str: i8*, ...): void;
 
-struct Name {
-    name: i8*;
-    size: i32;
-    a: i32;
-    b: i32;
-    c: i32;
-}
-
-struct Point {
-    name: Name;
-    a: i32;
-    b: i32;
-    c: i32;
-    x: i32;
-    y: i32;
-}
-
-fn copy_point(p: Point): Point {
-    printf("CP Point (%d, %d) %d\n", p.x, p.y);
-    let result = Point;
-    result.x = p.x;
-    result.y = p.y;
-    p.x = 11;
-
-    printf("??%d\n", p.x);
-
-    return result;
-}
-
 fn main(): i32 
 {
-    let my_point = Point;
-    my_point.x = 7;
-    my_point.y = 8;
+    let my_point = 5;
+    
+    let pp = &my_point;
 
-    let point2 = copy_point(my_point);
-
-    if (point2.x == 9)
-    {
-        point2.x = 11;
-    }
-    else if (point2.x < 9)
-    {
-        point2.x = 13;
-    }
-    else 
-    {
-        point2.x = 15;
-    }
-
-    printf("Point (%d, %d) %d\n", point2.x, point2.y, my_point.x);
+    printf("Point (%d)\n", *pp);
     return 1;
 }

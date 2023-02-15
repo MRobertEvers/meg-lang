@@ -202,6 +202,24 @@ ast::as_struct(ast::AstNode* node)
 	return &node->data.structstmt;
 }
 
+Cast<AstAddressOf>
+ast::as_address_of(ast::AstNode* node)
+{
+	if( node->type != AstAddressOf::nt )
+		return Cast<AstAddressOf>();
+
+	return &node->data.address_of;
+}
+
+Cast<AstDeref>
+ast::as_deref(ast::AstNode* node)
+{
+	if( node->type != AstDeref::nt )
+		return Cast<AstDeref>();
+
+	return &node->data.deref;
+}
+
 Cast<AstMemberAccess>
 ast::as_member_access(ast::AstNode* node)
 {

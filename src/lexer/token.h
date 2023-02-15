@@ -32,7 +32,8 @@ enum class TokenType
 	ne,	 // Not equal
 	cmp, // ==
 	and_lex,
-	or_lex,
+	and_and_lex,
+	or_or_lex,
 
 	open_paren,
 	close_paren,

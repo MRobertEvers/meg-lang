@@ -79,6 +79,8 @@ public:
 	ir::IRExpr* Expr(ir::IRValueDecl*);
 	ir::IRExpr* Expr(ir::IRBinOp*);
 	ir::IRExpr* Expr(ir::IRMemberAccess*);
+	ir::IRExpr* Expr(ir::IRAddressOf*);
+	ir::IRExpr* Expr(ir::IRDeref*);
 	ir::IRStmt* Stmt(ir::IRReturn*);
 	ir::IRStmt* Stmt(ir::IRExpr*);
 	ir::IRStmt* Stmt(ir::IRLet*);
@@ -100,6 +102,8 @@ public:
 	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
 	ir::IRVarArg* VarArg(ast::AstNode*);
+	ir::IRAddressOf* AddressOf(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
+	ir::IRDeref* Deref(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
 	ir::IRParam* IRParam(ast::AstNode*, ir::IRValueDecl* decl);
 	ir::IRParam* IRParam(ast::AstNode*, ir::IRVarArg* var_arg);
 };

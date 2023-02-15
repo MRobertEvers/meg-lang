@@ -70,6 +70,8 @@ add_executable(sushi
     src/codegen2/LValue.cpp
     src/codegen2/Codegen/codegen_return.cpp
     src/codegen2/Codegen/codegen_function.cpp
+    src/codegen2/Codegen/codegen_addressof.cpp
+    src/codegen2/Codegen/codegen_deref.cpp
     src/codegen2/Codegen/codegen_statement.cpp
     src/codegen2/Codegen/codegen_call.cpp
     src/codegen2/Codegen/codegen_fn_sig_info.cpp

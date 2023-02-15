@@ -15,8 +15,8 @@ enum BinOp : char
 	gte,
 	lt,
 	lte,
-	and_lex,
-	or_lex,
+	and_op,
+	or_op,
 	cmp,
 	ne,
 	bad
