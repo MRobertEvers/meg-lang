@@ -232,6 +232,16 @@ struct IRIf
 	IRElse* else_stmt;
 };
 
+struct IRFor
+{
+	//
+	ast::AstNode* node;
+	IRExpr* condition;
+	IRStmt* init;
+	IRStmt* end;
+	IRStmt* body;
+};
+
 struct IRElse
 {
 	//

@@ -126,6 +126,14 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 
 		return sema.Stmt(ifr.unwrap());
 	}
+	case NodeType::For:
+	{
+		auto ifr = sema_for(sema, stmt_node);
+		if( !ifr.ok() )
+			return ifr;
+
+		return sema.Stmt(ifr.unwrap());
+	}
 	case NodeType::Else:
 	{
 		auto ifr = sema_else(sema, stmt_node);
@@ -189,6 +197,37 @@ sema::sema_if(Sema2& sema, ast::AstNode* ast)
 	{
 		return sema.If(ast, expr, stmt, nullptr);
 	}
+}
+
+SemaResult<ir::IRFor*>
+sema::sema_for(Sema2& sema, ast::AstNode* ast)
+{
+	auto result = expected(ast, ast::as_for);
+	if( !result.ok() )
+		return result;
+	auto forstmt = result.unwrap();
+
+	auto initstmtr = sema_stmt(sema, forstmt.init);
+	if( !initstmtr.ok() )
+		return initstmtr;
+	auto initstmt = initstmtr.unwrap();
+
+	auto condr = sema_expr(sema, forstmt.condition);
+	if( !condr.ok() )
+		return condr;
+	auto cond = condr.unwrap();
+
+	auto endr = sema_stmt(sema, forstmt.end_loop);
+	if( !endr.ok() )
+		return endr;
+	auto end = endr.unwrap();
+
+	auto bodyr = sema_stmt(sema, forstmt.body);
+	if( !bodyr.ok() )
+		return bodyr;
+	auto body = bodyr.unwrap();
+
+	return sema.For(ast, cond, initstmt, end, body);
 }
 
 SemaResult<ir::IRElse*>

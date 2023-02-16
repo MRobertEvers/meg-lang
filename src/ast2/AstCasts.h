@@ -45,6 +45,7 @@ Cast<AstDeref> as_deref(ast::AstNode* node);
 Cast<AstMemberAccess> as_member_access(ast::AstNode* node);
 Cast<AstIndirectMemberAccess> as_indirect_member_access(ast::AstNode* node);
 Cast<AstEmpty> as_empty(ast::AstNode* node);
+Cast<AstFor> as_for(ast::AstNode* node);
 
 // template<template<typename> typename Container, typename NodeType>
 // Container<NodeType>

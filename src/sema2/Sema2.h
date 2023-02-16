@@ -111,6 +111,8 @@ public:
 	ir::IREmpty* Empty(ast::AstNode*, sema::TypeInstance);
 	ir::IRParam* IRParam(ast::AstNode*, ir::IRValueDecl* decl);
 	ir::IRParam* IRParam(ast::AstNode*, ir::IRVarArg* var_arg);
+	ir::IRFor*
+	For(ast::AstNode*, ir::IRExpr* condition, ir::IRStmt* init, ir::IRStmt* end, ir::IRStmt* body);
 };
 
 } // namespace sema

@@ -246,3 +246,12 @@ ast::as_empty(ast::AstNode* node)
 
 	return &node->data.empty;
 }
+
+Cast<AstFor>
+ast::as_for(ast::AstNode* node)
+{
+	if( node->type != AstFor::nt )
+		return Cast<AstFor>();
+
+	return &node->data.forstmt;
+}
