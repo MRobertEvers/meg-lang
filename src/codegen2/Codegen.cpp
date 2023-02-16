@@ -8,6 +8,7 @@
 #include "Codegen/codegen_deref.h"
 #include "Codegen/codegen_function.h"
 #include "Codegen/codegen_return.h"
+#include "Codegen/codegen_string_literal.h"
 #include "Codegen/lookup.h"
 #include "Codegen/operand.h"
 #include "ast2/AstCasts.h"
@@ -49,23 +50,6 @@ CG::add_function(String const& name, LLVMFnSigInfo context)
 	auto lvalue = LValue(context.llvm_fn, context.llvm_fn_ty);
 	values.emplace(name, lvalue);
 }
-
-// Scope*
-// CG::push_scope()
-// {
-// 	auto s = Scope(current_scope);
-// 	scopes.push_back(s);
-// 	current_scope = &scopes.back();
-
-// 	return current_scope;
-// }
-
-// void
-// CG::pop_scope()
-// {
-// 	assert(current_scope->get_parent());
-// 	current_scope = current_scope->get_parent();
-// }
 
 CGResult<CGExpr>
 CG::codegen_module(ir::IRModule* mod)
@@ -138,7 +122,7 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 	case ir::IRExprType::NumberLiteral:
 		return codegen_number_literal(expr->expr.num_literal);
 	case ir::IRExprType::StringLiteral:
-		return codegen_string_literal(expr->expr.str_literal);
+		return codegen_string_literal(*this, expr->expr.str_literal);
 	case ir::IRExprType::ValueDecl:
 		return codegen_value_decl(expr->expr.decl);
 	case ir::IRExprType::BinOp:
@@ -263,92 +247,6 @@ CG::codegen_number_literal(ir::IRNumberLiteral* lit)
 	return CGExpr::MakeRValue(RValue(llvm_const_int, llvm_const_int->getType()));
 }
 
-static char
-escape_char(char c)
-{
-	// \a	07	Alert (Beep, Bell) (added in C89)[1]
-	// \b	08	Backspace
-	// \e	1B	Escape character
-	// \f	0C	Formfeed Page Break
-	// \n	0A	Newline (Line Feed); see notes below
-	// \r	0D	Carriage Return
-	// \t	09	Horizontal Tab
-	// \v	0B	Vertical Tab
-	// \\	5C	Backslash
-	// \'	27	Apostrophe or single quotation mark
-	// \"	22	Double quotation mark
-	// \?	3F	Question mark (used to avoid trigraphs)
-
-	switch( c )
-	{
-	case 'a':
-		return 0x07;
-	case 'b':
-		return 0x08;
-	case 'e':
-		return 0x1B;
-	case 'f':
-		return 0x0C;
-	case 'n':
-		return 0x0A;
-	case 'r':
-		return 0x0D;
-	case 't':
-		return 0x09;
-	case 'v':
-		return 0x0B;
-	case '\\':
-		return '\\';
-	case '\'':
-		return '\'';
-	case '"':
-		return '"';
-	case '?':
-		return '?';
-	default:
-		return c;
-	}
-}
-
-static String
-escape_string(String s)
-{
-	String res;
-	res.reserve(s.size());
-	bool escape = false;
-	for( auto c : s )
-	{
-		if( !escape && c == '\\' )
-		{
-			escape = true;
-			continue;
-		}
-
-		res.push_back(escape ? escape_char(c) : c);
-		escape = false;
-	}
-
-	return res;
-}
-
-CGResult<CGExpr>
-CG::codegen_string_literal(ir::IRStringLiteral* lit)
-{
-	//
-
-	auto llvm_literal =
-		llvm::ConstantDataArray::getString(*Context, escape_string(*lit->value).c_str(), true);
-
-	llvm::GlobalVariable* llvm_global = new llvm::GlobalVariable(
-		*Module, llvm_literal->getType(), true, llvm::GlobalValue::InternalLinkage, llvm_literal);
-	llvm::Constant* zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(*Context));
-	llvm::Constant* indices[] = {zero, zero};
-	llvm::Constant* llvm_str =
-		llvm::ConstantExpr::getGetElementPtr(llvm_literal->getType(), llvm_global, indices);
-
-	return CGExpr::MakeRValue(RValue(llvm_str));
-}
-
 CGResult<CGExpr>
 CG::codegen_value_decl(ir::IRValueDecl* decl)
 {
@@ -386,26 +284,26 @@ CG::codegen_binop(cg::LLVMFnInfo& fn, ir::IRBinOp* binop)
 		return CGExpr::MakeRValue(RValue(Builder->CreateAdd(llvm_lhs, llvm_rhs)));
 	case BinOp::minus:
 		return CGExpr::MakeRValue(RValue(Builder->CreateSub(llvm_lhs, llvm_rhs)));
-	// case BinOp::star:
-	// 	return CGExpr(Builder->CreateMul(L, R, "multmp"));
-	// case BinOp::slash:
-	// 	return CGExpr(Builder->CreateSDiv(L, R, "divtmp"));
-	// case BinOp::gt:
-	// 	return CGExpr(Builder->CreateICmpSGT(L, R, "cmptmp"));
-	// case BinOp::gte:
-	// 	return CGExpr(Builder->CreateICmpSGE(L, R, "cmptmp"));
-	// case BinOp::lt:
-	// 	return CGExpr(Builder->CreateICmpSLT(L, R, "cmptmp"));
-	// case BinOp::lte:
-	// 	return CGExpr(Builder->CreateICmpSLE(L, R, "cmptmp"));
-	// case BinOp::cmp:
-	// 	return CGExpr(Builder->CreateICmpEQ(L, R, "cmptmp"));
-	// case BinOp::ne:
-	// 	return CGExpr(Builder->CreateICmpNE(L, R, "cmptmp"));
-	// case BinOp::and_op:
-	// 	return CGExpr(Builder->CreateAnd(L, R, "cmptmp"));
-	// case BinOp::or_op:
-	// 	return CGExpr(Builder->CreateOr(L, R, "cmptmp"));
+	case BinOp::star:
+		return CGExpr::MakeRValue(RValue(Builder->CreateMul(llvm_lhs, llvm_rhs)));
+	case BinOp::slash:
+		return CGExpr::MakeRValue(RValue(Builder->CreateSDiv(llvm_lhs, llvm_rhs)));
+	case BinOp::gt:
+		return CGExpr::MakeRValue(RValue(Builder->CreateICmpSGT(llvm_lhs, llvm_rhs)));
+	case BinOp::gte:
+		return CGExpr::MakeRValue(RValue(Builder->CreateICmpSGE(llvm_lhs, llvm_rhs)));
+	case BinOp::lt:
+		return CGExpr::MakeRValue(RValue(Builder->CreateICmpSLT(llvm_lhs, llvm_rhs)));
+	case BinOp::lte:
+		return CGExpr::MakeRValue(RValue(Builder->CreateICmpSLE(llvm_lhs, llvm_rhs)));
+	case BinOp::cmp:
+		return CGExpr::MakeRValue(RValue(Builder->CreateICmpEQ(llvm_lhs, llvm_rhs)));
+	case BinOp::ne:
+		return CGExpr::MakeRValue(RValue(Builder->CreateICmpNE(llvm_lhs, llvm_rhs)));
+	case BinOp::and_op:
+		return CGExpr::MakeRValue(RValue(Builder->CreateAnd(llvm_lhs, llvm_rhs)));
+	case BinOp::or_op:
+		return CGExpr::MakeRValue(RValue(Builder->CreateOr(llvm_lhs, llvm_rhs)));
 	default:
 		return NotImpl();
 	}
