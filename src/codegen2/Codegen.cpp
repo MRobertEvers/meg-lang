@@ -28,24 +28,6 @@ establish_llvm_builtin_types(
 	lut.emplace(types.void_type(), llvm::Type::getVoidTy(*cg.Context));
 }
 
-static llvm::Value*
-promote_to_value(CG& cg, llvm::Value* Val)
-{
-	// TODO: Opaque pointers, don't rel
-	auto PointedToType = Val->getType()->getPointerElementType();
-	return cg.Builder->CreateLoad(PointedToType, Val);
-}
-
-static llvm::Value*
-__deprecate_promote_to_value(CG& cg, llvm::Value* Val)
-{
-	// TODO: Opaque pointers, don't rel
-	if( Val->getType()->isPointerTy() )
-		return promote_to_value(cg, Val);
-	else
-		return Val;
-}
-
 CG::CG(sema::Sema2& sema)
 	: sema(sema)
 {
