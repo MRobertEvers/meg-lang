@@ -72,10 +72,14 @@ add_executable(sushi
     src/codegen2/Codegen/codegen_function.cpp
     src/codegen2/Codegen/codegen_addressof.cpp
     src/codegen2/Codegen/codegen_deref.cpp
+    src/codegen2/Codegen/codegen_assign.cpp
     src/codegen2/Codegen/codegen_statement.cpp
     src/codegen2/Codegen/codegen_call.cpp
     src/codegen2/Codegen/codegen_fn_sig_info.cpp
     src/codegen2/Codegen/lookup.cpp
+    src/codegen2/Codegen/operand.cpp
+    src/codegen2/Codegen/RValue.cpp
+    src/codegen2/Codegen/LLVMAddress.cpp
     src/codegen2/Codegen/LLVMFnInfo.cpp
     src/codegen2/Codegen/LLVMFnInfoBuilder.cpp
     src/codegen2/Codegen/LLVMFnSigInfo.cpp

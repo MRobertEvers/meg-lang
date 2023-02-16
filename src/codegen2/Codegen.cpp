@@ -1,12 +1,15 @@
 #include "Codegen.h"
 
 #include "Codegen/CGNotImpl.h"
+#include "Codegen/RValue.h"
 #include "Codegen/codegen_addressof.h"
+#include "Codegen/codegen_assign.h"
 #include "Codegen/codegen_call.h"
 #include "Codegen/codegen_deref.h"
 #include "Codegen/codegen_function.h"
 #include "Codegen/codegen_return.h"
 #include "Codegen/lookup.h"
+#include "Codegen/operand.h"
 #include "ast2/AstCasts.h"
 
 using namespace cg;
@@ -60,7 +63,9 @@ CG::add_function(String const& name, LLVMFnSigInfo context)
 {
 	Functions.emplace(name, context);
 	types.emplace(context.sema_fn_ty, context.llvm_fn_ty);
-	values.emplace(name, context.llvm_fn);
+
+	auto lvalue = LValue(context.llvm_fn, context.llvm_fn_ty);
+	values.emplace(name, lvalue);
 }
 
 // Scope*
@@ -119,7 +124,7 @@ CG::codegen_stmt(cg::LLVMFnInfo& fn, ir::IRStmt* stmt)
 	case ir::IRStmtType::Return:
 		return codegen_return(*this, fn, stmt->stmt.ret);
 	case ir::IRStmtType::Assign:
-		return codegen_assign(fn, stmt->stmt.assign);
+		return codegen_assign(*this, fn, stmt->stmt.assign);
 	case ir::IRStmtType::Let:
 		return codegen_let(fn, stmt->stmt.let);
 	case ir::IRStmtType::If:
@@ -158,10 +163,14 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 		return codegen_binop(fn, expr->expr.binop);
 	case ir::IRExprType::MemberAccess:
 		return codegen_member_access(fn, expr->expr.member_access);
+	case ir::IRExprType::IndirectMemberAccess:
+		return codegen_indirect_member_access(fn, expr->expr.indirect_member_access);
 	case ir::IRExprType::AddressOf:
 		return codegen_addressof(*this, fn, expr->expr.addr_of);
 	case ir::IRExprType::Deref:
 		return codegen_deref(*this, fn, expr->expr.deref);
+	case ir::IRExprType::Empty:
+		return CGExpr();
 	}
 
 	return NotImpl();
@@ -180,16 +189,12 @@ CG::codegen_member_access(cg::LLVMFnInfo& fn, ir::IRMemberAccess* ma)
 	if( !exprr.ok() )
 		return exprr;
 	auto expr = exprr.unwrap();
-	auto ExprValue = expr.as_value();
+	auto llvm_expr_value = expr.address().llvm_pointer();
+	auto llvm_expr_type = expr.address().llvm_allocated_type();
 
+	// auto struct_ty_name = expr_ty.type->get_name();
 	auto expr_ty = ma->expr->type_instance;
 	assert(expr_ty.type->is_struct_type() && expr_ty.indirection_level == 0);
-	auto llvm_expr_tyr = get_type(*this, expr_ty);
-	if( !llvm_expr_tyr.ok() )
-		return llvm_expr_tyr;
-	auto ExprTy = llvm_expr_tyr.unwrap();
-
-	auto struct_ty_name = expr_ty.type->get_name();
 
 	auto member_name = *ma->member_name;
 	auto maybe_member = expr_ty.type->get_member(member_name);
@@ -199,12 +204,45 @@ CG::codegen_member_access(cg::LLVMFnInfo& fn, ir::IRMemberAccess* ma)
 	auto llvm_member_tyr = get_type(*this, member.type);
 	if( !llvm_member_tyr.ok() )
 		return llvm_member_tyr;
-	auto MemberTy = llvm_member_tyr.unwrap();
+	auto llvm_member_type = llvm_member_tyr.unwrap();
 
-	auto MemberPtr =
-		Builder->CreateStructGEP(ExprTy, ExprValue, member.idx, struct_ty_name + "." + member_name);
+	auto llvm_member_value = Builder->CreateStructGEP(llvm_expr_type, llvm_expr_value, member.idx);
 
-	return CGExpr(MemberPtr);
+	return CGExpr::MakeAddress(LLVMAddress(llvm_member_value, llvm_member_type));
+}
+
+CGResult<CGExpr>
+CG::codegen_indirect_member_access(cg::LLVMFnInfo& fn, ir::IRIndirectMemberAccess* ir_ma)
+{
+	auto exprr = codegen_expr(fn, ir_ma->expr);
+	if( !exprr.ok() )
+		return exprr;
+	auto expr = exprr.unwrap();
+	auto llvm_expr_ptr_value = expr.address().llvm_pointer();
+	auto llvm_expr_ptr_type = expr.address().llvm_allocated_type();
+
+	// auto struct_ty_name = expr_ty.type->get_name();
+	auto expr_ty = ir_ma->expr->type_instance;
+	assert(expr_ty.type->is_struct_type() && expr_ty.indirection_level == 1);
+
+	// TODO: Don't do this
+	auto llvm_expr_type = llvm_expr_ptr_type->getPointerElementType();
+
+	auto member_name = *ir_ma->member_name;
+	auto maybe_member = expr_ty.type->get_member(member_name);
+	assert(maybe_member.has_value());
+
+	auto member = maybe_member.value();
+	auto llvm_member_tyr = get_type(*this, member.type);
+	if( !llvm_member_tyr.ok() )
+		return llvm_member_tyr;
+	auto llvm_member_type = llvm_member_tyr.unwrap();
+
+	auto llvm_expr_value = Builder->CreateLoad(llvm_expr_ptr_type, llvm_expr_ptr_value);
+
+	auto llvm_member_value = Builder->CreateStructGEP(llvm_expr_type, llvm_expr_value, member.idx);
+
+	return CGExpr::MakeAddress(LLVMAddress(llvm_member_value, llvm_member_type));
 }
 
 CGResult<CGExpr>
@@ -215,16 +253,17 @@ CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* let)
 	auto typer = get_type(*this, type);
 	if( !typer.ok() )
 		return typer;
-	auto Type = typer.unwrap();
+	auto llvm_allocated_type = typer.unwrap();
 
-	llvm::AllocaInst* Alloca = Builder->CreateAlloca(Type, nullptr, *name);
-	values.emplace(*name, Alloca);
+	llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_allocated_type, nullptr, *name);
+	auto lvalue = LValue(llvm_alloca, llvm_allocated_type);
+	values.emplace(*name, lvalue);
 
-	auto assignr = codegen_assign(fn, let->assign);
+	auto assignr = codegen_assign(*this, fn, let->assign);
 	if( !assignr.ok() )
 		return assignr;
 
-	return CGExpr(Alloca);
+	return CGExpr();
 }
 
 // CGResult<CGExpr>
@@ -234,88 +273,12 @@ CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* let)
 // }
 
 CGResult<CGExpr>
-CG::codegen_assign(cg::LLVMFnInfo& fn, ir::IRAssign* assign)
-{
-	auto lhsr = codegen_expr(fn, assign->lhs);
-	if( !lhsr.ok() )
-		return lhsr;
-
-	LValue __temp_replace = LValue(lhsr.unwrap().as_value(), lhsr.unwrap().as_value()->getType());
-
-	auto lexpr = lhsr.unwrap();
-	auto rhsr = codegen_expr(fn, assign->rhs, __temp_replace);
-	if( !rhsr.ok() )
-		return rhsr;
-
-	auto rexpr = rhsr.unwrap();
-
-	// TODO: The RHS might be a Struct type name.
-	// E.g.
-	//
-	// let my_point = Point;
-	//
-	// In this case, assignment is a no op.
-	// TODO: Later, insert a constructor call?
-	if( rexpr.type == CGExprType::Empty )
-		return CGExpr();
-
-	// TODO: lvalue rvalue?
-	auto LValue = lexpr.as_value();
-	auto RValue = rexpr.as_value();
-
-	assert(LValue && RValue && "nullptr for assignment!");
-
-	// TODO: Promote to value really only needs to be done for allocas??
-	// Confusing, we'll see where this goes.
-	switch( assign->op )
-	{
-	case ast::AssignOp::add:
-	{
-		auto LValuePromoted = promote_to_value(*this, LValue);
-		auto TempRValue = Builder->CreateAdd(RValue, LValuePromoted);
-		Builder->CreateStore(TempRValue, LValue);
-	}
-	break;
-	case ast::AssignOp::sub:
-	{
-		auto LValuePromoted = promote_to_value(*this, LValue);
-		auto TempRValue = Builder->CreateSub(LValuePromoted, RValue);
-		Builder->CreateStore(TempRValue, LValue);
-	}
-	break;
-	case ast::AssignOp::mul:
-	{
-		auto LValuePromoted = promote_to_value(*this, LValue);
-		auto TempRValue = Builder->CreateMul(RValue, LValuePromoted);
-		Builder->CreateStore(TempRValue, LValue);
-	}
-	break;
-	case ast::AssignOp::div:
-	{
-		auto LValuePromoted = promote_to_value(*this, LValue);
-		auto TempRValue = Builder->CreateSDiv(RValue, LValuePromoted);
-		Builder->CreateStore(TempRValue, LValue);
-	}
-	break;
-	case ast::AssignOp::assign:
-		// TODO: Constant expressions return their exact values,
-		// LValue expressions return a pointer to them, so LValues need
-		// to be promoted. Need to create LValue type
-		// auto RValuePromoted = rexpr.literal ? __deprecate_promote_to_value(*this, RValue);
-		Builder->CreateStore(RValue, LValue);
-		break;
-	}
-
-	return lhsr.unwrap();
-}
-
-CGResult<CGExpr>
 CG::codegen_number_literal(ir::IRNumberLiteral* lit)
 {
 	//
-	llvm::Value* ConstInt = llvm::ConstantInt::get(*Context, llvm::APInt(32, lit->val, true));
+	llvm::Value* llvm_const_int = llvm::ConstantInt::get(*Context, llvm::APInt(32, lit->val, true));
 
-	return CGExpr(ConstInt, true);
+	return CGExpr::MakeRValue(RValue(llvm_const_int, llvm_const_int->getType()));
 }
 
 static char
@@ -391,17 +354,17 @@ CG::codegen_string_literal(ir::IRStringLiteral* lit)
 {
 	//
 
-	auto Literal =
+	auto llvm_literal =
 		llvm::ConstantDataArray::getString(*Context, escape_string(*lit->value).c_str(), true);
 
-	llvm::GlobalVariable* GVStr = new llvm::GlobalVariable(
-		*Module, Literal->getType(), true, llvm::GlobalValue::InternalLinkage, Literal);
+	llvm::GlobalVariable* llvm_global = new llvm::GlobalVariable(
+		*Module, llvm_literal->getType(), true, llvm::GlobalValue::InternalLinkage, llvm_literal);
 	llvm::Constant* zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(*Context));
 	llvm::Constant* indices[] = {zero, zero};
-	llvm::Constant* StrVal =
-		llvm::ConstantExpr::getGetElementPtr(Literal->getType(), GVStr, indices);
+	llvm::Constant* llvm_str =
+		llvm::ConstantExpr::getGetElementPtr(llvm_literal->getType(), llvm_global, indices);
 
-	return CGExpr(StrVal, true);
+	return CGExpr::MakeRValue(RValue(llvm_str));
 }
 
 CGResult<CGExpr>
@@ -410,7 +373,7 @@ CG::codegen_value_decl(ir::IRValueDecl* decl)
 	auto valuer = get_value(*this, *decl->name);
 	assert(valuer.has_value());
 
-	return valuer.value();
+	return CGExpr::MakeAddress(valuer.value().address());
 }
 
 CGResult<CGExpr>
@@ -426,46 +389,41 @@ CG::codegen_binop(cg::LLVMFnInfo& fn, ir::IRBinOp* binop)
 
 	auto lexpr = lhsr.unwrap();
 	auto rexpr = rhsr.unwrap();
-	// TODO: lvalue rvalue?
-	auto LValue = lexpr.as_value();
-	auto RValue = rexpr.as_value();
 
-	assert(LValue && RValue && "nullptr for assignment!");
+	auto llvm_lhs = codegen_operand_expr(*this, lexpr); // promote_to_value(*this, LValue);
+	auto llvm_rhs = codegen_operand_expr(*this, rexpr); // promote_to_value(*this, RValue);
 
-	// TODO: If the values are imediate then we don't need to promote.
-	// TODO: If both values are constant, just do the computation.
-	auto L = __deprecate_promote_to_value(*this, LValue); // promote_to_value(*this, LValue);
-	auto R = __deprecate_promote_to_value(*this, RValue); // promote_to_value(*this, RValue);
+	assert(llvm_lhs && llvm_rhs && "nullptr for assignment!");
 
-	assert(L->getType()->isIntegerTy() && R->getType()->isIntegerTy());
+	assert(llvm_lhs->getType()->isIntegerTy() && llvm_rhs->getType()->isIntegerTy());
 
 	auto Op = binop->op;
 	switch( Op )
 	{
 	case BinOp::plus:
-		return CGExpr(Builder->CreateAdd(L, R, "addtmp"));
+		return CGExpr::MakeRValue(RValue(Builder->CreateAdd(llvm_lhs, llvm_rhs)));
 	case BinOp::minus:
-		return CGExpr(Builder->CreateSub(L, R, "subtmp"));
-	case BinOp::star:
-		return CGExpr(Builder->CreateMul(L, R, "multmp"));
-	case BinOp::slash:
-		return CGExpr(Builder->CreateSDiv(L, R, "divtmp"));
-	case BinOp::gt:
-		return CGExpr(Builder->CreateICmpSGT(L, R, "cmptmp"));
-	case BinOp::gte:
-		return CGExpr(Builder->CreateICmpSGE(L, R, "cmptmp"));
-	case BinOp::lt:
-		return CGExpr(Builder->CreateICmpSLT(L, R, "cmptmp"));
-	case BinOp::lte:
-		return CGExpr(Builder->CreateICmpSLE(L, R, "cmptmp"));
-	case BinOp::cmp:
-		return CGExpr(Builder->CreateICmpEQ(L, R, "cmptmp"));
-	case BinOp::ne:
-		return CGExpr(Builder->CreateICmpNE(L, R, "cmptmp"));
-	case BinOp::and_op:
-		return CGExpr(Builder->CreateAnd(L, R, "cmptmp"));
-	case BinOp::or_op:
-		return CGExpr(Builder->CreateOr(L, R, "cmptmp"));
+		return CGExpr::MakeRValue(RValue(Builder->CreateSub(llvm_lhs, llvm_rhs)));
+	// case BinOp::star:
+	// 	return CGExpr(Builder->CreateMul(L, R, "multmp"));
+	// case BinOp::slash:
+	// 	return CGExpr(Builder->CreateSDiv(L, R, "divtmp"));
+	// case BinOp::gt:
+	// 	return CGExpr(Builder->CreateICmpSGT(L, R, "cmptmp"));
+	// case BinOp::gte:
+	// 	return CGExpr(Builder->CreateICmpSGE(L, R, "cmptmp"));
+	// case BinOp::lt:
+	// 	return CGExpr(Builder->CreateICmpSLT(L, R, "cmptmp"));
+	// case BinOp::lte:
+	// 	return CGExpr(Builder->CreateICmpSLE(L, R, "cmptmp"));
+	// case BinOp::cmp:
+	// 	return CGExpr(Builder->CreateICmpEQ(L, R, "cmptmp"));
+	// case BinOp::ne:
+	// 	return CGExpr(Builder->CreateICmpNE(L, R, "cmptmp"));
+	// case BinOp::and_op:
+	// 	return CGExpr(Builder->CreateAnd(L, R, "cmptmp"));
+	// case BinOp::or_op:
+	// 	return CGExpr(Builder->CreateOr(L, R, "cmptmp"));
 	default:
 		return NotImpl();
 	}
@@ -477,7 +435,7 @@ CG::codegen_id(ir::IRId* id)
 	// auto iter_type = types.find(id->type_instance.type);
 	auto value = get_value(*this, *id->name);
 	if( value.has_value() )
-		return value.value();
+		return CGExpr::MakeAddress(value.value().address());
 
 	// TODO: This supports 'let my_point = Point' initialization.
 	// I can see the "Codegen Id" function getting a little wild.
@@ -499,7 +457,7 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 	if( !exprr.ok() )
 		return exprr;
 	auto cond_expr = exprr.unwrap();
-	auto llvm_cond_v = cond_expr.as_value();
+	auto llvm_cond_v = codegen_operand_expr(*this, cond_expr);
 
 	auto llvm_fn = fn.sig_info.llvm_fn;
 

@@ -275,6 +275,18 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 
 		return sema.Expr(litr.unwrap());
 	}
+	case NodeType::IndirectMemberAccess:
+	{
+		auto litr = sema_indirect_member_access(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
+	case NodeType::Empty:
+	{
+		return sema.Expr(sema.Empty(expr_node, sema.types.VoidType()));
+	}
 	case NodeType::AddressOf:
 	{
 		auto litr = sema_addressof(sema, expr_node);
@@ -453,6 +465,39 @@ sema::sema_member_access(Sema2& sema, ast::AstNode* ast)
 			*name + "' does not exist");
 	auto member_type = member.value();
 	return sema.MemberAccess(ast, val_expr, member_type.type, name);
+}
+
+SemaResult<ir::IRIndirectMemberAccess*>
+sema::sema_indirect_member_access(Sema2& sema, ast::AstNode* ast)
+{
+	auto mar = expected(ast, ast::as_indirect_member_access);
+	if( !mar.ok() )
+		return mar;
+	auto ma = mar.unwrap();
+
+	auto namer = as_name(sema, ma.member_name);
+	if( !namer.ok() )
+		return namer;
+	auto name = namer.unwrap();
+
+	auto val_exprr = sema_expr(sema, ma.expr);
+	if( !val_exprr.ok() )
+		return val_exprr;
+	auto val_expr = val_exprr.unwrap();
+
+	auto expr_type = val_expr->type_instance;
+	if( !expr_type.type->is_struct_type() || expr_type.indirection_level != 1 )
+		return SemaError(
+			"Cannot access member '" + *name + "' of '" + to_string(expr_type) +
+			"' through pointer.");
+
+	auto member = expr_type.type->get_member(*name);
+	if( !member.has_value() )
+		return SemaError(
+			"Cannot access member '" + *name + "' of '" + to_string(expr_type) + "' because '" +
+			*name + "' does not exist");
+	auto member_type = member.value();
+	return sema.IndirectMemberAccess(ast, val_expr, member_type.type, name);
 }
 
 SemaResult<ir::IRAddressOf*>

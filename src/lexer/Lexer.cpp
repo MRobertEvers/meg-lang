@@ -241,7 +241,7 @@ Lexer::lex_consume_ambiguous_lexeme()
 		}
 		else
 		{
-			token.type = TokenType::dot;
+			return new_token(TokenType::dot, 1);
 		}
 	case '&':
 		if( peek("&") )
@@ -309,6 +309,10 @@ Lexer::lex_consume_ambiguous_lexeme()
 		if( peek("=") )
 		{
 			return new_token(TokenType::sub_equal, 2);
+		}
+		else if( peek(">") )
+		{
+			return new_token(TokenType::indirect_member_access, 2);
 		}
 		else
 		{

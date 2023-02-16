@@ -13,7 +13,6 @@ cg::codegen_addressof(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAddressOf* ir_addro
 		return exprr;
 	auto expr = exprr.unwrap();
 
-	auto llvm_expr = expr.as_value();
-
-	return CGExpr(llvm_expr);
+	auto addr = expr.address();
+	return CGExpr::MakeRValue(RValue(addr.llvm_pointer(), addr.llvm_pointer()->getType()));
 }

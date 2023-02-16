@@ -368,6 +368,19 @@ Sema2::Expr(ir::IRMemberAccess* nl)
 }
 
 ir::IRExpr*
+Sema2::Expr(ir::IRIndirectMemberAccess* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.indirect_member_access = nl;
+	nod->type = ir::IRExprType::IndirectMemberAccess;
+	nod->type_instance = nl->type_instance;
+
+	return nod;
+}
+
+ir::IRExpr*
 Sema2::Expr(ir::IRAddressOf* nl)
 {
 	auto nod = new ir::IRExpr;
@@ -388,6 +401,19 @@ Sema2::Expr(ir::IRDeref* nl)
 	nod->node = nl->node;
 	nod->expr.deref = nl;
 	nod->type = ir::IRExprType::Deref;
+	nod->type_instance = nl->type_instance;
+
+	return nod;
+}
+
+ir::IRExpr*
+Sema2::Expr(ir::IREmpty* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.empty = nl;
+	nod->type = ir::IRExprType::Empty;
 	nod->type_instance = nl->type_instance;
 
 	return nod;
@@ -611,6 +637,20 @@ Sema2::MemberAccess(
 	return nod;
 }
 
+ir::IRIndirectMemberAccess*
+Sema2::IndirectMemberAccess(
+	ast::AstNode* node, ir::IRExpr* expr, sema::TypeInstance member_type, String* member_name)
+{
+	auto nod = new ir::IRIndirectMemberAccess;
+
+	nod->node = node;
+	nod->member_name = member_name;
+	nod->type_instance = member_type;
+	nod->expr = expr;
+
+	return nod;
+}
+
 ir::IRVarArg*
 Sema2::VarArg(ast::AstNode* node)
 {
@@ -641,6 +681,17 @@ Sema2::Deref(ast::AstNode* node, ir::IRExpr* expr, sema::TypeInstance type)
 	nod->node = node;
 	nod->expr = expr;
 	nod->type_instance = type;
+
+	return nod;
+}
+
+ir::IREmpty*
+Sema2::Empty(ast::AstNode* node, sema::TypeInstance void_type)
+{
+	auto nod = new ir::IREmpty;
+
+	nod->node = node;
+	nod->type_instance = void_type;
 
 	return nod;
 }

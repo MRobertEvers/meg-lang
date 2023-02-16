@@ -3,6 +3,7 @@
 
 #include "../CGExpr.h"
 #include "../CGResult.h"
+#include "../LValue.h"
 #include "LLVMFnSigInfo.h"
 #include "common/Vec.h"
 #include "sema2/IR.h"
@@ -29,5 +30,5 @@ CGResult<llvm::Type*> get_type(CG& cg, ir::IRTypeDeclaraor* decl);
 
 CGResult<llvm::Type*> get_type(CG& cg, ir::IRValueDecl* decl);
 
-std::optional<CGExpr> get_value(CG&, String const&);
+std::optional<LValue> get_value(CG&, String const&);
 } // namespace cg

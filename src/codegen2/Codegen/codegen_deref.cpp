@@ -13,10 +13,10 @@ cg::codegen_deref(CG& codegen, cg::LLVMFnInfo& fn, ir::IRDeref* ir_addrof)
 		return exprr;
 	auto expr = exprr.unwrap();
 
-	auto llvm_expr = expr.as_value();
+	auto address = expr.address();
 	// TODO: Expr should return l or rvalue. With the type.
 	auto llvm_value =
-		codegen.Builder->CreateLoad(llvm_expr->getType()->getPointerElementType(), llvm_expr);
+		codegen.Builder->CreateLoad(address.llvm_allocated_type(), address.llvm_pointer());
 
-	return CGExpr(llvm_value);
+	return CGExpr::MakeRValue(RValue(llvm_value, address.llvm_allocated_type()));
 }

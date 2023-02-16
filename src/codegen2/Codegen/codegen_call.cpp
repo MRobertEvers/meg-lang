@@ -2,26 +2,9 @@
 
 #include "../Codegen.h"
 #include "lookup.h"
+#include "operand.h"
 
 using namespace cg;
-
-static llvm::Value*
-promote_to_value(CG& cg, llvm::Value* Val)
-{
-	// TODO: Opaque pointers, don't rel
-	auto PointedToType = Val->getType()->getPointerElementType();
-	return cg.Builder->CreateLoad(PointedToType, Val);
-}
-
-static llvm::Value*
-__deprecate_promote_to_value(CG& cg, llvm::Value* Val)
-{
-	// TODO: Opaque pointers, don't rel
-	if( Val->getType()->isPointerTy() )
-		return promote_to_value(cg, Val);
-	else
-		return Val;
-}
 
 CGResult<CGExpr>
 cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call)
@@ -35,16 +18,15 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 	auto call_target_type = ir_call->call_target->type_instance;
 	assert(call_target_type.type->is_function_type() && call_target_type.indirection_level <= 1);
 
+	// TODO: EmitCallee like clang.
 	auto exprr = codegen.codegen_expr(fn, ir_call->call_target);
 	if( !exprr.ok() )
 		return exprr;
 
 	auto expr = exprr.unwrap();
-	if( expr.type != CGExprType::FunctionValue )
-		return CGError("Call target is not a value??"); // Assert here?
+	auto llvm_function = static_cast<llvm::Function*>(expr.address().llvm_pointer());
 
-	auto Function = expr.data.fn;
-	auto iter_callee = codegen.Functions.find(Function->getName().str());
+	auto iter_callee = codegen.Functions.find(llvm_function->getName().str());
 	assert(iter_callee != codegen.Functions.end());
 	auto callee_sig_info = iter_callee->second;
 
@@ -56,7 +38,7 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 		auto sret_arg_info = callee_sig_info.arg_type(callee_sig_info.sret_arg_index());
 		if( lvalue.has_value() )
 		{
-			llvm_arg_values.push_back(lvalue.value().value());
+			llvm_arg_values.push_back(lvalue.value().address().llvm_pointer());
 		}
 		else
 		{
@@ -75,11 +57,6 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			return arg_exprr;
 
 		auto arg_expr = arg_exprr.unwrap();
-		if( arg_expr.type != CGExprType::Value )
-			return CGError("Arg is not a value??"); // Assert here?
-
-		auto llvm_arg_expr_value = arg_expr.data.value;
-
 		auto abi_info = callee_sig_info.arg_type(arg_ind);
 
 		switch( abi_info.attr )
@@ -87,20 +64,8 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 		case LLVMArgABIInfo::UncheckedVarArg:
 		case LLVMArgABIInfo::Default:
 		{
-			// For unchecked args, the ABI doesn't have the arg type,
-			// so we just use the type of the expression.
-			// TODO: Need to return lvalues/rvalues that include the llvm type
-			auto abi_llvm_type = abi_info.attr == LLVMArgABIInfo::UncheckedVarArg
-									 ? !arg_expr.literal
-										   ? llvm_arg_expr_value->getType()->getPointerElementType()
-										   : llvm_arg_expr_value->getType()
-									 : abi_info.llvm_type;
-			// TODO: This is confusing.
-			// When codegening literals, they return the direct value that we want.
-			// When codegening non-literal, they return a pointer to the value we want.
-			auto llvm_value = !arg_expr.literal
-								  ? codegen.Builder->CreateLoad(abi_llvm_type, llvm_arg_expr_value)
-								  : llvm_arg_expr_value;
+			auto llvm_value = codegen_operand_expr(codegen, arg_expr);
+
 			llvm_arg_values.push_back(llvm_value);
 			break;
 		}
@@ -110,12 +75,14 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			// Passing struct by values actually passes a pointer.
 			// We need to make a copy in a new alloca, and then pass
 			// that alloca
+			auto address = arg_expr.address();
+			auto llvm_arg_expr_value = arg_expr.address().llvm_pointer();
 			llvm::AllocaInst* llvm_cpy_alloca =
-				codegen.Builder->CreateAlloca(abi_info.llvm_type->getPointerElementType(), nullptr);
-			auto llvm_size = codegen.Module->getDataLayout().getTypeAllocSize(
-				abi_info.llvm_type->getPointerElementType());
-			auto llvm_align = codegen.Module->getDataLayout().getPrefTypeAlign(
-				abi_info.llvm_type->getPointerElementType());
+				codegen.Builder->CreateAlloca(address.llvm_allocated_type(), nullptr);
+			auto llvm_size =
+				codegen.Module->getDataLayout().getTypeAllocSize(address.llvm_allocated_type());
+			auto llvm_align =
+				codegen.Module->getDataLayout().getPrefTypeAlign(address.llvm_allocated_type());
 
 			codegen.Builder->CreateMemCpy(
 				llvm_cpy_alloca, llvm_align, llvm_arg_expr_value, llvm_align, llvm_size);
@@ -140,5 +107,5 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 	if( callee_sig_info.has_sret_arg() )
 		return CGExpr();
 	else
-		return CGExpr(llvm_call);
+		return CGExpr::MakeRValue(RValue(llvm_call));
 }

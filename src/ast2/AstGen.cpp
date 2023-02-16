@@ -778,6 +778,28 @@ AstGen::parse_call(ast::AstNode* base)
 	return ast.FnCall(trail.mark(), base, args.unwrap());
 }
 
+ParseResult<AstNode*>
+AstGen::parse_indirect_member_reference(AstNode* base)
+{
+	auto trail = get_parse_trail();
+
+	auto tok = cursor.consume(TokenType::indirect_member_access);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '->'", tok.as());
+	}
+
+	auto identifier = parse_identifier();
+	if( !identifier.ok() )
+	{
+		return identifier;
+	}
+
+	auto member_name = ast.create_string(tok.as().start, tok.as().size);
+
+	return ast.IndirectMemberAccess(trail.mark(), base, identifier.unwrap());
+}
+
 ParseResult<ast::AstNode*>
 AstGen::parse_member_reference(ast::AstNode* base)
 {
@@ -915,7 +937,11 @@ AstGen::parse_simple_expr()
 	}
 
 	default:
-		return ParseError("Expected simple expression.", tok);
+		// Is this right?
+		result = ast.Empty(trail.mark());
+		break;
+		// ???
+		// return ParseError("Expected simple expression.", tok);
 	}
 
 	return ast.Expr(trail.mark(), result);
@@ -941,6 +967,15 @@ AstGen::parse_postfix_expr()
 		case TokenType::dot:
 			// Member dereference
 			expr = parse_member_reference(expr.unwrap());
+			if( !expr.ok() )
+			{
+				return expr;
+			}
+			expr = ast.Expr(trail.mark(), expr.unwrap());
+			break;
+		case TokenType::indirect_member_access:
+			// Member dereference
+			expr = parse_indirect_member_reference(expr.unwrap());
 			if( !expr.ok() )
 			{
 				return expr;

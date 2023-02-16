@@ -41,6 +41,7 @@ private:
 	ParseResult<AstNode*> parse_identifier();
 	ParseResult<AstNode*> parse_value_list();
 	ParseResult<AstNode*> parse_call(AstNode* base);
+	ParseResult<AstNode*> parse_indirect_member_reference(AstNode* base);
 	ParseResult<AstNode*> parse_member_reference(AstNode* base);
 
 	ParseResult<AstNode*> parse_deref();

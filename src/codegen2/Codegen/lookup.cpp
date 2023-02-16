@@ -45,12 +45,12 @@ cg::get_type(CG& cg, ir::IRValueDecl* decl)
 }
 
 // Get LValue?
-std::optional<CGExpr>
+std::optional<LValue>
 cg::get_value(CG& cg, String const& name)
 {
 	auto iter_value = cg.values.find(name);
 	if( iter_value != cg.values.end() )
 		return iter_value->second;
 	else
-		return std::optional<CGExpr>();
+		return std::optional<LValue>();
 }

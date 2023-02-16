@@ -35,8 +35,10 @@ enum class NodeType
 	NumberLiteral,
 	TypeDeclarator,
 	MemberAccess,
+	IndirectMemberAccess,
 	AddressOf,
 	Deref,
+	Empty,
 	Expr,
 	Stmt,
 };
@@ -151,6 +153,11 @@ struct AstValueDecl
 struct AstVarArg
 {
 	static constexpr NodeType nt = NodeType::VarArg;
+};
+
+struct AstEmpty
+{
+	static constexpr NodeType nt = NodeType::Empty;
 };
 
 struct AstFnCall
@@ -422,6 +429,20 @@ struct AstMemberAccess
 	{}
 };
 
+struct AstIndirectMemberAccess
+{
+	static constexpr NodeType nt = NodeType::IndirectMemberAccess;
+
+	AstNode* expr;
+	AstNode* member_name;
+
+	AstIndirectMemberAccess() = default;
+	AstIndirectMemberAccess(AstNode* expr, AstNode* member_name)
+		: expr(expr)
+		, member_name(member_name)
+	{}
+};
+
 struct AstAddressOf
 {
 	static constexpr NodeType nt = NodeType::AddressOf;
@@ -501,7 +522,9 @@ struct AstNode
 		AstNumberLiteral number_literal;
 		AstTypeDeclarator type_declarator;
 		AstMemberAccess member_access;
+		AstIndirectMemberAccess indirect_member_access;
 		AstDeref deref;
+		AstEmpty empty;
 		AstAddressOf address_of;
 		AstExpr expr;
 		AstStmt stmt;

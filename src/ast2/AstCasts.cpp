@@ -228,3 +228,21 @@ ast::as_member_access(ast::AstNode* node)
 
 	return &node->data.member_access;
 }
+
+Cast<AstIndirectMemberAccess>
+ast::as_indirect_member_access(ast::AstNode* node)
+{
+	if( node->type != AstIndirectMemberAccess::nt )
+		return Cast<AstIndirectMemberAccess>();
+
+	return &node->data.indirect_member_access;
+}
+
+Cast<AstEmpty>
+ast::as_empty(ast::AstNode* node)
+{
+	if( node->type != AstEmpty::nt )
+		return Cast<AstEmpty>();
+
+	return &node->data.empty;
+}

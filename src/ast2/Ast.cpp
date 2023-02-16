@@ -237,6 +237,14 @@ Ast::MemberAccess(Span span, AstNode* expr, AstNode* member_name)
 }
 
 AstNode*
+Ast::IndirectMemberAccess(Span span, AstNode* expr, AstNode* member_name)
+{
+	auto node = make_empty<AstIndirectMemberAccess>(span);
+	node->data.indirect_member_access = AstIndirectMemberAccess{expr, member_name};
+	return node;
+}
+
+AstNode*
 Ast::Deref(Span span, AstNode* expr)
 {
 	auto node = make_empty<AstDeref>(span);
@@ -273,5 +281,13 @@ Ast::VarArg(Span span)
 {
 	auto node = make_empty<AstVarArg>(span);
 	node->data.var_arg = AstVarArg{};
+	return node;
+}
+
+AstNode*
+Ast::Empty(Span span)
+{
+	auto node = make_empty<AstEmpty>(span);
+	node->data.empty = AstEmpty{};
 	return node;
 }

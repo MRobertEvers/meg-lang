@@ -40,6 +40,8 @@ enum class TokenType
 	open_curly,
 	close_curly,
 
+	indirect_member_access, // ->
+
 	comma,
 	dot,
 	semicolon,

@@ -56,6 +56,8 @@ ast::to_string(NodeType type)
 		return "TypeDeclarator";
 	case NodeType::MemberAccess:
 		return "MemberAccess";
+	case NodeType::IndirectMemberAccess:
+		return "IndirectMemberAccess";
 	case NodeType::Expr:
 		return "Expr";
 	case NodeType::Stmt:
@@ -66,5 +68,7 @@ ast::to_string(NodeType type)
 		return "...";
 	case NodeType::Deref:
 		return "*";
+	case NodeType::Empty:
+		return "";
 	}
 }

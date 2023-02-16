@@ -1,5 +1,8 @@
 #pragma once
 
+#include "./Codegen/LLVMAddress.h"
+#include "./Codegen/RValue.h"
+#include "./LValue.h"
 #include <llvm-c/Core.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
@@ -8,43 +11,50 @@
 
 namespace cg
 {
-enum CGExprType
+enum class CGExprType
 {
 	Empty,
-	Value,
-	FunctionValue,
+	Address,
+	RValue,
 };
 
-struct CGExpr
+class CGExpr
 {
-	bool literal = false;
-	enum CGExprType type = CGExprType::Empty;
+	CGExprType type = CGExprType::Empty;
 	union
 	{
-		llvm::Value* value;
-		llvm::Function* fn;
-	} data;
+		RValue rvalue_;
+		LLVMAddress address_;
+	};
 
+	CGExpr(LLVMAddress value)
+		: type(CGExprType::Address)
+		, address_(value){};
+	CGExpr(RValue value)
+		: type(CGExprType::RValue)
+		, rvalue_(value){};
+
+public:
 	CGExpr(){};
-	CGExpr(llvm::Value* value)
-		: type(CGExprType::Value)
-		, literal(false)
-	{
-		data.value = value;
-	};
-	CGExpr(llvm::Value* value, bool literal)
-		: type(CGExprType::Value)
-		, literal(literal)
-	{
-		data.value = value;
-	};
-	CGExpr(llvm::Function* value)
-		: type(CGExprType::FunctionValue)
-		, literal(false)
-	{
-		data.fn = value;
-	};
 
-	llvm::Value* as_value();
+	static CGExpr MakeAddress(LValue addr);
+	static CGExpr MakeAddress(LLVMAddress addr);
+	static CGExpr MakeRValue(RValue addr);
+
+	bool is_empty() const { return type == CGExprType::Empty; }
+	bool is_rvalue() const { return type == CGExprType::RValue; }
+	bool is_address() const { return type == CGExprType::Address; }
+
+	LLVMAddress address() const
+	{
+		assert(is_address());
+		return address_;
+	}
+
+	RValue rvalue() const
+	{
+		assert(is_rvalue());
+		return rvalue_;
+	}
 };
 } // namespace cg

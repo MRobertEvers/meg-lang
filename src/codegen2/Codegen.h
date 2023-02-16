@@ -35,7 +35,7 @@ public:
 	std::unique_ptr<llvm::Module> Module;
 	// TODO: Need scoping on these types.
 	std::map<sema::Type const*, llvm::Type*> types;
-	std::map<String, CGExpr> values;
+	std::map<String, LValue> values;
 
 	// Vec<cg::Scope> scopes;
 	// Scope* current_scope;
@@ -55,8 +55,8 @@ public:
 	CGResult<CGExpr> codegen_expr(cg::LLVMFnInfo&, ir::IRExpr*, std::optional<LValue>);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
 	CGResult<CGExpr> codegen_member_access(cg::LLVMFnInfo&, ir::IRMemberAccess*);
+	CGResult<CGExpr> codegen_indirect_member_access(cg::LLVMFnInfo&, ir::IRIndirectMemberAccess*);
 	CGResult<CGExpr> codegen_let(cg::LLVMFnInfo&, ir::IRLet*);
-	CGResult<CGExpr> codegen_assign(cg::LLVMFnInfo&, ir::IRAssign*);
 
 	// TODO: Return RValue type?
 	CGResult<CGExpr> codegen_number_literal(ir::IRNumberLiteral*);

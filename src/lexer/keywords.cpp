@@ -90,6 +90,7 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::bad, "bad"},
 	{TokenType::for_keyword, "for"},
 	{TokenType::var_args, "..."},
+	{TokenType::indirect_member_access, "indirect_member_access"},
 };
 
 char const*

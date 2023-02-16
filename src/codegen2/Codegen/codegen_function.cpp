@@ -79,14 +79,14 @@ codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			auto name = maybe_name.value();
 
 			llvm::AllocaInst* llvm_alloca =
-				codegen.Builder->CreateAlloca(arg_abi.llvm_type, nullptr, fn_info.name);
+				codegen.Builder->CreateAlloca(arg_abi.llvm_type, nullptr, name);
 			codegen.Builder->CreateStore(llvm_arg, llvm_alloca);
 
-			builder.add_arg(
-				LLVMFnArgInfo::Named(name, arg_abi, LValue(llvm_alloca, arg_abi.llvm_type)));
+			auto lvalue = LValue(llvm_alloca, arg_abi.llvm_type);
+			builder.add_arg(LLVMFnArgInfo::Named(name, arg_abi, lvalue));
 
 			// TODO: Remove this once exprs get ctx arg
-			codegen.values.emplace(name, llvm_alloca);
+			codegen.values.emplace(name, lvalue);
 			break;
 		}
 		case LLVMArgABIInfo::SRet:
@@ -101,8 +101,8 @@ codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			assert(maybe_name.has_value());
 			auto name = maybe_name.value();
 
-			// TODO: Make sure call actually provides a memcpy
-			codegen.values.emplace(name, llvm_arg);
+			auto lvalue = LValue(llvm_arg, llvm_arg->getType()->getPointerElementType());
+			codegen.values.emplace(name, lvalue);
 			break;
 		}
 		}

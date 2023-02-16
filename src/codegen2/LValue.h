@@ -1,5 +1,6 @@
 #pragma once
 
+#include "./Codegen/LLVMAddress.h"
 #include <llvm/IR/Value.h>
 
 namespace cg
@@ -7,16 +8,17 @@ namespace cg
 
 class LValue
 {
-	llvm::Value* V;
-	llvm::Type* ElementType;
+	LLVMAddress address_;
 
 public:
-	LValue(llvm::Value* V, llvm::Type* ElementType)
-		: V(V)
-		, ElementType(ElementType){};
+	LValue(llvm::Value* ptr, llvm::Type* allocated_type)
+		: address_(LLVMAddress(ptr, allocated_type))
+	{}
+	LValue(LLVMAddress address)
+		: address_(address)
+	{}
 
-	llvm::Value* value() const { return V; }
-	llvm::Type* type() const { return ElementType; }
+	LLVMAddress address() const { return address_; }
 };
 
 } // namespace cg

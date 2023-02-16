@@ -57,11 +57,13 @@ public:
 	AstNode* TypeDeclarator(Span span, String* name, unsigned int indirection_level);
 	AstNode* TypeDeclaratorEmpty();
 	AstNode* MemberAccess(Span span, AstNode* expr, AstNode* member_name);
+	AstNode* IndirectMemberAccess(Span span, AstNode* expr, AstNode* member_name);
 	AstNode* Deref(Span span, AstNode* expr);
 	AstNode* AddressOf(Span span, AstNode* expr);
 	AstNode* Expr(Span span, AstNode* expr);
 	AstNode* Stmt(Span span, AstNode* expr);
 	AstNode* VarArg(Span span);
+	AstNode* Empty(Span span);
 };
 
 template<typename T, typename Enable>

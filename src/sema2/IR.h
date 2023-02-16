@@ -214,6 +214,15 @@ struct IRMemberAccess
 	IRExpr* expr;
 };
 
+struct IRIndirectMemberAccess
+{
+	//
+	ast::AstNode* node;
+	String* member_name;
+	sema::TypeInstance type_instance;
+	IRExpr* expr;
+};
+
 struct IRIf
 {
 	//
@@ -244,6 +253,13 @@ struct IRDeref
 	ast::AstNode* node;
 	IRExpr* expr;
 	sema::TypeInstance type_instance;
+};
+
+struct IREmpty
+{
+	//
+	ast::AstNode* node;
+	sema::TypeInstance type_instance; // Should be void type
 };
 
 enum class IRStmtType
@@ -282,7 +298,9 @@ enum class IRExprType
 	BinOp,
 	ValueDecl,
 	MemberAccess,
+	IndirectMemberAccess,
 	AddressOf,
+	Empty,
 	Deref
 };
 
@@ -300,7 +318,9 @@ struct IRExpr
 		IRBinOp* binop;
 		IRAddressOf* addr_of;
 		IRDeref* deref;
+		IREmpty* empty;
 		IRMemberAccess* member_access;
+		IRIndirectMemberAccess* indirect_member_access;
 	} expr;
 	IRExprType type;
 
