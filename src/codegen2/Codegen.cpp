@@ -9,6 +9,7 @@
 #include "Codegen/codegen_function.h"
 #include "Codegen/codegen_return.h"
 #include "Codegen/codegen_string_literal.h"
+#include "Codegen/codegen_while.h"
 #include "Codegen/lookup.h"
 #include "Codegen/operand.h"
 #include "ast2/AstCasts.h"
@@ -97,6 +98,8 @@ CG::codegen_stmt(cg::LLVMFnInfo& fn, ir::IRStmt* stmt)
 		return codegen_if(fn, stmt->stmt.if_stmt);
 	case ir::IRStmtType::For:
 		return codegen_for(fn, stmt->stmt.for_stmt);
+	case ir::IRStmtType::While:
+		return codegen_while(*this, fn, stmt->stmt.while_stmt);
 	case ir::IRStmtType::Else:
 		return codegen_else(fn, stmt->stmt.else_stmt);
 	case ir::IRStmtType::Block:

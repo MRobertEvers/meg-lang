@@ -134,6 +134,14 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 
 		return sema.Stmt(forr.unwrap());
 	}
+	case NodeType::While:
+	{
+		auto whiler = sema_while(sema, stmt_node);
+		if( !whiler.ok() )
+			return whiler;
+
+		return sema.Stmt(whiler.unwrap());
+	}
 	case NodeType::Else:
 	{
 		auto ifr = sema_else(sema, stmt_node);
@@ -216,6 +224,7 @@ sema::sema_for(Sema2& sema, ast::AstNode* ast)
 	if( !condr.ok() )
 		return condr;
 	auto cond = condr.unwrap();
+	// TODO: Check condition is boolean.
 
 	auto endr = sema_stmt(sema, forstmt.end_loop);
 	if( !endr.ok() )
@@ -228,6 +237,28 @@ sema::sema_for(Sema2& sema, ast::AstNode* ast)
 	auto body = bodyr.unwrap();
 
 	return sema.For(ast, cond, initstmt, end, body);
+}
+
+SemaResult<ir::IRWhile*>
+sema::sema_while(Sema2& sema, ast::AstNode* ast)
+{
+	auto result = expected(ast, ast::as_while);
+	if( !result.ok() )
+		return result;
+	auto whilestmt = result.unwrap();
+
+	auto condr = sema_expr(sema, whilestmt.condition);
+	if( !condr.ok() )
+		return condr;
+	auto cond = condr.unwrap();
+	// TODO: Check condition is boolean.
+
+	auto bodyr = sema_stmt(sema, whilestmt.block);
+	if( !bodyr.ok() )
+		return bodyr;
+	auto body = bodyr.unwrap();
+
+	return sema.While(ast, cond, body);
 }
 
 SemaResult<ir::IRElse*>

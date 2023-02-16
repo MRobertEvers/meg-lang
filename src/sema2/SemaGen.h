@@ -28,6 +28,7 @@ SemaResult<ir::IRTopLevelStmt*> sema_tls(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRStmt*> sema_stmt(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRIf*> sema_if(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRFor*> sema_for(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRWhile*> sema_while(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRElse*> sema_else(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRValueDecl*> sema_struct_tls(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExpr*> sema_expr_any(Sema2& sema, ast::AstNode* ast);

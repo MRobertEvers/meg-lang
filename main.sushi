@@ -12,9 +12,11 @@ struct Point {
 
 fn main(): i32 
 {
-    for (let i = 0; i < 5; i = i + 1)
+    let i = 0;
+    while (i < 5)
     {
-        printf("%d, ", i);
+        printf("%d", i);
+        i = i + 1;
     }
 
     return 1;

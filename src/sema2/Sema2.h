@@ -89,6 +89,7 @@ public:
 	ir::IRStmt* Stmt(ir::IRAssign*);
 	ir::IRStmt* Stmt(ir::IRIf*);
 	ir::IRStmt* Stmt(ir::IRFor*);
+	ir::IRStmt* Stmt(ir::IRWhile*);
 	ir::IRStmt* Stmt(ir::IRElse*);
 	ir::IRStmt* Stmt(ir::IRBlock*);
 	ir::IRArgs* Args(ast::AstNode* node, Vec<ir::IRExpr*>* args);
@@ -114,6 +115,7 @@ public:
 	ir::IRParam* IRParam(ast::AstNode*, ir::IRVarArg* var_arg);
 	ir::IRFor*
 	For(ast::AstNode*, ir::IRExpr* condition, ir::IRStmt* init, ir::IRStmt* end, ir::IRStmt* body);
+	ir::IRWhile* While(ast::AstNode*, ir::IRExpr* condition, ir::IRStmt* body);
 };
 
 } // namespace sema

@@ -488,6 +488,16 @@ Sema2::Stmt(ir::IRFor* e)
 }
 
 ir::IRStmt*
+Sema2::Stmt(ir::IRWhile* e)
+{
+	auto nod = new ir::IRStmt;
+	nod->node = e->node;
+	nod->stmt.while_stmt = e;
+	nod->type = ir::IRStmtType::While;
+	return nod;
+}
+
+ir::IRStmt*
 Sema2::Stmt(ir::IRElse* e)
 {
 	auto nod = new ir::IRStmt;
@@ -740,6 +750,17 @@ Sema2::For(
 	nod->condition = condition;
 	nod->init = init;
 	nod->end = end;
+	nod->body = body;
+
+	return nod;
+}
+ir::IRWhile*
+Sema2::While(ast::AstNode* node, ir::IRExpr* condition, ir::IRStmt* body)
+{
+	auto nod = new ir::IRWhile;
+
+	nod->node = node;
+	nod->condition = condition;
 	nod->body = body;
 
 	return nod;

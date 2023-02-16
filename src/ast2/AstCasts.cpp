@@ -255,3 +255,12 @@ ast::as_for(ast::AstNode* node)
 
 	return &node->data.forstmt;
 }
+
+Cast<AstWhile>
+ast::as_while(ast::AstNode* node)
+{
+	if( node->type != AstWhile::nt )
+		return Cast<AstWhile>();
+
+	return &node->data.whilestmt;
+}

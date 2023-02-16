@@ -242,6 +242,14 @@ struct IRFor
 	IRStmt* body;
 };
 
+struct IRWhile
+{
+	//
+	ast::AstNode* node;
+	IRExpr* condition;
+	IRStmt* body;
+};
+
 struct IRElse
 {
 	//
@@ -280,6 +288,7 @@ enum class IRStmtType
 	Assign,
 	If,
 	For,
+	While,
 	Else,
 	Block,
 };
@@ -292,6 +301,7 @@ struct IRStmt
 		IRIf* if_stmt;
 		IRFor* for_stmt;
 		IRElse* else_stmt;
+		IRWhile* while_stmt;
 		IRExpr* expr;
 		IRBlock* block;
 		IRReturn* ret;

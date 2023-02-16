@@ -354,6 +354,8 @@ AstGen::parse_assign(ast::AstNode* lhs)
 }
 
 // TODO: change this to inline_statement
+// I want to use this in various cases, such as the end loop of a foor loop.
+// An expression is allowed, but so are a few statements (but not all statements).
 ParseResult<ast::AstNode*>
 AstGen::parse_expr_statement()
 {
