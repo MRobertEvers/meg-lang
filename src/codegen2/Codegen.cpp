@@ -228,7 +228,7 @@ CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* let)
 
 	llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_allocated_type, nullptr, *name);
 	auto lvalue = LValue(llvm_alloca, llvm_allocated_type);
-	values.emplace(*name, lvalue);
+	values.insert_or_assign(*name, lvalue);
 
 	auto assignr = codegen_assign(*this, fn, let->assign);
 	if( !assignr.ok() )
@@ -441,6 +441,7 @@ CGResult<CGExpr>
 CG::codegen_block(cg::LLVMFnInfo& fn, ir::IRBlock* ir_block)
 {
 	//
+	auto previous_scope = this->values;
 	for( auto stmt : *ir_block->stmts )
 	{
 		//
@@ -448,6 +449,7 @@ CG::codegen_block(cg::LLVMFnInfo& fn, ir::IRBlock* ir_block)
 		if( !stmtr.ok() )
 			return stmtr;
 	}
+	this->values = previous_scope;
 
 	return CGExpr();
 }

@@ -85,14 +85,13 @@ codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			auto lvalue = LValue(llvm_alloca, arg_abi.llvm_type);
 			builder.add_arg(LLVMFnArgInfo::Named(name, arg_abi, lvalue));
 
-			// TODO: Remove this once exprs get ctx arg
-			codegen.values.emplace(name, lvalue);
 			break;
 		}
 		case LLVMArgABIInfo::SRet:
 		{
 			// TODO: Opaque pointer.
-			builder.add_arg(LLVMFnArgInfo::SRet(arg_abi, LValue(llvm_arg, arg_abi.llvm_type)));
+			builder.add_arg(LLVMFnArgInfo::SRet(
+				arg_abi, LValue(llvm_arg, arg_abi.llvm_type->getPointerElementType())));
 			break;
 		}
 		case LLVMArgABIInfo::Value:
@@ -102,7 +101,8 @@ codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			auto name = maybe_name.value();
 
 			auto lvalue = LValue(llvm_arg, llvm_arg->getType()->getPointerElementType());
-			codegen.values.emplace(name, lvalue);
+
+			builder.add_arg(LLVMFnArgInfo::Named(name, arg_abi, lvalue));
 			break;
 		}
 		}
@@ -130,7 +130,6 @@ cg::codegen_function(CG& cg, ir::IRFunction* ir_fn)
 
 	auto fn_sig_info = protor.unwrap();
 
-	cg.current_function = fn_sig_info;
 	auto entryr = codegen_function_entry(cg, fn_sig_info);
 	if( !entryr.ok() )
 		return entryr;
@@ -139,8 +138,6 @@ cg::codegen_function(CG& cg, ir::IRFunction* ir_fn)
 	auto bodyr = codegen_function_body(cg, fn_info, ir_fn->block);
 	if( !bodyr.ok() )
 		return bodyr;
-
-	cg.current_function.reset();
 
 	return protor;
 }
@@ -203,13 +200,16 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* ir_proto)
 CGResult<CGExpr>
 cg::codegen_function_body(CG& cg, cg::LLVMFnInfo& ctx, ir::IRBlock* block)
 {
-	for( auto stmt : *block->stmts )
+	auto previous_scope = cg.values;
+
+	for( auto [name, arg] : ctx.named_args )
 	{
-		//
-		auto stmtr = cg.codegen_stmt(ctx, stmt);
-		if( !stmtr.ok() )
-			return stmtr;
+		cg.values.insert_or_assign(name, arg.lvalue);
 	}
 
-	return CGExpr();
+	auto block_return = cg.codegen_block(ctx, block);
+
+	cg.values = previous_scope;
+
+	return block_return;
 }

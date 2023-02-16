@@ -27,11 +27,14 @@ cg::codegen_fn_sig_info(CG& codegen, LLVMFnSigInfoBuilder const& builder)
 			break;
 		case LLVMArgABIInfo::SRet:
 		{
-			llvm_arg->addAttrs(llvm::AttrBuilder().addStructRetAttr(abi_arg.llvm_type));
+			// TODO: Avoid getPointerElementType
+			llvm_arg->addAttrs(
+				llvm::AttrBuilder().addStructRetAttr(abi_arg.llvm_type->getPointerElementType()));
 			break;
 		}
 		case LLVMArgABIInfo::Value:
 		{
+			// TODO: Avoid getPointerElementType
 			llvm_arg->addAttrs(
 				llvm::AttrBuilder().addByValAttr(abi_arg.llvm_type->getPointerElementType()));
 			break;

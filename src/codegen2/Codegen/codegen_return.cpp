@@ -18,10 +18,9 @@ cg::codegen_return(CG& codegen, cg::LLVMFnInfo& fn, ir::IRReturn* ir_return)
 		codegen.Builder->CreateRetVoid();
 		return CGExpr();
 	}
-
-	auto llvm_value = codegen_operand_expr(codegen, expr);
 	if( fn.has_sret_arg() )
 	{
+		auto llvm_value = expr.address().llvm_pointer();
 		auto sret_arg = fn.sret();
 		auto llvm_sret_value = sret_arg.lvalue.address().llvm_pointer();
 		auto llvm_sret_type = sret_arg.lvalue.address().llvm_allocated_type();
@@ -36,6 +35,8 @@ cg::codegen_return(CG& codegen, cg::LLVMFnInfo& fn, ir::IRReturn* ir_return)
 	}
 	else
 	{
+		auto llvm_value = codegen_operand_expr(codegen, expr);
+		assert(!llvm_value->getType()->isStructTy());
 		codegen.Builder->CreateRet(llvm_value);
 	}
 

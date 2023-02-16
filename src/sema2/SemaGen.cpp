@@ -3,6 +3,7 @@
 #include "SemaGen.h"
 
 #include "ast2/AstCasts.h"
+#include "lowering/lower_for.h"
 
 using namespace sema;
 using namespace ir;
@@ -132,7 +133,15 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 		if( !forr.ok() )
 			return forr;
 
-		return sema.Stmt(forr.unwrap());
+		auto lowerr = lower_for(sema, forr.unwrap());
+		if( !lowerr.ok() )
+			return lowerr;
+		// LOWERING
+		// lowers a for loop into
+		// { for (...) }
+		// This restricts the scope of the for loop init variable.
+
+		return sema.Stmt(lowerr.unwrap());
 	}
 	case NodeType::While:
 	{

@@ -30,8 +30,6 @@ public:
 	std::unique_ptr<llvm::LLVMContext> Context;
 	std::unique_ptr<llvm::IRBuilder<>> Builder;
 
-	std::optional<LLVMFnSigInfo> current_function;
-
 	std::unique_ptr<llvm::Module> Module;
 	// TODO: Need scoping on these types.
 	std::map<sema::Type const*, llvm::Type*> types;

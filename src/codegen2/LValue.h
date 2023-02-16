@@ -11,6 +11,7 @@ class LValue
 	LLVMAddress address_;
 
 public:
+	LValue(LValue const&) = default;
 	LValue(llvm::Value* ptr, llvm::Type* allocated_type)
 		: address_(LLVMAddress(ptr, allocated_type))
 	{}

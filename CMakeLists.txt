@@ -56,6 +56,7 @@ add_executable(sushi
     src/sema2/SemaGen.cpp
     src/sema2/Sema2.cpp
     src/sema2/SemaResult.cpp
+    src/sema2/lowering/lower_for.cpp
     src/sema2/type/Type.cpp
     src/sema2/type/FunctionTypeInfo.cpp
     src/sema2/type/StructTypeInfo.cpp
