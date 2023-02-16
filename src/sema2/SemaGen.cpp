@@ -367,7 +367,7 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 }
 
 SemaResult<ir::IRArgs*>
-sema::sema_fn_args(Sema2& sema, ast::AstNode* ast)
+sema::sema_fn_args(Sema2& sema, ast::AstNode* ast, sema::Type const& fn_type)
 {
 	auto argsr = expected(ast, ast::as_expr_list);
 	if( !argsr.ok() )
@@ -375,13 +375,38 @@ sema::sema_fn_args(Sema2& sema, ast::AstNode* ast)
 	auto args = argsr.unwrap();
 
 	auto argslist = sema.create_elist();
+	int arg_count = 0;
 	for( auto argexpr : args.exprs )
 	{
+		if( arg_count >= fn_type.get_member_count() && !fn_type.is_var_arg() )
+			return SemaError("Too many arguments!");
+
 		auto exprr = sema_expr(sema, argexpr);
 		if( !exprr.ok() )
 			return exprr;
 
+		auto expr = exprr.unwrap();
+
+		if( arg_count < fn_type.get_member_count() )
+		{
+			if( !sema.types.equal_types(expr->type_instance, fn_type.get_member(arg_count).type) )
+				return SemaError("Mismatched argument type.");
+		}
+
 		argslist->push_back(exprr.unwrap());
+
+		arg_count += 1;
+	}
+
+	if( fn_type.is_var_arg() )
+	{
+		if( arg_count < fn_type.get_member_count() - 1 )
+			return SemaError("Missing arguments.");
+	}
+	else
+	{
+		if( arg_count != fn_type.get_member_count() )
+			return SemaError("Missing arguments.");
 	}
 
 	return sema.Args(ast, argslist);
@@ -400,10 +425,11 @@ sema::sema_fn_call(Sema2& sema, ast::AstNode* ast)
 		return call_targetr;
 	auto call_target = call_targetr.unwrap();
 
-	if( !call_target->type_instance.type->is_function_type() )
+	auto call_target_type = call_target->type_instance;
+	if( !call_target_type.is_function_type() )
 		return SemaError("...is not a function!");
 
-	auto argsr = sema_fn_args(sema, fn_call.args);
+	auto argsr = sema_fn_args(sema, fn_call.args, *call_target_type.type);
 	if( !argsr.ok() )
 		return argsr;
 
@@ -813,13 +839,16 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 	auto args = argsr.unwrap();
 
 	auto argslist = sema.create_argslist();
+	bool is_var_arg = false;
 	for( auto arg : args.params )
 	{
 		auto paramr = sema_fn_param(sema, arg);
 		if( !paramr.ok() )
 			return paramr;
 
-		argslist->push_back(paramr.unwrap());
+		auto param = paramr.unwrap();
+		is_var_arg = param->type == IRParamType::VarArg;
+		argslist->push_back(param);
 	}
 
 	auto rt_type_declr = sema_type_decl(sema, fn_proto.return_type);
@@ -832,7 +861,8 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 	if( !membersr.ok() )
 		return membersr;
 	auto members = membersr.unwrap();
-	auto fn_type = sema.CreateType(Type::Function(*name, members.vec, rt->type_instance));
+	auto fn_type =
+		sema.CreateType(Type::Function(*name, members.vec, rt->type_instance, is_var_arg));
 	sema.add_type_identifier(fn_type);
 	sema.add_value_identifier(*name, TypeInstance::OfType(fn_type));
 

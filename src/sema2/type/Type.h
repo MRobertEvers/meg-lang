@@ -39,7 +39,7 @@ private:
 
 	// For functions return type
 	TypeInstance return_type;
-	bool is_var_arg;
+	bool is_var_arg_;
 
 	String name;
 
@@ -54,6 +54,8 @@ public:
 	bool is_function_type() const { return cls == TypeClassification::function; }
 	bool is_struct_type() const { return cls == TypeClassification::struct_cls; }
 	String get_name() const;
+
+	bool is_var_arg() const { return is_var_arg_; }
 
 	std::optional<TypedMember> get_member(String const& name) const;
 	TypedMember get_member(int idx) const;

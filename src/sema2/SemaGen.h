@@ -33,7 +33,7 @@ SemaResult<ir::IRExpr*> sema_expr_any(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExpr*> sema_expr(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExternFn*> sema_extern_fn(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRFunction*> sema_fn(Sema2& sema, ast::AstNode* ast);
-SemaResult<ir::IRArgs*> sema_fn_args(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRArgs*> sema_fn_args(Sema2& sema, ast::AstNode* ast, sema::Type const& fn_type);
 SemaResult<ir::IRCall*> sema_fn_call(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRId*> sema_id(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRMemberAccess*> sema_member_access(Sema2& sema, ast::AstNode* ast);

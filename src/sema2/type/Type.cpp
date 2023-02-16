@@ -6,18 +6,20 @@ using namespace sema;
 
 Type::Type(String name)
 	: name(name)
+	, is_var_arg_(false)
 	, cls(TypeClassification::primitive){};
 
 Type::Type(String name, std::map<String, TypedMember> members)
 	: name(name)
 	, members(members)
+	, is_var_arg_(false)
 	, cls(TypeClassification::struct_cls){};
 
 Type::Type(String name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg)
 	: name(name)
 	, members_order(args)
 	, return_type(return_type)
-	, is_var_arg(is_var_arg)
+	, is_var_arg_(is_var_arg)
 	, cls(TypeClassification::function)
 {
 	for( auto arg : args )
