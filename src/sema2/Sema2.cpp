@@ -478,6 +478,16 @@ Sema2::Stmt(ir::IRIf* e)
 }
 
 ir::IRStmt*
+Sema2::Stmt(ir::IRFor* e)
+{
+	auto nod = new ir::IRStmt;
+	nod->node = e->node;
+	nod->stmt.for_stmt = e;
+	nod->type = ir::IRStmtType::For;
+	return nod;
+}
+
+ir::IRStmt*
 Sema2::Stmt(ir::IRElse* e)
 {
 	auto nod = new ir::IRStmt;
@@ -704,6 +714,18 @@ Sema2::IRParam(ast::AstNode* node, ir::IRValueDecl* decl)
 	nod->node = node;
 	nod->data.value_decl = decl;
 	nod->type = ir::IRParamType::ValueDecl;
+
+	return nod;
+}
+
+ir::IRParam*
+Sema2::IRParam(ast::AstNode* node, ir::IRVarArg* decl)
+{
+	auto nod = new ir::IRParam;
+
+	nod->node = node;
+	nod->data.var_arg = decl;
+	nod->type = ir::IRParamType::VarArg;
 
 	return nod;
 }

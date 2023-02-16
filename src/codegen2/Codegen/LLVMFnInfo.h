@@ -51,5 +51,7 @@ struct LLVMFnInfo
 
 	bool has_sret_arg() const;
 	LLVMFnArgInfo sret() const;
+
+	llvm::Function* llvm_fn() const { return sig_info.llvm_fn; }
 };
 } // namespace cg

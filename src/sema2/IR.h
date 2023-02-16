@@ -279,6 +279,7 @@ enum class IRStmtType
 	Let,
 	Assign,
 	If,
+	For,
 	Else,
 	Block,
 };
@@ -289,6 +290,7 @@ struct IRStmt
 	union
 	{
 		IRIf* if_stmt;
+		IRFor* for_stmt;
 		IRElse* else_stmt;
 		IRExpr* expr;
 		IRBlock* block;

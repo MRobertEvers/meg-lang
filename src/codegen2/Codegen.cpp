@@ -95,6 +95,8 @@ CG::codegen_stmt(cg::LLVMFnInfo& fn, ir::IRStmt* stmt)
 		return codegen_let(fn, stmt->stmt.let);
 	case ir::IRStmtType::If:
 		return codegen_if(fn, stmt->stmt.if_stmt);
+	case ir::IRStmtType::For:
+		return codegen_for(fn, stmt->stmt.for_stmt);
 	case ir::IRStmtType::Else:
 		return codegen_else(fn, stmt->stmt.else_stmt);
 	case ir::IRStmtType::Block:
@@ -270,8 +272,8 @@ CG::codegen_binop(cg::LLVMFnInfo& fn, ir::IRBinOp* binop)
 	auto lexpr = lhsr.unwrap();
 	auto rexpr = rhsr.unwrap();
 
-	auto llvm_lhs = codegen_operand_expr(*this, lexpr); // promote_to_value(*this, LValue);
-	auto llvm_rhs = codegen_operand_expr(*this, rexpr); // promote_to_value(*this, RValue);
+	auto llvm_lhs = codegen_operand_expr(*this, lexpr);
+	auto llvm_rhs = codegen_operand_expr(*this, rexpr);
 
 	assert(llvm_lhs && llvm_rhs && "nullptr for assignment!");
 
@@ -374,6 +376,53 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 	// Emit merge block.
 	llvm_fn->getBasicBlockList().push_back(llvm_merge_bb);
 	Builder->SetInsertPoint(llvm_merge_bb);
+
+	return CGExpr();
+}
+
+CGResult<CGExpr>
+CG::codegen_for(cg::LLVMFnInfo& fn, ir::IRFor* ir_for)
+{
+	auto forr = codegen_stmt(fn, ir_for->init);
+	if( !forr.ok() )
+		return forr;
+	auto for_stmt = forr.unwrap();
+
+	auto llvm_fn = fn.llvm_fn();
+	llvm::BasicBlock* llvm_cond_bb = llvm::BasicBlock::Create(*Context, "condition", llvm_fn);
+	llvm::BasicBlock* llvm_loop_bb = llvm::BasicBlock::Create(*Context, "loop");
+	llvm::BasicBlock* llvm_done_bb = llvm::BasicBlock::Create(*Context, "after_loop");
+
+	// There are no implicit fallthroughs, we have to make an
+	// explicit fallthrough from the current block to the LoopStartBB
+	Builder->CreateBr(llvm_cond_bb);
+	Builder->SetInsertPoint(llvm_cond_bb);
+
+	auto condr = codegen_expr(fn, ir_for->condition);
+	if( !condr.ok() )
+		return condr;
+	auto cond = condr.unwrap();
+
+	auto llvm_cond = codegen_operand_expr(*this, cond);
+	// TODO: Typecheck is boolean or cast?
+	Builder->CreateCondBr(llvm_cond, llvm_loop_bb, llvm_done_bb);
+	llvm_fn->getBasicBlockList().push_back(llvm_loop_bb);
+	Builder->SetInsertPoint(llvm_loop_bb);
+
+	auto bodyr = codegen_stmt(fn, ir_for->body);
+	if( !bodyr.ok() )
+		return bodyr;
+	auto body = bodyr.unwrap();
+
+	auto endr = codegen_stmt(fn, ir_for->end);
+	if( !endr.ok() )
+		return endr;
+	auto end = endr.unwrap();
+
+	Builder->CreateBr(llvm_cond_bb);
+
+	llvm_fn->getBasicBlockList().push_back(llvm_done_bb);
+	Builder->SetInsertPoint(llvm_done_bb);
 
 	return CGExpr();
 }

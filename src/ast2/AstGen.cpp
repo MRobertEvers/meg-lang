@@ -268,7 +268,7 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 			 TokenType::and_and_lex,
 			 TokenType::or_or_lex,
 			 TokenType::cmp,
-			 TokenType::ne});
+			 TokenType::ne}); // TODO: Other assignment exprs.
 		if( !tok.ok() )
 			return lhs;
 
@@ -289,9 +289,9 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 		// If BinOp binds less tightly with RHS than the operator after RHS, let
 		// the pending operator take RHS as its LHS.
 		auto cur = cursor.peek();
-		token_type = tok.as().type;
-		op = get_bin_op_from_token_type(token_type);
-		int next_precidence = get_token_precedence(op);
+		token_type = cur.type;
+		auto next_op = get_bin_op_from_token_type(token_type);
+		int next_precidence = get_token_precedence(next_op);
 		if( tok_precidence < next_precidence )
 		{
 			rhs = parse_bin_op(tok_precidence + 1, rhs.unwrap());
@@ -353,9 +353,12 @@ AstGen::parse_assign(ast::AstNode* lhs)
 	return ast.Assign(trail.mark(), op, lhs, rhs.unwrap());
 }
 
+// TODO: change this to inline_statement
 ParseResult<ast::AstNode*>
 AstGen::parse_expr_statement()
 {
+	// auto trail = get_parse_trail();
+	// TODO: This function is whack.
 	auto expr = parse_expr();
 	if( !expr.ok() )
 	{
@@ -370,8 +373,14 @@ AstGen::parse_expr_statement()
 	case TokenType::div_equal:
 	case TokenType::sub_equal:
 	case TokenType::plus_equal:
-		return parse_assign(expr.unwrap());
+	{
+		auto assignr = parse_assign(expr.unwrap());
+		if( !assignr.ok() )
+			return assignr;
+
+		return assignr.unwrap();
 		break;
+	}
 
 	default:
 		return expr;
@@ -637,16 +646,18 @@ AstGen::parse_for()
 		return ParseError("Expected ';'", tok.as());
 	}
 
-	auto end_loop = parse_expr_statement();
-	if( !end_loop.ok() )
+	// TODO: Create notion of inline statement.
+	auto end_loop_expr = parse_expr_statement();
+	if( !end_loop_expr.ok() )
 	{
-		return end_loop;
+		return end_loop_expr;
 	}
+	auto end_loop_stmt = ast.Stmt(trail.mark(), end_loop_expr.unwrap());
 
 	tok = cursor.consume(TokenType::close_paren);
 	if( !tok.ok() )
 	{
-		return ParseError("Expected ';'", tok.as());
+		return ParseError("Expected ')'", tok.as());
 	}
 
 	auto body = parse_statement();
@@ -655,8 +666,7 @@ AstGen::parse_for()
 		return body;
 	}
 
-	return ast.For(
-		trail.mark(), init.unwrap(), condition.unwrap(), end_loop.unwrap(), body.unwrap());
+	return ast.For(trail.mark(), init.unwrap(), condition.unwrap(), end_loop_stmt, body.unwrap());
 }
 
 ParseResult<ast::AstNode*>

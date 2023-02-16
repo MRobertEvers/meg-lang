@@ -10,32 +10,12 @@ struct Point {
     y: i32;
 }
 
-fn print_point(p: Point*): void {
-    printf("Point (%d, %d)\n", p->x, p->y);
-    return;
-}
-
 fn main(): i32 
 {
-    let my_point = Point;
-    my_point.x = 6;
-    my_point.y = 11;
-    let pp = &my_point;
-
-    if (my_point.x > 5)
-    {
-        printf(">5\n");
-    }
-    else 
-    {
-        printf("<=5\n");
-    }
-
     for (let i = 0; i < 5; i = i + 1)
     {
         printf("%d, ", i);
     }
 
-    print_point(pp);
     return 1;
 }

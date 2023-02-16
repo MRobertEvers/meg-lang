@@ -88,6 +88,7 @@ public:
 	ir::IRStmt* Stmt(ir::IRLet*);
 	ir::IRStmt* Stmt(ir::IRAssign*);
 	ir::IRStmt* Stmt(ir::IRIf*);
+	ir::IRStmt* Stmt(ir::IRFor*);
 	ir::IRStmt* Stmt(ir::IRElse*);
 	ir::IRStmt* Stmt(ir::IRBlock*);
 	ir::IRArgs* Args(ast::AstNode* node, Vec<ir::IRExpr*>* args);

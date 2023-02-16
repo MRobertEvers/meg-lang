@@ -64,6 +64,7 @@ public:
 	CGResult<CGExpr> codegen_binop(cg::LLVMFnInfo&, ir::IRBinOp*);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
 	CGResult<CGExpr> codegen_if(cg::LLVMFnInfo&, ir::IRIf*);
+	CGResult<CGExpr> codegen_for(cg::LLVMFnInfo&, ir::IRFor*);
 	CGResult<CGExpr> codegen_else(cg::LLVMFnInfo&, ir::IRElse*);
 	CGResult<CGExpr> codegen_block(cg::LLVMFnInfo&, ir::IRBlock*);
 	CGResult<CGExpr> codegen_struct(ir::IRStruct* st);

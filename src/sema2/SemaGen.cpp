@@ -128,11 +128,11 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 	}
 	case NodeType::For:
 	{
-		auto ifr = sema_for(sema, stmt_node);
-		if( !ifr.ok() )
-			return ifr;
+		auto forr = sema_for(sema, stmt_node);
+		if( !forr.ok() )
+			return forr;
 
-		return sema.Stmt(ifr.unwrap());
+		return sema.Stmt(forr.unwrap());
 	}
 	case NodeType::Else:
 	{
