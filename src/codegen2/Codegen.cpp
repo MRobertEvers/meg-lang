@@ -79,8 +79,7 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 	case ir::IRTopLevelType::Struct:
 		return codegen_struct(tls->stmt.struct_decl);
 	case ir::IRTopLevelType::Union:
-		// Noop
-		return CGExpr();
+		return codegen_union(tls->stmt.union_decl);
 	}
 
 	return NotImpl();
@@ -414,6 +413,39 @@ CG::codegen_struct(ir::IRStruct* st)
 	llvm::StructType* llvm_struct_type = llvm::StructType::create(*Context, members, name);
 
 	this->types.emplace(struct_type, llvm_struct_type);
+
+	return CGExpr();
+}
+
+CGResult<CGExpr>
+CG::codegen_union(ir::IRUnion* st)
+{
+	llvm::Type* max_type_by_size = nullptr;
+	int max_size = 0;
+	for( auto& member : *st->members )
+	{
+		auto value_decl = member.second;
+		auto typerr = get_type(*this, value_decl->type_decl);
+		if( !typerr.ok() )
+			return typerr;
+
+		auto llvm_type = typerr.unwrap();
+
+		auto llvm_size = Module->getDataLayout().getTypeAllocSize(llvm_type);
+		if( llvm_size.getKnownMinSize() > max_size )
+		{
+			max_type_by_size = llvm_type;
+			max_size = llvm_size.getKnownMinSize();
+		}
+	}
+
+	Vec<llvm::Type*> members = {max_type_by_size};
+
+	auto union_type = st->union_type;
+	auto name = union_type->get_name();
+	llvm::StructType* llvm_union_type = llvm::StructType::create(*Context, members, name);
+
+	this->types.emplace(union_type, llvm_union_type);
 
 	return CGExpr();
 }

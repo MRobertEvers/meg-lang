@@ -1,0 +1,37 @@
+
+
+extern fn printf(str: i8*, ...): void;
+
+struct Point {
+    x: i32;
+    y: i32;
+}
+
+union LEInt {
+    val: i32;
+    bytes: i8*;
+}
+
+fn print_point(p: Point*): void {
+    printf("Point (%d, %d)\n", p->x, p->y);
+    return;
+}
+
+fn make_point(x: i32, y: i32): Point {
+    let result: Point;
+    result.x = x;
+    result.y = y;
+    return result;
+}
+
+fn main(): i32 
+{
+    let arr: Point[10];
+
+    arr[5] = make_point(5, 4);
+
+    print_point(&arr[5]);
+
+    return 1;
+}
+

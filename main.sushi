@@ -2,30 +2,22 @@
 
 extern fn printf(str: i8*, ...): void;
 
-struct Point {
-    x: i32;
-    y: i32;
-}
-
-fn print_point(p: Point*): void {
-    printf("Point (%d, %d)\n", p->x, p->y);
-    return;
-}
-
-fn make_point(x: i32, y: i32): Point {
-    let result: Point;
-    result.x = x;
-    result.y = y;
-    return result;
+union LEInt {
+    bytes: i8*;
+    val: i32;
 }
 
 fn main(): i32 
 {
-    let arr: Point[10];
+    let who: LEInt;
 
-    arr[5] = make_point(5, 4);
+    who.bytes = "%d\n";
 
-    print_point(&arr[5]);
+    let arr: LEInt;
+
+    arr.val = 18;
+
+    printf(who.bytes, arr.val);
 
     return 1;
 }

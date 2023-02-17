@@ -25,6 +25,7 @@ private:
 	ParseResult<AstNode*> parse_let();
 	ParseResult<AstNode*> parse_block();
 	ParseResult<AstNode*> parse_struct();
+	ParseResult<AstNode*> parse_union();
 	ParseResult<AstNode*> parse_type_decl(bool allow_empty);
 
 	ParseResult<AstNode*> parse_bin_op(int ExprPrec, AstNode* lhs);

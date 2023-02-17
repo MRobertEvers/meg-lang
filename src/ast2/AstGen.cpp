@@ -63,6 +63,8 @@ AstGen::parse_module_top_level_item()
 		return parse_function();
 	case TokenType::struct_keyword:
 		return parse_struct();
+	case TokenType::union_keyword:
+		return parse_union();
 	default:
 		return ParseError("Expected top level 'fn' or 'struct' declaration.");
 	}
@@ -217,6 +219,74 @@ AstGen::parse_struct()
 	consume_tok = cursor.consume(TokenType::close_curly);
 
 	return ast.Struct(trail.mark(), struct_name, members);
+}
+
+ParseResult<ast::AstNode*>
+AstGen::parse_union()
+{
+	auto trail = get_parse_trail();
+
+	auto members = ast.create_list();
+
+	auto consume_tok = cursor.consume(TokenType::union_keyword);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected 'union'", consume_tok.as());
+	}
+
+	consume_tok = cursor.consume(TokenType::identifier);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected struct identifier.", consume_tok.as());
+	}
+
+	auto struct_name = to_type_identifier(ast, consume_tok, trail.mark());
+
+	consume_tok = cursor.consume(TokenType::open_curly);
+	if( !consume_tok.ok() )
+	{
+		return ParseError("Expected block, '{'.", consume_tok.as());
+	}
+
+	auto tok = cursor.peek();
+	while( tok.type != TokenType::close_curly )
+	{
+		auto member_trail = get_parse_trail();
+
+		consume_tok = cursor.consume(TokenType::identifier);
+		if( !consume_tok.ok() )
+		{
+			return ParseError("Expected member declaration.", consume_tok.as());
+		}
+
+		auto name = to_value_identifier(ast, consume_tok, member_trail.mark());
+
+		consume_tok = cursor.consume(TokenType::colon);
+		if( !consume_tok.ok() )
+		{
+			return ParseError("Expected ':'.", consume_tok.as());
+		}
+
+		auto decl = parse_type_decl(false);
+		if( !decl.ok() )
+		{
+			return decl;
+		}
+
+		consume_tok = cursor.consume(TokenType::semicolon);
+		if( !consume_tok.ok() )
+		{
+			return ParseError("Expected ';'.", consume_tok.as());
+		}
+
+		members->append(ast.ValueDecl(member_trail.mark(), name, decl.unwrap()));
+
+		tok = cursor.peek();
+	}
+
+	consume_tok = cursor.consume(TokenType::close_curly);
+
+	return ast.Union(trail.mark(), struct_name, members);
 }
 
 ParseResult<ast::AstNode*>

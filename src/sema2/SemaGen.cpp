@@ -608,7 +608,8 @@ sema::sema_member_access(Sema2& sema, ast::AstNode* ast)
 	auto val_expr = val_exprr.unwrap();
 
 	auto expr_type = val_expr->type_instance;
-	if( !expr_type.type->is_struct_type() || expr_type.indirection_level != 0 )
+	if( (!expr_type.type->is_struct_type() && !expr_type.type->is_union_type()) ||
+		expr_type.indirection_level != 0 )
 		return SemaError("Cannot access member '" + *name + "' of '" + to_string(expr_type) + "'");
 
 	auto member = expr_type.type->get_member(*name);
@@ -639,7 +640,8 @@ sema::sema_indirect_member_access(Sema2& sema, ast::AstNode* ast)
 	auto val_expr = val_exprr.unwrap();
 
 	auto expr_type = val_expr->type_instance;
-	if( !expr_type.type->is_struct_type() || expr_type.indirection_level != 1 )
+	if( (!expr_type.type->is_struct_type() && !expr_type.type->is_union_type()) ||
+		expr_type.indirection_level != 1 )
 		return SemaError(
 			"Cannot access member '" + *name + "' of '" + to_string(expr_type) +
 			"' through pointer.");

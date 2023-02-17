@@ -64,6 +64,7 @@ public:
 	CGResult<CGExpr> codegen_else(cg::LLVMFnInfo&, ir::IRElse*);
 	CGResult<CGExpr> codegen_block(cg::LLVMFnInfo&, ir::IRBlock*);
 	CGResult<CGExpr> codegen_struct(ir::IRStruct* st);
+	CGResult<CGExpr> codegen_union(ir::IRUnion* st);
 
 	std::optional<llvm::Type*> find_type(sema::Type const*);
 };
