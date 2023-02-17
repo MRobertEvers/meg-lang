@@ -30,6 +30,8 @@ enum class NodeType
 	Return,
 	Struct,
 	Union,
+	Enum,
+	EnumMember,
 	// MemberDef,
 	While,
 	For,
@@ -149,6 +151,28 @@ struct AstValueDecl
 	AstValueDecl(AstNode* name, AstNode* type_name)
 		: name(name)
 		, type_name(type_name)
+	{}
+};
+
+struct AstEnumMember
+{
+	static constexpr NodeType nt = NodeType::EnumMember;
+
+	enum class Type
+	{
+		Id,
+		Struct
+	} type;
+	union
+	{
+		AstNode* identifier;
+		AstNode* struct_stmt;
+	};
+
+	AstEnumMember() = default;
+	AstEnumMember(Type ty, AstNode* node)
+		: type(ty)
+		, identifier(node)
 	{}
 };
 
@@ -359,6 +383,20 @@ struct AstUnion
 	{}
 };
 
+struct AstEnum
+{
+	static constexpr NodeType nt = NodeType::Enum;
+
+	AstNode* type_name;
+	AstList<AstNode*>* members;
+
+	AstEnum() = default;
+	AstEnum(AstNode* type_name, AstList<AstNode*>* members)
+		: type_name(type_name)
+		, members(members)
+	{}
+};
+
 // struct AstMemberDef
 // {
 // 	static constexpr NodeType nt = NodeType::MemberDef;
@@ -555,6 +593,8 @@ struct AstNode
 		AstReturn returnexpr;
 		AstStruct structstmt;
 		AstUnion unionstmt;
+		AstEnum enumstmt;
+		AstEnumMember enum_member;
 		// AstMemberDef member;
 		AstWhile whilestmt;
 		AstFor forstmt;

@@ -2,10 +2,9 @@
 
 extern fn printf(str: i8*, ...): void;
 
-enum Literal {
-    Void,
-    String { size: i32; bytes: i8* }
-    Number { value: i32 }
+union LEInt {
+    bytes: i8*;
+    val: i32;
 }
 
 fn main(): i32 

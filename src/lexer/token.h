@@ -56,6 +56,7 @@ enum class TokenType
 	return_keyword,
 	let,
 	struct_keyword,
+	enum_keyword,
 	union_keyword,
 	if_keyword,
 	for_keyword,

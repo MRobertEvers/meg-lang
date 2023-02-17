@@ -51,6 +51,9 @@ public:
 	AstNode* Return(Span span, AstNode* expr);
 	AstNode* Struct(Span span, AstNode* type_name, AstList<AstNode*>* members);
 	AstNode* Union(Span span, AstNode* type_name, AstList<AstNode*>* members);
+	AstNode* Enum(Span span, AstNode* type_name, AstList<AstNode*>* members);
+	AstNode* EnumMemberEmpty(Span span, AstNode* member);
+	AstNode* EnumMemberStruct(Span span, AstNode* member);
 	// AstNode* Member(Span span, AstNode* identifier, AstNode* type_declarator);
 	AstNode* While(Span span, AstNode* condition, AstNode* block);
 	AstNode* For(Span span, AstNode* init, AstNode* condition, AstNode* end_loop, AstNode* body);

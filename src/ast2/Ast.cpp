@@ -186,6 +186,30 @@ Ast::Union(Span span, AstNode* type_name, AstList<AstNode*>* members)
 	return node;
 }
 
+AstNode*
+Ast::Enum(Span span, AstNode* type_name, AstList<AstNode*>* members)
+{
+	auto node = make_empty<AstEnum>(span);
+	node->data.enumstmt = AstEnum{type_name, members};
+	return node;
+}
+
+AstNode*
+Ast::EnumMemberEmpty(Span span, AstNode* identifier)
+{
+	auto node = make_empty<AstEnum>(span);
+	node->data.enum_member = AstEnumMember{AstEnumMember::Type::Id, identifier};
+	return node;
+}
+
+AstNode*
+Ast::EnumMemberStruct(Span span, AstNode* member)
+{
+	auto node = make_empty<AstEnum>(span);
+	node->data.enum_member = AstEnumMember{AstEnumMember::Type::Struct, member};
+	return node;
+}
+
 // AstNode*
 // Ast::Member(Span span, AstNode* identifier, AstNode* type_declarator)
 // {

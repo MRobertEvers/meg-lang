@@ -1,27 +1,13 @@
 #include "AstGen.h"
 
 #include "Ast.h"
+#include "ast/parse_common.h"
+#include "ast/parse_struct.h"
 #include "bin_op.h"
 
 #include <string>
 
 using namespace ast;
-
-static AstNode*
-to_value_identifier(Ast& ast, ConsumeResult const& tok_res, Span span)
-{
-	auto tok = tok_res.unwrap();
-
-	return ast.ValueId(span, ast.create_string(tok.start, tok.size));
-}
-
-static AstNode*
-to_type_identifier(Ast& ast, ConsumeResult const& tok_res, Span span)
-{
-	auto tok = tok_res.unwrap();
-
-	return ast.TypeId(span, ast.create_string(tok.start, tok.size));
-}
 
 AstGen::AstGen(Ast& ast, TokenCursor& cursor)
 	: ast(ast)
@@ -62,7 +48,7 @@ AstGen::parse_module_top_level_item()
 	case TokenType::fn:
 		return parse_function();
 	case TokenType::struct_keyword:
-		return parse_struct();
+		return parse_struct(*this);
 	case TokenType::union_keyword:
 		return parse_union();
 	default:
@@ -151,74 +137,6 @@ AstGen::parse_block()
 	cursor.consume_if_expected(TokenType::close_curly);
 
 	return ast.Block(trail.mark(), stmts);
-}
-
-ParseResult<ast::AstNode*>
-AstGen::parse_struct()
-{
-	auto trail = get_parse_trail();
-
-	auto members = ast.create_list();
-
-	auto consume_tok = cursor.consume(TokenType::struct_keyword);
-	if( !consume_tok.ok() )
-	{
-		return ParseError("Expected 'struct'", consume_tok.as());
-	}
-
-	consume_tok = cursor.consume(TokenType::identifier);
-	if( !consume_tok.ok() )
-	{
-		return ParseError("Expected struct identifier.", consume_tok.as());
-	}
-
-	auto struct_name = to_type_identifier(ast, consume_tok, trail.mark());
-
-	consume_tok = cursor.consume(TokenType::open_curly);
-	if( !consume_tok.ok() )
-	{
-		return ParseError("Expected block, '{'.", consume_tok.as());
-	}
-
-	auto tok = cursor.peek();
-	while( tok.type != TokenType::close_curly )
-	{
-		auto member_trail = get_parse_trail();
-
-		consume_tok = cursor.consume(TokenType::identifier);
-		if( !consume_tok.ok() )
-		{
-			return ParseError("Expected member declaration.", consume_tok.as());
-		}
-
-		auto name = to_value_identifier(ast, consume_tok, member_trail.mark());
-
-		consume_tok = cursor.consume(TokenType::colon);
-		if( !consume_tok.ok() )
-		{
-			return ParseError("Expected ':'.", consume_tok.as());
-		}
-
-		auto decl = parse_type_decl(false);
-		if( !decl.ok() )
-		{
-			return decl;
-		}
-
-		consume_tok = cursor.consume(TokenType::semicolon);
-		if( !consume_tok.ok() )
-		{
-			return ParseError("Expected ';'.", consume_tok.as());
-		}
-
-		members->append(ast.ValueDecl(member_trail.mark(), name, decl.unwrap()));
-
-		tok = cursor.peek();
-	}
-
-	consume_tok = cursor.consume(TokenType::close_curly);
-
-	return ast.Struct(trail.mark(), struct_name, members);
 }
 
 ParseResult<ast::AstNode*>

@@ -282,3 +282,21 @@ ast::as_union(ast::AstNode* node)
 
 	return &node->data.unionstmt;
 }
+
+Cast<AstEnum>
+as_enum(ast::AstNode* node)
+{
+	if( node->type != AstEnum::nt )
+		return Cast<AstEnum>();
+
+	return &node->data.enumstmt;
+}
+
+Cast<AstEnumMember>
+as_enum_member(ast::AstNode* node)
+{
+	if( node->type != AstEnumMember::nt )
+		return Cast<AstEnumMember>();
+
+	return &node->data.enum_member;
+}

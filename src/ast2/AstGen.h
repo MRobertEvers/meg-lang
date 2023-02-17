@@ -10,21 +10,19 @@ namespace ast
 {
 class AstGen
 {
+public:
 	Ast& ast;
 	TokenCursor& cursor;
 	ParserMetaInformation meta;
 
-public:
 	AstGen(Ast& ast, TokenCursor& cursor);
 
 	ParseResult<AstNode*> parse();
 
-private:
 	ParseResult<AstNode*> parse_module_top_level_item();
 
 	ParseResult<AstNode*> parse_let();
 	ParseResult<AstNode*> parse_block();
-	ParseResult<AstNode*> parse_struct();
 	ParseResult<AstNode*> parse_union();
 	ParseResult<AstNode*> parse_type_decl(bool allow_empty);
 
