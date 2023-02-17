@@ -178,6 +178,14 @@ Ast::Struct(Span span, AstNode* type_name, AstList<AstNode*>* members)
 	return node;
 }
 
+AstNode*
+Ast::Union(Span span, AstNode* type_name, AstList<AstNode*>* members)
+{
+	auto node = make_empty<AstUnion>(span);
+	node->data.unionstmt = AstUnion{type_name, members};
+	return node;
+}
+
 // AstNode*
 // Ast::Member(Span span, AstNode* identifier, AstNode* type_declarator)
 // {

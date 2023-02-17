@@ -174,6 +174,18 @@ Sema2::TLS(ir::IRStruct* st)
 	return nod;
 }
 
+ir::IRTopLevelStmt*
+Sema2::TLS(ir::IRUnion* st)
+{
+	auto nod = new ir::IRTopLevelStmt;
+
+	nod->node = st->node;
+	nod->stmt.union_decl = st;
+	nod->type = ir::IRTopLevelType::Union;
+
+	return nod;
+}
+
 ir::IRFunction*
 Sema2::Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block)
 {
@@ -665,6 +677,19 @@ Sema2::Struct(
 	nod->node = node;
 	nod->members = members;
 	nod->struct_type = type;
+
+	return nod;
+}
+
+ir::IRUnion*
+Sema2::Union(
+	ast::AstNode* node, sema::Type const* type, std::map<String, ir::IRValueDecl*>* members)
+{
+	auto nod = new ir::IRUnion;
+
+	nod->node = node;
+	nod->members = members;
+	nod->union_type = type;
 
 	return nod;
 }

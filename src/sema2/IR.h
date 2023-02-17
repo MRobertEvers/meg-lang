@@ -23,6 +23,7 @@ struct IRValueDecl;
 struct IRExpr;
 struct IRAssign;
 struct IRStruct;
+struct IRUnion;
 struct IRParam;
 struct IRElse;
 
@@ -37,7 +38,8 @@ enum IRTopLevelType
 {
 	Function,
 	ExternFn,
-	Struct
+	Struct,
+	Union
 };
 
 struct IRTopLevelStmt
@@ -46,6 +48,7 @@ struct IRTopLevelStmt
 	//
 	union
 	{
+		IRUnion* union_decl;
 		IRStruct* struct_decl;
 		IRFunction* fn;
 		IRExternFn* extern_fn;
@@ -123,6 +126,15 @@ struct IRStruct
 	std::map<String, ir::IRValueDecl*>* members;
 
 	sema::Type const* struct_type;
+};
+
+struct IRUnion
+{
+	ast::AstNode* node;
+	// TODO: Support non-member decls.
+	std::map<String, ir::IRValueDecl*>* members;
+
+	sema::Type const* union_type;
 };
 
 struct IRBlock

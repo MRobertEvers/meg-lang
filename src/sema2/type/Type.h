@@ -29,6 +29,7 @@ private:
 	{
 		function,
 		struct_cls,
+		union_cls,
 		primitive,
 	};
 
@@ -44,7 +45,7 @@ private:
 	String name;
 
 	Type(String name);
-	Type(String name, std::map<String, TypedMember> members);
+	Type(String name, std::map<String, TypedMember> members, TypeClassification);
 	Type(String name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg);
 
 public:
@@ -53,6 +54,7 @@ public:
 	std::optional<TypeInstance> get_return_type() const;
 	bool is_function_type() const { return cls == TypeClassification::function; }
 	bool is_struct_type() const { return cls == TypeClassification::struct_cls; }
+	bool is_union_type() const { return cls == TypeClassification::union_cls; }
 	String get_name() const;
 
 	bool is_var_arg() const { return is_var_arg_; }
@@ -64,6 +66,7 @@ public:
 	static Type Function(String const&, Vec<TypedMember>, TypeInstance, bool);
 	static Type Function(String const&, Vec<TypedMember>, TypeInstance);
 	static Type Struct(String const& name, std::map<String, TypedMember> members);
+	static Type Union(String const& name, std::map<String, TypedMember> members);
 	static Type Primitive(String name);
 };
 

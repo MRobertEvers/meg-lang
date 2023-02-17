@@ -273,3 +273,12 @@ ast::as_array_acess(ast::AstNode* node)
 
 	return &node->data.array_access;
 }
+
+Cast<AstUnion>
+ast::as_union(ast::AstNode* node)
+{
+	if( node->type != AstUnion::nt )
+		return Cast<AstUnion>();
+
+	return &node->data.unionstmt;
+}

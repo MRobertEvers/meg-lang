@@ -42,6 +42,8 @@ ast::to_string(NodeType type)
 		return "Return";
 	case NodeType::Struct:
 		return "Struct";
+	case NodeType::Union:
+		return "Union";
 	// case NodeType::MemberDef:
 	// 	return "MemberDef";
 	case NodeType::While:

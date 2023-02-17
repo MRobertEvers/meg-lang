@@ -59,6 +59,7 @@ public:
 	ir::IRTopLevelStmt* TLS(ir::IRExternFn*);
 	ir::IRTopLevelStmt* TLS(ir::IRFunction*);
 	ir::IRTopLevelStmt* TLS(ir::IRStruct*);
+	ir::IRTopLevelStmt* TLS(ir::IRUnion*);
 	ir::IRFunction* Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block);
 	ir::IRCall* FnCall(ast::AstNode* node, ir::IRExpr* call_target, ir::IRArgs* args);
 	ir::IRExternFn* ExternFn(ast::AstNode* node, ir::IRProto* stmts);
@@ -106,6 +107,7 @@ public:
 	ir::IRAssign* Assign(ast::AstNode*, ast::AssignOp, ir::IRExpr*, ir::IRExpr*);
 	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*, TypeInstance);
 	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
+	ir::IRUnion* Union(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
 	ir::IRIndirectMemberAccess*
 	IndirectMemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);

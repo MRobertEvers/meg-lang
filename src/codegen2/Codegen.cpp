@@ -8,6 +8,7 @@
 #include "Codegen/codegen_call.h"
 #include "Codegen/codegen_deref.h"
 #include "Codegen/codegen_function.h"
+#include "Codegen/codegen_member_access.h"
 #include "Codegen/codegen_return.h"
 #include "Codegen/codegen_string_literal.h"
 #include "Codegen/codegen_while.h"
@@ -77,6 +78,9 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 		return codegen_function(*this, tls->stmt.fn);
 	case ir::IRTopLevelType::Struct:
 		return codegen_struct(tls->stmt.struct_decl);
+	case ir::IRTopLevelType::Union:
+		// Noop
+		return CGExpr();
 	}
 
 	return NotImpl();
@@ -136,9 +140,9 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 	case ir::IRExprType::BinOp:
 		return codegen_binop(fn, expr->expr.binop);
 	case ir::IRExprType::MemberAccess:
-		return codegen_member_access(fn, expr->expr.member_access);
+		return codegen_member_access(*this, fn, expr->expr.member_access);
 	case ir::IRExprType::IndirectMemberAccess:
-		return codegen_indirect_member_access(fn, expr->expr.indirect_member_access);
+		return codegen_indirect_member_access(*this, fn, expr->expr.indirect_member_access);
 	case ir::IRExprType::AddressOf:
 		return codegen_addressof(*this, fn, expr->expr.addr_of);
 	case ir::IRExprType::Deref:
@@ -154,69 +158,6 @@ CGResult<CGExpr>
 CG::codegen_extern_fn(ir::IRExternFn* extern_fn)
 {
 	return codegen_function_proto(*this, extern_fn->proto);
-}
-
-CGResult<CGExpr>
-CG::codegen_member_access(cg::LLVMFnInfo& fn, ir::IRMemberAccess* ma)
-{
-	auto exprr = codegen_expr(fn, ma->expr);
-	if( !exprr.ok() )
-		return exprr;
-	auto expr = exprr.unwrap();
-	auto llvm_expr_value = expr.address().llvm_pointer();
-	auto llvm_expr_type = expr.address().llvm_allocated_type();
-
-	// auto struct_ty_name = expr_ty.type->get_name();
-	auto expr_ty = ma->expr->type_instance;
-	assert(expr_ty.type->is_struct_type() && expr_ty.indirection_level == 0);
-
-	auto member_name = *ma->member_name;
-	auto maybe_member = expr_ty.type->get_member(member_name);
-	assert(maybe_member.has_value());
-
-	auto member = maybe_member.value();
-	auto llvm_member_tyr = get_type(*this, member.type);
-	if( !llvm_member_tyr.ok() )
-		return llvm_member_tyr;
-	auto llvm_member_type = llvm_member_tyr.unwrap();
-
-	auto llvm_member_value = Builder->CreateStructGEP(llvm_expr_type, llvm_expr_value, member.idx);
-
-	return CGExpr::MakeAddress(LLVMAddress(llvm_member_value, llvm_member_type));
-}
-
-CGResult<CGExpr>
-CG::codegen_indirect_member_access(cg::LLVMFnInfo& fn, ir::IRIndirectMemberAccess* ir_ma)
-{
-	auto exprr = codegen_expr(fn, ir_ma->expr);
-	if( !exprr.ok() )
-		return exprr;
-	auto expr = exprr.unwrap();
-	auto llvm_expr_ptr_value = expr.address().llvm_pointer();
-	auto llvm_expr_ptr_type = expr.address().llvm_allocated_type();
-
-	// auto struct_ty_name = expr_ty.type->get_name();
-	auto expr_ty = ir_ma->expr->type_instance;
-	assert(expr_ty.type->is_struct_type() && expr_ty.indirection_level == 1);
-
-	// TODO: Don't do this
-	auto llvm_expr_type = llvm_expr_ptr_type->getPointerElementType();
-
-	auto member_name = *ir_ma->member_name;
-	auto maybe_member = expr_ty.type->get_member(member_name);
-	assert(maybe_member.has_value());
-
-	auto member = maybe_member.value();
-	auto llvm_member_tyr = get_type(*this, member.type);
-	if( !llvm_member_tyr.ok() )
-		return llvm_member_tyr;
-	auto llvm_member_type = llvm_member_tyr.unwrap();
-
-	auto llvm_expr_value = Builder->CreateLoad(llvm_expr_ptr_type, llvm_expr_ptr_value);
-
-	auto llvm_member_value = Builder->CreateStructGEP(llvm_expr_type, llvm_expr_value, member.idx);
-
-	return CGExpr::MakeAddress(LLVMAddress(llvm_member_value, llvm_member_type));
 }
 
 CGResult<CGExpr>
@@ -242,12 +183,6 @@ CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* ir_let)
 
 	return CGExpr();
 }
-
-// CGResult<CGExpr>
-// CG::codegen_assign(ir::IRAssign* assign)
-// {
-// 	return codegen_assign(assign, std::optional<CGExpr>());
-// }
 
 CGResult<CGExpr>
 CG::codegen_number_literal(ir::IRNumberLiteral* lit)
@@ -476,9 +411,9 @@ CG::codegen_struct(ir::IRStruct* st)
 
 	auto struct_type = st->struct_type;
 	auto name = struct_type->get_name();
-	llvm::StructType* StructTy = llvm::StructType::create(*Context, members, name);
+	llvm::StructType* llvm_struct_type = llvm::StructType::create(*Context, members, name);
 
-	this->types.emplace(struct_type, StructTy);
+	this->types.emplace(struct_type, llvm_struct_type);
 
 	return CGExpr();
 }

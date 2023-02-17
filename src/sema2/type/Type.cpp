@@ -9,11 +9,11 @@ Type::Type(String name)
 	, is_var_arg_(false)
 	, cls(TypeClassification::primitive){};
 
-Type::Type(String name, std::map<String, TypedMember> members)
+Type::Type(String name, std::map<String, TypedMember> members, TypeClassification cls)
 	: name(name)
 	, members(members)
 	, is_var_arg_(false)
-	, cls(TypeClassification::struct_cls){};
+	, cls(cls){};
 
 Type::Type(String name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg)
 	: name(name)
@@ -160,7 +160,13 @@ Type::Function(String const& name, Vec<TypedMember> args, TypeInstance return_ty
 Type
 Type::Struct(String const& name, std::map<String, TypedMember> members)
 {
-	return Type{name, members};
+	return Type{name, members, TypeClassification::struct_cls};
+}
+
+Type
+Type::Union(String const& name, std::map<String, TypedMember> members)
+{
+	return Type{name, members, TypeClassification::union_cls};
 }
 
 Type

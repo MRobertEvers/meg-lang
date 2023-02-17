@@ -52,8 +52,6 @@ public:
 	CGResult<CGExpr> codegen_expr(cg::LLVMFnInfo&, ir::IRExpr*);
 	CGResult<CGExpr> codegen_expr(cg::LLVMFnInfo&, ir::IRExpr*, std::optional<LValue>);
 	CGResult<CGExpr> codegen_extern_fn(ir::IRExternFn*);
-	CGResult<CGExpr> codegen_member_access(cg::LLVMFnInfo&, ir::IRMemberAccess*);
-	CGResult<CGExpr> codegen_indirect_member_access(cg::LLVMFnInfo&, ir::IRIndirectMemberAccess*);
 	CGResult<CGExpr> codegen_let(cg::LLVMFnInfo&, ir::IRLet*);
 
 	// TODO: Return RValue type?

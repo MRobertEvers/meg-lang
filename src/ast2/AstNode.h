@@ -29,6 +29,7 @@ enum class NodeType
 	Let,
 	Return,
 	Struct,
+	Union,
 	// MemberDef,
 	While,
 	For,
@@ -344,6 +345,20 @@ struct AstStruct
 	{}
 };
 
+struct AstUnion
+{
+	static constexpr NodeType nt = NodeType::Union;
+
+	AstNode* type_name;
+	AstList<AstNode*>* members;
+
+	AstUnion() = default;
+	AstUnion(AstNode* type_name, AstList<AstNode*>* members)
+		: type_name(type_name)
+		, members(members)
+	{}
+};
+
 // struct AstMemberDef
 // {
 // 	static constexpr NodeType nt = NodeType::MemberDef;
@@ -539,6 +554,7 @@ struct AstNode
 		AstLet let;
 		AstReturn returnexpr;
 		AstStruct structstmt;
+		AstUnion unionstmt;
 		// AstMemberDef member;
 		AstWhile whilestmt;
 		AstFor forstmt;

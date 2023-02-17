@@ -51,6 +51,7 @@ SemaResult<ir::IRBlock*> sema_block(Sema2& sema, ast::AstNode* ast, bool new_sco
 SemaResult<ir::IRParam*> sema_fn_param(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRProto*> sema_fn_proto(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRStruct*> sema_struct(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRUnion*> sema_union(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRValueDecl*> sema_value_decl(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRNumberLiteral*> sema_number_literal(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRStringLiteral*> sema_string_literal(Sema2& sema, ast::AstNode* ast);

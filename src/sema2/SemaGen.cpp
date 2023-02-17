@@ -78,6 +78,14 @@ sema::sema_tls(Sema2& sema, AstNode* ast)
 
 		return sema.TLS(ex.unwrap());
 	}
+	case NodeType::Union:
+	{
+		auto ex = sema_union(sema, ast);
+		if( !ex.ok() )
+			return ex;
+
+		return sema.TLS(ex.unwrap());
+	}
 	default:
 		return SemaError("Unsupported NodeType as TLS.");
 	}
@@ -1030,6 +1038,38 @@ sema::sema_struct(Sema2& sema, ast::AstNode* ast)
 	sema.add_type_identifier(fn_type);
 
 	return sema.Struct(ast, fn_type, members);
+}
+
+SemaResult<ir::IRUnion*>
+sema::sema_union(Sema2& sema, ast::AstNode* ast)
+{
+	auto unionr = expected(ast, ast::as_union);
+	if( !unionr.ok() )
+		return unionr;
+	auto union_stmt = unionr.unwrap();
+
+	auto namer = as_name(sema, union_stmt.type_name);
+	if( !namer.ok() )
+		return namer;
+
+	auto name = namer.unwrap();
+
+	auto members = sema.create_member_map();
+	for( auto stmt : union_stmt.members )
+	{
+		auto memberr = sema_struct_tls(sema, stmt);
+		if( !memberr.ok() )
+			return memberr;
+
+		auto member = memberr.unwrap();
+
+		members->emplace(*member->name, member);
+	}
+
+	auto fn_type = sema.CreateType(Type::Union(*name, members_to_members(*members)));
+	sema.add_type_identifier(fn_type);
+
+	return sema.Union(ast, fn_type, members);
 }
 
 SemaResult<ir::IRValueDecl*>
