@@ -3,6 +3,7 @@
 #include "Codegen/CGNotImpl.h"
 #include "Codegen/RValue.h"
 #include "Codegen/codegen_addressof.h"
+#include "Codegen/codegen_array_access.h"
 #include "Codegen/codegen_assign.h"
 #include "Codegen/codegen_call.h"
 #include "Codegen/codegen_deref.h"
@@ -122,6 +123,8 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 	{
 	case ir::IRExprType::Call:
 		return codegen_call(*this, fn, expr->expr.call, lvalue);
+	case ir::IRExprType::ArrayAccess:
+		return codegen_array_access(*this, fn, expr->expr.array_access);
 	case ir::IRExprType::Id:
 		return codegen_id(expr->expr.id);
 	case ir::IRExprType::NumberLiteral:
@@ -217,10 +220,10 @@ CG::codegen_indirect_member_access(cg::LLVMFnInfo& fn, ir::IRIndirectMemberAcces
 }
 
 CGResult<CGExpr>
-CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* let)
+CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* ir_let)
 {
-	auto name = let->name;
-	auto type = let->assign->rhs->type_instance;
+	auto name = ir_let->name;
+	auto type = ir_let->type_instance;
 	auto typer = get_type(*this, type);
 	if( !typer.ok() )
 		return typer;
@@ -230,9 +233,12 @@ CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* let)
 	auto lvalue = LValue(llvm_alloca, llvm_allocated_type);
 	values.insert_or_assign(*name, lvalue);
 
-	auto assignr = codegen_assign(*this, fn, let->assign);
-	if( !assignr.ok() )
-		return assignr;
+	if( !ir_let->is_empty() )
+	{
+		auto assignr = codegen_assign(*this, fn, ir_let->assign);
+		if( !assignr.ok() )
+			return assignr;
+	}
 
 	return CGExpr();
 }

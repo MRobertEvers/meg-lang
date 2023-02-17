@@ -75,6 +75,14 @@ Ast::FnCall(Span span, AstNode* call_target, AstNode* args)
 }
 
 AstNode*
+Ast::ArrayAccess(Span span, AstNode* array_target, AstNode* expr)
+{
+	auto node = make_empty<AstArrayAccess>(span);
+	node->data.array_access = AstArrayAccess{array_target, expr};
+	return node;
+}
+
+AstNode*
 Ast::ExprList(Span span, AstList<AstNode*>* args)
 {
 	auto node = make_empty<AstExprList>(span);
@@ -215,6 +223,16 @@ Ast::TypeDeclarator(Span span, String* name, unsigned int indirection_level)
 {
 	auto node = make_empty<AstTypeDeclarator>(span);
 	node->data.type_declarator = AstTypeDeclarator{name, indirection_level};
+	node->data.type_declarator.empty = false;
+	return node;
+}
+
+AstNode*
+Ast::TypeDeclaratorArray(
+	Span span, String* name, unsigned int indirection_level, unsigned int array_size)
+{
+	auto node = make_empty<AstTypeDeclarator>(span);
+	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, array_size};
 	node->data.type_declarator.empty = false;
 	return node;
 }

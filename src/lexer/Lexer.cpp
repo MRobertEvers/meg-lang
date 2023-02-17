@@ -62,6 +62,8 @@ Lexer::lex()
 
 		case '(':
 		case ')':
+		case '[':
+		case ']':
 		case '{':
 		case '}':
 		case ';':
@@ -143,6 +145,12 @@ Lexer::lex_consume_single()
 		break;
 	case ')':
 		token.type = TokenType::close_paren;
+		break;
+	case '[':
+		token.type = TokenType::open_square;
+		break;
+	case ']':
+		token.type = TokenType::close_square;
 		break;
 	case '{':
 		token.type = TokenType::open_curly;

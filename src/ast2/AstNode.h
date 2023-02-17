@@ -18,6 +18,7 @@ enum class NodeType
 	ValueDecl,
 	VarArg,
 	FnCall,
+	ArrayAccess,
 	ExprList,
 	Block,
 	BinOp,
@@ -171,6 +172,20 @@ struct AstFnCall
 	AstFnCall(AstNode* call_target, AstNode* args)
 		: call_target(call_target)
 		, args(args)
+	{}
+};
+
+struct AstArrayAccess
+{
+	static constexpr NodeType nt = NodeType::ArrayAccess;
+
+	AstNode* array_target;
+	AstNode* expr;
+
+	AstArrayAccess() = default;
+	AstArrayAccess(AstNode* array_target, AstNode* expr)
+		: array_target(array_target)
+		, expr(expr)
 	{}
 };
 
@@ -403,6 +418,7 @@ struct AstTypeDeclarator
 {
 	static constexpr NodeType nt = NodeType::TypeDeclarator;
 
+	unsigned int array_size;
 	unsigned int indirection_level;
 	String* name;
 	bool empty;
@@ -411,6 +427,13 @@ struct AstTypeDeclarator
 	AstTypeDeclarator(String* name, unsigned int indirection_level)
 		: name(name)
 		, indirection_level(indirection_level)
+		, array_size(0)
+		, empty(false)
+	{}
+	AstTypeDeclarator(String* name, unsigned int indirection_level, unsigned array_size)
+		: name(name)
+		, indirection_level(indirection_level)
+		, array_size(array_size)
 		, empty(false)
 	{}
 };
@@ -505,6 +528,7 @@ struct AstNode
 		AstValueDecl value_decl;
 		AstVarArg var_arg;
 		AstFnCall fn_call;
+		AstArrayAccess array_access;
 		AstExprList expr_list;
 		AstBlock block;
 		AstBinOp binop;

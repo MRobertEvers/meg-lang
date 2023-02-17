@@ -306,6 +306,14 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 
 		return sema.Expr(fn_callr.unwrap());
 	}
+	case NodeType::ArrayAccess:
+	{
+		auto fn_callr = sema_array_access(sema, expr_node);
+		if( !fn_callr.ok() )
+			return fn_callr;
+
+		return sema.Expr(fn_callr.unwrap());
+	}
 	case NodeType::NumberLiteral:
 	{
 		auto litr = sema_number_literal(sema, expr_node);
@@ -515,6 +523,38 @@ sema::sema_fn_call(Sema2& sema, ast::AstNode* ast)
 	return sema.FnCall(ast, call_target, argsr.unwrap());
 }
 
+SemaResult<ir::IRArrayAccess*>
+sema::sema_array_access(Sema2& sema, ast::AstNode* ast)
+{
+	auto array_accessr = expected(ast, ast::as_array_acess);
+	if( !array_accessr.ok() )
+		return array_accessr;
+	auto array_access = array_accessr.unwrap();
+
+	auto call_targetr = sema_expr(sema, array_access.array_target);
+	if( !call_targetr.ok() )
+		return call_targetr;
+	auto call_target = call_targetr.unwrap();
+
+	auto call_target_type = call_target->type_instance;
+	// TODO: should allow pointer access?
+	if( !call_target_type.is_array_type() && !call_target_type.is_pointer_type() )
+		return SemaError("...is not an array!");
+
+	auto exprr = sema_expr(sema, array_access.expr);
+	if( !exprr.ok() )
+		return exprr;
+	auto expr = exprr.unwrap();
+
+	if( !sema.types.is_integer_type(expr->type_instance) )
+		return SemaError("Array index must be an integer!");
+
+	auto array_access_type = call_target_type.is_array_type()
+								 ? call_target_type.ArrayElementType()
+								 : call_target_type.PointerElementType();
+	return sema.ArrayAcess(ast, call_target, expr, array_access_type);
+}
+
 SemaResult<ir::IRId*>
 sema::sema_id(Sema2& sema, ast::AstNode* ast)
 {
@@ -682,24 +722,36 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 		return type_declrr;
 	auto type_declr = type_declrr.unwrap();
 
-	auto rhs_exprr = sema_expr(sema, let.rhs);
-	if( !rhs_exprr.ok() )
-		return rhs_exprr;
-	auto rhs = rhs_exprr.unwrap();
+	if( let.rhs->type != ast::NodeType::Empty )
+	{
+		// TODO: Default initialization
+		auto rhs_exprr = sema_expr(sema, let.rhs);
+		if( !rhs_exprr.ok() )
+			return rhs_exprr;
+		auto rhs = rhs_exprr.unwrap();
 
-	if( !sema.types.equal_types(type_declr->type_instance, rhs->type_instance) )
-		return SemaError(
-			"Mismatched types: " + sema::to_string(type_declr->type_instance) +
-			" != " + sema::to_string(rhs->type_instance));
+		if( !sema.types.equal_types(type_declr->type_instance, rhs->type_instance) )
+			return SemaError(
+				"Mismatched types: " + sema::to_string(type_declr->type_instance) +
+				" != " + sema::to_string(rhs->type_instance));
 
-	// TODO: Do I really need to do this?
-	type_declr->type_instance =
-		sema.types.non_inferred(type_declr->type_instance, rhs->type_instance);
+		// TODO: Do I really need to do this?
+		type_declr->type_instance =
+			sema.types.non_inferred(type_declr->type_instance, rhs->type_instance);
 
-	sema.add_value_identifier(*name, type_declr->type_instance);
+		sema.add_value_identifier(*name, type_declr->type_instance);
+		auto lhs_expr = sema.Expr(sema.ValueDecl(let.identifier, name, type_declr));
+		return sema.Let(ast, name, sema.Assign(ast, ast::AssignOp::assign, lhs_expr, rhs));
+	}
+	else
+	{
+		if( sema.types.is_infer_type(type_declr->type_instance) )
+			return SemaError("Cannot declare untyped variable without initialization "
+							 "expression.");
 
-	auto lhs_expr = sema.Expr(sema.ValueDecl(let.identifier, name, type_declr));
-	return sema.Let(ast, name, sema.Assign(ast, ast::AssignOp::assign, lhs_expr, rhs));
+		sema.add_value_identifier(*name, type_declr->type_instance);
+		return sema.LetEmpty(ast, name, type_declr->type_instance);
+	}
 }
 
 SemaResult<ir::IRAssign*>
@@ -1039,6 +1091,11 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 			return SemaError("Could not find type '" + *type_decl.name + "'");
 
 		auto type_instance = TypeInstance::PointerTo(type, type_decl.indirection_level);
+
+		if( type_decl.array_size > 0 )
+		{
+			type_instance = TypeInstance::ArrayOf(type_instance, type_decl.array_size);
+		}
 
 		return sema.TypeDecl(ast, type_instance);
 	}

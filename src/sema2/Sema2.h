@@ -82,6 +82,7 @@ public:
 	ir::IRExpr* Expr(ir::IRIndirectMemberAccess*);
 	ir::IRExpr* Expr(ir::IRAddressOf*);
 	ir::IRExpr* Expr(ir::IRDeref*);
+	ir::IRExpr* Expr(ir::IRArrayAccess*);
 	ir::IRExpr* Expr(ir::IREmpty*);
 	ir::IRStmt* Stmt(ir::IRReturn*);
 	ir::IRStmt* Stmt(ir::IRExpr*);
@@ -99,6 +100,7 @@ public:
 	StringLiteral(ast::AstNode* node, TypeInstance type_instance, String* name);
 	ir::IRId* Id(ast::AstNode* node, String* name, sema::TypeInstance type);
 	ir::IRLet* Let(ast::AstNode* node, String* name, ir::IRAssign* assign);
+	ir::IRLet* LetEmpty(ast::AstNode* node, String* name, sema::TypeInstance type);
 	ir::IRIf* If(ast::AstNode* node, ir::IRExpr* bool_expr, ir::IRStmt*, ir::IRElse*);
 	ir::IRElse* Else(ast::AstNode* node, ir::IRStmt* assign);
 	ir::IRAssign* Assign(ast::AstNode*, ast::AssignOp, ir::IRExpr*, ir::IRExpr*);
@@ -111,6 +113,8 @@ public:
 	ir::IRAddressOf* AddressOf(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
 	ir::IRDeref* Deref(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
 	ir::IREmpty* Empty(ast::AstNode*, sema::TypeInstance);
+	ir::IRArrayAccess*
+	ArrayAcess(ast::AstNode*, ir::IRExpr* array_target, ir::IRExpr* expr, sema::TypeInstance);
 	ir::IRParam* IRParam(ast::AstNode*, ir::IRValueDecl* decl);
 	ir::IRParam* IRParam(ast::AstNode*, ir::IRVarArg* var_arg);
 	ir::IRFor*

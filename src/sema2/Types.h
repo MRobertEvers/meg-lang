@@ -41,6 +41,9 @@ public:
 	Type const* bool_type();
 
 	bool equal_types(TypeInstance l, TypeInstance r);
+	bool is_infer_type(TypeInstance l);
+	bool is_integer_type(TypeInstance l);
+
 	TypeInstance non_inferred(TypeInstance l, TypeInstance r);
 
 	TypeInstance BoolType();

@@ -29,7 +29,10 @@ cg::get_type(CG& cg, sema::TypeInstance ty)
 	for( int i = 0; i < ty.indirection_level; i++ )
 		type = type->getPointerTo();
 
-	return type;
+	if( ty.is_array_type() )
+		return llvm::ArrayType::get(type, ty.array_size);
+	else
+		return type;
 }
 
 CGResult<llvm::Type*>

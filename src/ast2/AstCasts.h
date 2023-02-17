@@ -47,6 +47,7 @@ Cast<AstIndirectMemberAccess> as_indirect_member_access(ast::AstNode* node);
 Cast<AstEmpty> as_empty(ast::AstNode* node);
 Cast<AstFor> as_for(ast::AstNode* node);
 Cast<AstWhile> as_while(ast::AstNode* node);
+Cast<AstArrayAccess> as_array_acess(ast::AstNode* node);
 
 // template<template<typename> typename Container, typename NodeType>
 // Container<NodeType>

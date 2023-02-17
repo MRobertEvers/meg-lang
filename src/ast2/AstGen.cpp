@@ -103,15 +103,21 @@ AstGen::parse_let()
 		type_decl = type_decl_result.unwrap();
 	}
 
-	cursor.consume_if_expected(TokenType::equal);
-
-	auto expr = parse_expr();
-	if( !expr.ok() )
+	auto equal_let = cursor.consume_if_expected(TokenType::equal);
+	if( !equal_let.ok() )
 	{
-		return expr;
+		return ast.Let(trail.mark(), identifier.unwrap(), type_decl, ast.Empty(trail.mark()));
 	}
+	else
+	{
+		auto expr = parse_expr();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
 
-	return ast.Let(trail.mark(), identifier.unwrap(), type_decl, expr.unwrap());
+		return ast.Let(trail.mark(), identifier.unwrap(), type_decl, expr.unwrap());
+	}
 }
 
 ParseResult<ast::AstNode*>
@@ -242,7 +248,24 @@ AstGen::parse_type_decl(bool allow_empty)
 		star_tok = cursor.consume_if_expected(TokenType::star);
 	}
 
-	return ast.TypeDeclarator(trail.mark(), name, indirection_count);
+	// TODO: Clean this up.
+	auto array_tok = cursor.consume_if_expected(TokenType::open_square);
+	if( !array_tok.ok() )
+		return ast.TypeDeclarator(trail.mark(), name, indirection_count);
+
+	auto literal_parse = parse_literal();
+	if( !literal_parse.ok() )
+		return literal_parse;
+	auto literal = literal_parse.unwrap();
+	if( literal->type != ast::NodeType::NumberLiteral )
+		return ParseError("Expected integer literal.", cursor.peek());
+
+	auto end_tok = cursor.consume(TokenType::close_square);
+	if( !end_tok.ok() )
+		return ParseError("Expected ']'.", end_tok.as());
+
+	return ast.TypeDeclaratorArray(
+		trail.mark(), name, indirection_count, literal->data.number_literal.literal);
 }
 
 ParseResult<ast::AstNode*>
@@ -835,6 +858,32 @@ AstGen::parse_member_reference(ast::AstNode* base)
 }
 
 ParseResult<AstNode*>
+AstGen::parse_array_access(AstNode* base)
+{
+	auto trail = get_parse_trail();
+
+	auto tok = cursor.consume(TokenType::open_square);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '['", tok.as());
+	}
+
+	auto args = parse_expr();
+	if( !args.ok() )
+	{
+		return args;
+	}
+
+	tok = cursor.consume(TokenType::close_square);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected ']'", tok.as());
+	}
+
+	return ast.ArrayAccess(trail.mark(), base, args.unwrap());
+}
+
+ParseResult<AstNode*>
 AstGen::parse_deref()
 {
 	auto trail = get_parse_trail();
@@ -996,6 +1045,14 @@ AstGen::parse_postfix_expr()
 			break;
 		case TokenType::open_paren:
 			expr = parse_call(expr.unwrap());
+			if( !expr.ok() )
+			{
+				return expr;
+			}
+			expr = ast.Expr(trail.mark(), expr.unwrap());
+			break;
+		case TokenType::open_square:
+			expr = parse_array_access(expr.unwrap());
 			if( !expr.ok() )
 			{
 				return expr;

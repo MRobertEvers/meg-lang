@@ -100,6 +100,22 @@ Types::equal_types(TypeInstance l, TypeInstance r)
 	return l == r;
 }
 
+bool
+Types::is_infer_type(TypeInstance l)
+{
+	return l.type == infer_type_;
+}
+
+bool
+Types::is_integer_type(TypeInstance l)
+{
+	if( l.is_array_type() || l.is_struct_type() || l.is_function_type() )
+		return false;
+
+	return l.type == i8_type_ || l.type == i16_type_ || l.type == i32_type_ || l.type == u8_type_ ||
+		   l.type == u16_type_ || l.type == u32_type_;
+}
+
 TypeInstance
 Types::non_inferred(TypeInstance l, TypeInstance r)
 {

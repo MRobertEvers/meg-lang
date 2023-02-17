@@ -37,6 +37,7 @@ public:
 	AstNode* FnParamList(Span span, AstList<AstNode*>* params);
 	AstNode* ValueDecl(Span span, AstNode* name, AstNode* type_name);
 	AstNode* FnCall(Span span, AstNode* call_target, AstNode* args);
+	AstNode* ArrayAccess(Span span, AstNode* array_target, AstNode* expr);
 	AstNode* ExprList(Span span, AstList<AstNode*>* args);
 	AstNode* Block(Span span, AstList<AstNode*>* statements);
 	AstNode* BinOp(Span span, BinOp op, AstNode* left, AstNode* right);
@@ -55,6 +56,7 @@ public:
 	AstNode* StringLiteral(Span span, String* literal);
 	AstNode* NumberLiteral(Span span, long long literal);
 	AstNode* TypeDeclarator(Span span, String* name, unsigned int indirection_level);
+	AstNode* TypeDeclaratorArray(Span span, String* name, unsigned int, unsigned int);
 	AstNode* TypeDeclaratorEmpty();
 	AstNode* MemberAccess(Span span, AstNode* expr, AstNode* member_name);
 	AstNode* IndirectMemberAccess(Span span, AstNode* expr, AstNode* member_name);

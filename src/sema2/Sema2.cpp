@@ -405,6 +405,18 @@ Sema2::Expr(ir::IRDeref* nl)
 
 	return nod;
 }
+ir::IRExpr*
+Sema2::Expr(ir::IRArrayAccess* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.array_access = nl;
+	nod->type = ir::IRExprType::ArrayAccess;
+	nod->type_instance = nl->type_instance;
+
+	return nod;
+}
 
 ir::IRExpr*
 Sema2::Expr(ir::IREmpty* nl)
@@ -574,6 +586,20 @@ Sema2::Let(ast::AstNode* node, String* name, ir::IRAssign* assign)
 	nod->node = node;
 	nod->name = name;
 	nod->assign = assign;
+	nod->type_instance = assign->lhs->type_instance;
+
+	return nod;
+}
+
+ir::IRLet*
+Sema2::LetEmpty(ast::AstNode* node, String* name, sema::TypeInstance type)
+{
+	auto nod = new ir::IRLet;
+
+	nod->node = node;
+	nod->name = name;
+	nod->assign = nullptr;
+	nod->type_instance = type;
 
 	return nod;
 }
@@ -712,6 +738,20 @@ Sema2::Empty(ast::AstNode* node, sema::TypeInstance void_type)
 
 	nod->node = node;
 	nod->type_instance = void_type;
+
+	return nod;
+}
+
+ir::IRArrayAccess*
+Sema2::ArrayAcess(
+	ast::AstNode* node, ir::IRExpr* array_target, ir::IRExpr* expr, sema::TypeInstance type)
+{
+	auto nod = new ir::IRArrayAccess;
+
+	nod->node = node;
+	nod->expr = expr;
+	nod->array_target = array_target;
+	nod->type_instance = type;
 
 	return nod;
 }

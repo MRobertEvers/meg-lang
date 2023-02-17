@@ -39,6 +39,8 @@ enum class TokenType
 	close_paren,
 	open_curly,
 	close_curly,
+	open_square,
+	close_square,
 
 	indirect_member_access, // ->
 

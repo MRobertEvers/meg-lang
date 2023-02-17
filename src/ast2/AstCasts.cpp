@@ -264,3 +264,12 @@ ast::as_while(ast::AstNode* node)
 
 	return &node->data.whilestmt;
 }
+
+Cast<AstArrayAccess>
+ast::as_array_acess(ast::AstNode* node)
+{
+	if( node->type != AstArrayAccess::nt )
+		return Cast<AstArrayAccess>();
+
+	return &node->data.array_access;
+}

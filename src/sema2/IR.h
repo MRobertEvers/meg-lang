@@ -148,6 +148,16 @@ struct IRCall
 	ast::AstNode* node;
 };
 
+struct IRArrayAccess
+{
+	//
+	IRExpr* array_target;
+	IRExpr* expr;
+	sema::TypeInstance type_instance;
+
+	ast::AstNode* node;
+};
+
 struct IRId
 {
 	//
@@ -169,6 +179,9 @@ struct IRLet
 	ast::AstNode* node;
 	String* name;
 	IRAssign* assign;
+	sema::TypeInstance type_instance;
+
+	bool is_empty() const { return assign == nullptr; }
 };
 
 struct IRAssign
@@ -314,6 +327,7 @@ struct IRStmt
 enum class IRExprType
 {
 	Call,
+	ArrayAccess,
 	NumberLiteral,
 	StringLiteral,
 	Id,
@@ -337,6 +351,7 @@ struct IRExpr
 		IRStringLiteral* str_literal;
 		IRNumberLiteral* num_literal;
 		IRCall* call;
+		IRArrayAccess* array_access;
 		IRBinOp* binop;
 		IRAddressOf* addr_of;
 		IRDeref* deref;
