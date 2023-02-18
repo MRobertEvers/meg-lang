@@ -30,6 +30,7 @@ private:
 		function,
 		struct_cls,
 		union_cls,
+		enum_cls,
 		primitive,
 	};
 
@@ -55,6 +56,7 @@ public:
 	bool is_function_type() const { return cls == TypeClassification::function; }
 	bool is_struct_type() const { return cls == TypeClassification::struct_cls; }
 	bool is_union_type() const { return cls == TypeClassification::union_cls; }
+	bool is_enum_type() const { return cls == TypeClassification::enum_cls; }
 	String get_name() const;
 
 	bool is_var_arg() const { return is_var_arg_; }
@@ -67,6 +69,7 @@ public:
 	static Type Function(String const&, Vec<TypedMember>, TypeInstance);
 	static Type Struct(String const& name, std::map<String, TypedMember> members);
 	static Type Union(String const& name, std::map<String, TypedMember> members);
+	static Type Enum(String const& name, std::map<String, TypedMember> members);
 	static Type Primitive(String name);
 };
 

@@ -2,6 +2,7 @@
 
 #include "Ast.h"
 #include "ast/parse_common.h"
+#include "ast/parse_enum.h"
 #include "ast/parse_struct.h"
 #include "bin_op.h"
 
@@ -51,6 +52,8 @@ AstGen::parse_module_top_level_item()
 		return parse_struct(*this);
 	case TokenType::union_keyword:
 		return parse_union();
+	case TokenType::enum_keyword:
+		return parse_enum(*this);
 	default:
 		return ParseError("Expected top level 'fn' or 'struct' declaration.");
 	}

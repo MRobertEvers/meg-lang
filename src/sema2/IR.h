@@ -20,6 +20,8 @@ struct IRCall;
 struct IRStmt;
 struct IRExpr;
 struct IRValueDecl;
+struct IREnum;
+struct IREnumMember;
 struct IRExpr;
 struct IRAssign;
 struct IRStruct;
@@ -39,7 +41,8 @@ enum IRTopLevelType
 	Function,
 	ExternFn,
 	Struct,
-	Union
+	Union,
+	Enum,
 };
 
 struct IRTopLevelStmt
@@ -50,6 +53,7 @@ struct IRTopLevelStmt
 	{
 		IRUnion* union_decl;
 		IRStruct* struct_decl;
+		IREnum* enum_decl;
 		IRFunction* fn;
 		IRExternFn* extern_fn;
 	} stmt;
@@ -135,6 +139,14 @@ struct IRUnion
 	std::map<String, ir::IRValueDecl*>* members;
 
 	sema::Type const* union_type;
+};
+
+struct IREnum
+{
+	ast::AstNode* node;
+	std::map<String, ir::IREnumMember*>* members;
+
+	sema::Type const* enum_type;
 };
 
 struct IRBlock
@@ -246,6 +258,32 @@ struct IRIndirectMemberAccess
 	String* member_name;
 	sema::TypeInstance type_instance;
 	IRExpr* expr;
+};
+
+struct IREnumMember
+{
+	ast::AstNode* node;
+	enum class Type
+	{
+		Id,
+		Struct,
+	} contained_type;
+
+	union
+	{
+		IRStruct* struct_member;
+		IRId* id_member;
+	};
+
+	sema::Type const* type;
+
+	String name()
+	{
+		if( contained_type == Type::Id )
+			return *id_member->name;
+		else
+			return struct_member->struct_type->get_name();
+	}
 };
 
 struct IRIf

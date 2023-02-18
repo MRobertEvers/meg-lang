@@ -170,6 +170,12 @@ Type::Union(String const& name, std::map<String, TypedMember> members)
 }
 
 Type
+Type::Enum(String const& name, std::map<String, TypedMember> members)
+{
+	return Type{name, members, TypeClassification::enum_cls};
+}
+
+Type
 Type::Primitive(String name)
 {
 	return Type{name};

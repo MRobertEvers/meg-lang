@@ -49,6 +49,7 @@ public:
 	Type const* lookup_type(String const& name);
 
 	Vec<ir::IRTopLevelStmt*>* create_tlslist();
+	std::map<String, ir::IREnumMember*>* create_enum_member_map();
 	std::map<String, ir::IRValueDecl*>* create_member_map();
 	Vec<ir::IRStmt*>* create_slist();
 	Vec<ir::IRExpr*>* create_elist();
@@ -60,6 +61,7 @@ public:
 	ir::IRTopLevelStmt* TLS(ir::IRFunction*);
 	ir::IRTopLevelStmt* TLS(ir::IRStruct*);
 	ir::IRTopLevelStmt* TLS(ir::IRUnion*);
+	ir::IRTopLevelStmt* TLS(ir::IREnum*);
 	ir::IRFunction* Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block);
 	ir::IRCall* FnCall(ast::AstNode* node, ir::IRExpr* call_target, ir::IRArgs* args);
 	ir::IRExternFn* ExternFn(ast::AstNode* node, ir::IRProto* stmts);
@@ -108,6 +110,9 @@ public:
 	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*, TypeInstance);
 	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 	ir::IRUnion* Union(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
+	ir::IREnum* Enum(ast::AstNode*, sema::Type const*, std::map<String, ir::IREnumMember*>*);
+	ir::IREnumMember* EnumMemberStruct(ast::AstNode*, sema::Type const*, ir::IRStruct*);
+	ir::IREnumMember* EnumMemberId(ast::AstNode*, sema::Type const*, ir::IRId*);
 	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
 	ir::IRIndirectMemberAccess*
 	IndirectMemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);

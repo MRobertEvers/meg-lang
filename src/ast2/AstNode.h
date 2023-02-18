@@ -165,14 +165,18 @@ struct AstEnumMember
 	} type;
 	union
 	{
-		AstNode* identifier;
+		String* identifier;
 		AstNode* struct_stmt;
 	};
 
 	AstEnumMember() = default;
-	AstEnumMember(Type ty, AstNode* node)
-		: type(ty)
+	AstEnumMember(String* node)
+		: type(Type::Id)
 		, identifier(node)
+	{}
+	AstEnumMember(AstNode* node)
+		: type(Type::Struct)
+		, struct_stmt(node)
 	{}
 };
 

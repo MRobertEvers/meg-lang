@@ -95,6 +95,12 @@ Sema2::create_tlslist()
 	return new Vec<ir::IRTopLevelStmt*>();
 }
 
+std::map<String, ir::IREnumMember*>*
+Sema2::create_enum_member_map()
+{
+	return new std::map<String, ir::IREnumMember*>();
+}
+
 std::map<String, ir::IRValueDecl*>*
 Sema2::create_member_map()
 {
@@ -182,6 +188,18 @@ Sema2::TLS(ir::IRUnion* st)
 	nod->node = st->node;
 	nod->stmt.union_decl = st;
 	nod->type = ir::IRTopLevelType::Union;
+
+	return nod;
+}
+
+ir::IRTopLevelStmt*
+Sema2::TLS(ir::IREnum* st)
+{
+	auto nod = new ir::IRTopLevelStmt;
+
+	nod->node = st->node;
+	nod->stmt.enum_decl = st;
+	nod->type = ir::IRTopLevelType::Enum;
 
 	return nod;
 }
@@ -690,6 +708,45 @@ Sema2::Union(
 	nod->node = node;
 	nod->members = members;
 	nod->union_type = type;
+
+	return nod;
+}
+
+ir::IREnum*
+Sema2::Enum(
+	ast::AstNode* node, sema::Type const* type, std::map<String, ir::IREnumMember*>* members)
+{
+	auto nod = new ir::IREnum;
+
+	nod->node = node;
+	nod->members = members;
+	nod->enum_type = type;
+
+	return nod;
+}
+
+ir::IREnumMember*
+Sema2::EnumMemberStruct(ast::AstNode* node, sema::Type const* type, ir::IRStruct* struct_stmt)
+{
+	//
+	auto nod = new ir::IREnumMember;
+
+	nod->node = node;
+	nod->struct_member = struct_stmt;
+	nod->type = type;
+
+	return nod;
+}
+
+ir::IREnumMember*
+Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, ir::IRId* ir_id)
+{
+	//
+	auto nod = new ir::IREnumMember;
+
+	nod->node = node;
+	nod->id_member = ir_id;
+	nod->type = type;
 
 	return nod;
 }

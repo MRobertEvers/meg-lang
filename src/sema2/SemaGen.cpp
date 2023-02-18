@@ -86,6 +86,14 @@ sema::sema_tls(Sema2& sema, AstNode* ast)
 
 		return sema.TLS(ex.unwrap());
 	}
+	case NodeType::Enum:
+	{
+		auto ex = sema_enum(sema, ast);
+		if( !ex.ok() )
+			return ex;
+
+		return sema.TLS(ex.unwrap());
+	}
 	default:
 		return SemaError("Unsupported NodeType as TLS.");
 	}
@@ -939,6 +947,20 @@ members_to_members(std::map<String, ir::IRValueDecl*>& params)
 	return map;
 }
 
+static std::map<String, TypedMember>
+members_to_members(std::map<String, ir::IREnumMember*>& params)
+{
+	std::map<String, TypedMember> map;
+
+	int idx = 0;
+	for( auto param : params )
+	{
+		// map.emplace(
+		// 	param.first, TypedMember(param.second->type->type_instance, param.first, idx++));
+	}
+	return map;
+}
+
 SemaResult<ir::IRParam*>
 sema::sema_fn_param(Sema2& sema, ast::AstNode* ast)
 {
@@ -1072,6 +1094,49 @@ sema::sema_union(Sema2& sema, ast::AstNode* ast)
 	sema.add_type_identifier(fn_type);
 
 	return sema.Union(ast, fn_type, members);
+}
+
+SemaResult<ir::IREnum*>
+sema::sema_enum(Sema2& sema, ast::AstNode* ast)
+{
+	//
+	auto enumr = expected(ast, ast::as_enum);
+	if( !enumr.ok() )
+		return enumr;
+	auto enum_stmt = enumr.unwrap();
+
+	auto namer = as_name(sema, enum_stmt.type_name);
+	if( !namer.ok() )
+		return namer;
+	auto name = namer.unwrap();
+
+	auto members = sema.create_enum_member_map();
+	for( auto stmt : enum_stmt.members )
+	{
+		auto memberr = sema_enum_member(sema, stmt);
+		if( !memberr.ok() )
+			return memberr;
+
+		auto member = memberr.unwrap();
+
+		members->emplace(member->name(), member);
+	}
+
+	auto fn_type = sema.CreateType(Type::Enum(*name, members_to_members(*members)));
+	sema.add_type_identifier(fn_type);
+
+	return sema.Enum(ast, fn_type, members);
+}
+
+SemaResult<ir::IREnumMember*>
+sema::sema_enum_member(Sema2& sema, ast::AstNode* ast)
+{
+	auto memberr = expected(ast, ast::as_enum_member);
+	if( !memberr.ok() )
+		return memberr;
+	auto member = memberr.unwrap();
+
+	return NotImpl();
 }
 
 SemaResult<ir::IRValueDecl*>

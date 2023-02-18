@@ -284,7 +284,7 @@ ast::as_union(ast::AstNode* node)
 }
 
 Cast<AstEnum>
-as_enum(ast::AstNode* node)
+ast::as_enum(ast::AstNode* node)
 {
 	if( node->type != AstEnum::nt )
 		return Cast<AstEnum>();
@@ -293,7 +293,7 @@ as_enum(ast::AstNode* node)
 }
 
 Cast<AstEnumMember>
-as_enum_member(ast::AstNode* node)
+ast::as_enum_member(ast::AstNode* node)
 {
 	if( node->type != AstEnumMember::nt )
 		return Cast<AstEnumMember>();
