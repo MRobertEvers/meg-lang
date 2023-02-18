@@ -25,6 +25,7 @@ enum class NodeType
 	Id,
 	Assign,
 	If,
+	IfArrow,
 	Else,
 	Let,
 	Return,
@@ -319,6 +320,20 @@ struct AstIf
 	{}
 };
 
+struct AstIfArrow
+{
+	static constexpr NodeType nt = NodeType::IfArrow;
+
+	AstNode* args;
+	AstNode* block;
+
+	AstIf() = default;
+	AstIf(AstNode* args, AstNode* block)
+		: args(args)
+		, block(block)
+	{}
+};
+
 struct AstElse
 {
 	static constexpr NodeType nt = NodeType::Else;
@@ -400,20 +415,6 @@ struct AstEnum
 		, members(members)
 	{}
 };
-
-// struct AstMemberDef
-// {
-// 	static constexpr NodeType nt = NodeType::MemberDef;
-
-// 	AstNode* identifier;
-// 	AstNode* type_declarator;
-
-// 	AstMemberDef() = default;
-// 	AstMemberDef(AstNode* identifier, AstNode* type_declarator)
-// 		: identifier(identifier)
-// 		, type_declarator(type_declarator)
-// 	{}
-// };
 
 struct AstWhile
 {
@@ -592,6 +593,7 @@ struct AstNode
 		AstId id;
 		AstAssign assign;
 		AstIf ifcond;
+		AstIfArrow if_arrow;
 		AstElse else_stmt;
 		AstLet let;
 		AstReturn returnexpr;

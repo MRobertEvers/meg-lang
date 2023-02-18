@@ -272,18 +272,10 @@ struct IREnumMember
 	union
 	{
 		IRStruct* struct_member;
-		IRId* id_member;
 	};
 
+	String* name;
 	sema::Type const* type;
-
-	String name()
-	{
-		if( contained_type == Type::Id )
-			return *id_member->name;
-		else
-			return struct_member->struct_type->get_name();
-	}
 };
 
 struct IRIf

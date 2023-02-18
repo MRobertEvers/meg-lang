@@ -10,15 +10,7 @@ enum Literal {
 
 fn main(): i32 
 {
-    let who: LEInt;
-
-    who.bytes = "%d\n";
-
-    let arr: LEInt;
-
-    arr.val = 18;
-
-    printf(who.bytes, arr.val);
+    let a: Literal;
 
     return 1;
 }

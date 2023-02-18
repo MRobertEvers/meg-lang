@@ -16,6 +16,9 @@ enum class TokenType
 	// ...
 	var_args,
 
+	// =>
+	fat_arrow,
+
 	exclam,
 	mul_equal,
 	div_equal,
@@ -48,6 +51,7 @@ enum class TokenType
 	dot,
 	semicolon,
 	colon,
+	colon_colon,
 	equal,
 
 	// Keyword

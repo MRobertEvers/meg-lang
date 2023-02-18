@@ -51,6 +51,7 @@ Cast<AstArrayAccess> as_array_acess(ast::AstNode* node);
 Cast<AstUnion> as_union(ast::AstNode* node);
 Cast<AstEnum> as_enum(ast::AstNode* node);
 Cast<AstEnumMember> as_enum_member(ast::AstNode* node);
+Cast<AstIfArrow> as_if_arrow(ast::AstNode* node);
 
 // template<template<typename> typename Container, typename NodeType>
 // Container<NodeType>

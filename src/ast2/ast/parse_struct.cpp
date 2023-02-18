@@ -45,7 +45,7 @@ ast::parse_struct_body(AstGen& astgen)
 			return ParseError(*decl.unwrap_error());
 		}
 
-		consume_tok = astgen.cursor.consume(TokenType::semicolon);
+		consume_tok = astgen.cursor.consume(TokenType::semicolon, TokenType::close_curly);
 		if( !consume_tok.ok() )
 		{
 			return ParseError("Expected ';'.", consume_tok.as());
@@ -53,10 +53,13 @@ ast::parse_struct_body(AstGen& astgen)
 
 		members->append(astgen.ast.ValueDecl(member_trail.mark(), name, decl.unwrap()));
 
+		if( consume_tok.as().type == TokenType::close_curly )
+			break;
+
 		tok = astgen.cursor.peek();
 	}
-
-	consume_tok = astgen.cursor.consume(TokenType::close_curly);
+	if( consume_tok.as().type != TokenType::close_curly )
+		consume_tok = astgen.cursor.consume(TokenType::close_curly);
 
 	return members;
 }

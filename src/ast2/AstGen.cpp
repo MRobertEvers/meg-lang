@@ -3,6 +3,7 @@
 #include "Ast.h"
 #include "ast/parse_common.h"
 #include "ast/parse_enum.h"
+#include "ast/parse_if_arrow.h"
 #include "ast/parse_struct.h"
 #include "bin_op.h"
 
@@ -530,6 +531,7 @@ AstGen::parse_statement()
 		goto no_semi;
 	}
 	break;
+
 	default:
 	{
 		auto expr = parse_expr_statement();
@@ -553,6 +555,16 @@ AstGen::parse_statement()
 
 no_semi:
 	return ast.Stmt(trail.mark(), stmt);
+}
+
+static ParseResult<ast::AstNode*>
+AstGen::parse_if_block(AstGen& astgen)
+{
+	auto peek = cursor.peek();
+	if( peek.type == TokenType::fat_arrow )
+		return parse_if_arrow(astgen);
+
+	return astgen.parse_statement();
 }
 
 ParseResult<ast::AstNode*>
@@ -582,12 +594,7 @@ AstGen::parse_if()
 			return ParseError("Expected ')'", tok.as());
 		}
 	}
-
-	auto then_block = parse_statement();
-	if( !then_block.ok() )
-	{
-		return then_block;
-	}
+	auto then_block = parse_if_block(*this);
 
 	// Else block is optional
 	auto peek = cursor.peek();

@@ -11,8 +11,6 @@
 
 using namespace ast;
 
-using namespace ast;
-
 static ParseResult<ast::AstNode*>
 parse_enum_member(AstGen& astgen)
 {}
@@ -53,12 +51,12 @@ ast::parse_enum(AstGen& astgen)
 			return ParseError("Expected identifier.", consume_tok.as());
 		}
 		auto member_name_node = to_type_identifier(astgen.ast, consume_tok, trail.mark());
-		auto tok = consume_tok.unwrap();
+		auto name_tok = consume_tok.unwrap();
 
 		auto comma_tok = astgen.cursor.consume_if_expected(TokenType::comma);
 		if( comma_tok.ok() )
 		{
-			auto member_name = astgen.ast.create_string(tok.start, tok.size);
+			auto member_name = astgen.ast.create_string(name_tok.start, name_tok.size);
 			members->append(astgen.ast.EnumMemberEmpty(member_trail.mark(), member_name));
 		}
 		else
@@ -74,6 +72,8 @@ ast::parse_enum(AstGen& astgen)
 				astgen.ast.Struct(member_trail.mark(), member_struct_name, struct_members.unwrap());
 			members->append(astgen.ast.EnumMemberStruct(member_trail.mark(), as_struct));
 		}
+
+		tok = astgen.cursor.peek();
 	}
 
 	consume_tok = astgen.cursor.consume(TokenType::close_curly);

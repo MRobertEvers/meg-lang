@@ -726,7 +726,8 @@ Sema2::Enum(
 }
 
 ir::IREnumMember*
-Sema2::EnumMemberStruct(ast::AstNode* node, sema::Type const* type, ir::IRStruct* struct_stmt)
+Sema2::EnumMemberStruct(
+	ast::AstNode* node, sema::Type const* type, ir::IRStruct* struct_stmt, String* name)
 {
 	//
 	auto nod = new ir::IREnumMember;
@@ -734,19 +735,20 @@ Sema2::EnumMemberStruct(ast::AstNode* node, sema::Type const* type, ir::IRStruct
 	nod->node = node;
 	nod->struct_member = struct_stmt;
 	nod->type = type;
+	nod->name = name;
 
 	return nod;
 }
 
 ir::IREnumMember*
-Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, ir::IRId* ir_id)
+Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, String* name)
 {
 	//
 	auto nod = new ir::IREnumMember;
 
 	nod->node = node;
-	nod->id_member = ir_id;
 	nod->type = type;
+	nod->name = name;
 
 	return nod;
 }

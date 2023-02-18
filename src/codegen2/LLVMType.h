@@ -13,6 +13,7 @@ class LLVMType
 		Primitive,
 		Struct,
 		Function,
+		Enum,
 	};
 	Type type = Type::Primitive;
 };

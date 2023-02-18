@@ -15,6 +15,11 @@ type Color = {
 
 let color: Color = {type: 'black', value: 'FFF'};
 
-if (color.type === 'black') {
-    color.value
+if (color.type === 'black') 
+{
+    const {value} = color;
+} 
+else if (color.type === 'green')
+{
+    const {height, age, value} = color
 }

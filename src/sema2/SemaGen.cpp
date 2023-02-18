@@ -1113,13 +1113,13 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 	auto members = sema.create_enum_member_map();
 	for( auto stmt : enum_stmt.members )
 	{
-		auto memberr = sema_enum_member(sema, stmt);
+		auto memberr = sema_enum_member(sema, *name, stmt);
 		if( !memberr.ok() )
 			return memberr;
 
 		auto member = memberr.unwrap();
 
-		members->emplace(member->name(), member);
+		members->emplace(*member->name, member);
 	}
 
 	auto fn_type = sema.CreateType(Type::Enum(*name, members_to_members(*members)));
@@ -1129,12 +1129,41 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 }
 
 SemaResult<ir::IREnumMember*>
-sema::sema_enum_member(Sema2& sema, ast::AstNode* ast)
+sema::sema_enum_member(Sema2& sema, String const& enum_name, ast::AstNode* ast)
 {
 	auto memberr = expected(ast, ast::as_enum_member);
 	if( !memberr.ok() )
 		return memberr;
 	auto member = memberr.unwrap();
+
+	switch( member.type )
+	{
+	case AstEnumMember::Type::Id:
+	{
+		auto type = sema.CreateType(Type::Primitive(*member.identifier));
+		sema.add_type_identifier(type);
+		auto ir_member = sema.EnumMemberId(ast, type, member.identifier);
+		return ir_member;
+		break;
+	}
+	case AstEnumMember::Type::Struct:
+	{
+		auto ir_structr = sema_struct(sema, member.struct_stmt);
+		if( !ir_structr.ok() )
+			return ir_structr;
+		auto ir_struct = ir_structr.unwrap();
+
+		auto namer = as_name(sema, member.struct_stmt->data.structstmt.type_name);
+		if( !namer.ok() )
+			return namer;
+
+		auto name = namer.unwrap();
+
+		auto ir_member = sema.EnumMemberStruct(ast, ir_struct->struct_type, ir_struct, name);
+		return ir_member;
+		break;
+	}
+	}
 
 	return NotImpl();
 }

@@ -300,3 +300,12 @@ ast::as_enum_member(ast::AstNode* node)
 
 	return &node->data.enum_member;
 }
+
+Cast<AstIfArrow>
+ast::as_if_arrow(ast::AstNode* node)
+{
+	if( node->type != AstIfArrow::nt )
+		return Cast<AstIfArrow>();
+
+	return &node->data.if_arrow;
+}

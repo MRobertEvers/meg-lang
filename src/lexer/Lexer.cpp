@@ -67,10 +67,10 @@ Lexer::lex()
 		case '{':
 		case '}':
 		case ';':
-		case ':':
 		case ',':
 			tokens.push_back(lex_consume_single());
 			break;
+		case ':':
 		case '.':
 		case '/':
 		case '>':
@@ -161,9 +161,6 @@ Lexer::lex_consume_single()
 	case ';':
 		token.type = TokenType::semicolon;
 		break;
-	case ':':
-		token.type = TokenType::colon;
-		break;
 	case ',':
 		token.type = TokenType::comma;
 		break;
@@ -242,6 +239,15 @@ Lexer::lex_consume_ambiguous_lexeme()
 
 	switch( c )
 	{
+	case ':':
+		if( peek(":") )
+		{
+			return new_token(TokenType::colon_colon, 2);
+		}
+		else
+		{
+			return new_token(TokenType::colon, 1);
+		}
 	case '.':
 		if( peek("..") )
 		{
@@ -332,6 +338,10 @@ Lexer::lex_consume_ambiguous_lexeme()
 		if( peek("=") )
 		{
 			return new_token(TokenType::cmp, 2);
+		}
+		else if( peek(">") )
+		{
+			return new_token(TokenType::fat_arrow, 2);
 		}
 		else
 		{

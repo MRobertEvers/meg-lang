@@ -197,7 +197,7 @@ Ast::Enum(Span span, AstNode* type_name, AstList<AstNode*>* members)
 AstNode*
 Ast::EnumMemberEmpty(Span span, String* name)
 {
-	auto node = make_empty<AstEnum>(span);
+	auto node = make_empty<AstEnumMember>(span);
 	node->data.enum_member = AstEnumMember{name};
 	return node;
 }
@@ -205,7 +205,7 @@ Ast::EnumMemberEmpty(Span span, String* name)
 AstNode*
 Ast::EnumMemberStruct(Span span, AstNode* member)
 {
-	auto node = make_empty<AstEnum>(span);
+	auto node = make_empty<AstEnumMember>(span);
 	node->data.enum_member = AstEnumMember{member};
 	return node;
 }

@@ -72,5 +72,13 @@ ast::to_string(NodeType type)
 		return "*";
 	case NodeType::Empty:
 		return "";
+	case NodeType::Enum:
+		return "Enum";
+	case NodeType::EnumMember:
+		return "EnumMember";
+	case NodeType::ArrayAccess:
+		return "ArrayAccess";
+	case NodeType::IfArrow:
+		return "IfArrow";
 	}
 }
