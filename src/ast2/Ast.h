@@ -28,6 +28,7 @@ private:
 
 public:
 	String* create_string(char const* cstr, unsigned int size);
+	AstList<String*>* create_name_parts();
 	AstList<AstNode*>* create_list();
 
 	AstNode* Module(Span span, AstList<AstNode*>* params);
@@ -41,11 +42,12 @@ public:
 	AstNode* ExprList(Span span, AstList<AstNode*>* args);
 	AstNode* Block(Span span, AstList<AstNode*>* statements);
 	AstNode* BinOp(Span span, BinOp op, AstNode* left, AstNode* right);
-	AstNode* Id(Span span, IdClassification classification, String* name);
-	AstNode* TypeId(Span span, String* name);
-	AstNode* ValueId(Span span, String* name);
+	AstNode* Id(Span span, AstList<String*>*);
+	// AstNode* TypeId(Span span, String* name);
+	// AstNode* ValueId(Span span, String* name);
 	AstNode* Assign(Span span, AssignOp op, AstNode* left, AstNode* right);
 	AstNode* If(Span span, AstNode* condition, AstNode* then_block, AstNode* else_block);
+	AstNode* IfArrow(Span span, AstNode* args, AstNode* block);
 	AstNode* Else(Span span, AstNode* stmt);
 	AstNode* Let(Span span, AstNode* identifier, AstNode* type_declarator, AstNode* rhs);
 	AstNode* Return(Span span, AstNode* expr);
@@ -59,8 +61,8 @@ public:
 	AstNode* For(Span span, AstNode* init, AstNode* condition, AstNode* end_loop, AstNode* body);
 	AstNode* StringLiteral(Span span, String* literal);
 	AstNode* NumberLiteral(Span span, long long literal);
-	AstNode* TypeDeclarator(Span span, String* name, unsigned int indirection_level);
-	AstNode* TypeDeclaratorArray(Span span, String* name, unsigned int, unsigned int);
+	AstNode* TypeDeclarator(Span span, AstList<String*>* name, unsigned int indirection_level);
+	AstNode* TypeDeclaratorArray(Span span, AstList<String*>* name, unsigned int, unsigned int);
 	AstNode* TypeDeclaratorEmpty();
 	AstNode* MemberAccess(Span span, AstNode* expr, AstNode* member_name);
 	AstNode* IndirectMemberAccess(Span span, AstNode* expr, AstNode* member_name);
@@ -70,6 +72,7 @@ public:
 	AstNode* Stmt(Span span, AstNode* expr);
 	AstNode* VarArg(Span span);
 	AstNode* Empty(Span span);
+	AstNode* Is(Span span, AstNode* expr, AstNode* type);
 };
 
 template<typename T, typename Enable>

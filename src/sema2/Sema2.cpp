@@ -597,13 +597,14 @@ Sema2::StringLiteral(ast::AstNode* node, sema::TypeInstance type_instance, Strin
 }
 
 ir::IRId*
-Sema2::Id(ast::AstNode* node, String* name, sema::TypeInstance type)
+Sema2::Id(ast::AstNode* node, Vec<String*>* name_parts, sema::TypeInstance type, bool is_type_id)
 {
 	auto nod = new ir::IRId;
 
 	nod->node = node;
-	nod->name = name;
+	nod->name = name_parts;
 	nod->type_instance = type;
+	nod->is_type_id = is_type_id;
 
 	return nod;
 }

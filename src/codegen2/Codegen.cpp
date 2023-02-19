@@ -19,6 +19,24 @@
 using namespace cg;
 using namespace ast;
 
+static String
+to_single_name(Vec<String*>* list)
+{
+	auto name = String();
+
+	bool first = true;
+	for( auto part : *list )
+	{
+		if( !first )
+			name += "__";
+		name += *part;
+
+		first = false;
+	}
+
+	return name;
+}
+
 static void
 establish_llvm_builtin_types(
 	CG& cg, sema::Types& types, std::map<sema::Type const*, llvm::Type*>& lut)
@@ -260,7 +278,7 @@ CGResult<CGExpr>
 CG::codegen_id(ir::IRId* id)
 {
 	// auto iter_type = types.find(id->type_instance.type);
-	auto value = get_value(*this, *id->name);
+	auto value = get_value(*this, to_single_name(id->name));
 	if( value.has_value() )
 		return CGExpr::MakeAddress(value.value().address());
 
@@ -273,7 +291,7 @@ CG::codegen_id(ir::IRId* id)
 	if( maybe_type.ok() )
 		return CGExpr();
 
-	return CGError("Undeclared identifier! " + *id->name);
+	return CGError("Undeclared identifier! " + to_single_name(id->name));
 }
 
 CGResult<CGExpr>

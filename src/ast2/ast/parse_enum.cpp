@@ -32,7 +32,7 @@ ast::parse_enum(AstGen& astgen)
 		return ParseError("Expected enum identifier.", consume_tok.as());
 	}
 
-	auto struct_name = to_type_identifier(astgen.ast, consume_tok, trail.mark());
+	auto struct_name = to_value_identifier(astgen.ast, consume_tok, trail.mark());
 
 	consume_tok = astgen.cursor.consume(TokenType::open_curly);
 	if( !consume_tok.ok() )
@@ -50,7 +50,7 @@ ast::parse_enum(AstGen& astgen)
 		{
 			return ParseError("Expected identifier.", consume_tok.as());
 		}
-		auto member_name_node = to_type_identifier(astgen.ast, consume_tok, trail.mark());
+		auto member_name_node = to_value_identifier(astgen.ast, consume_tok, trail.mark());
 		auto name_tok = consume_tok.unwrap();
 
 		auto comma_tok = astgen.cursor.consume_if_expected(TokenType::comma);
@@ -67,7 +67,7 @@ ast::parse_enum(AstGen& astgen)
 				return ParseError(*struct_members.unwrap_error());
 			}
 			auto member_struct_name =
-				to_type_identifier(astgen.ast, consume_tok, member_trail.mark());
+				to_value_identifier(astgen.ast, consume_tok, member_trail.mark());
 			auto as_struct =
 				astgen.ast.Struct(member_trail.mark(), member_struct_name, struct_members.unwrap());
 			members->append(astgen.ast.EnumMemberStruct(member_trail.mark(), as_struct));

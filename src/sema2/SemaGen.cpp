@@ -15,6 +15,24 @@ NotImpl()
 	return SemaError("Not Implemented.");
 }
 
+static String*
+to_single_name(Sema2& sema, AstList<String*>* list)
+{
+	auto name = sema.create_name("", 0);
+
+	bool first = true;
+	for( auto part : list )
+	{
+		if( !first )
+			*name += "__";
+		*name += *part;
+
+		first = false;
+	}
+
+	return name;
+}
+
 static SemaResult<String*>
 as_name(Sema2& sema, ast::AstNode* ast)
 {
@@ -23,7 +41,7 @@ as_name(Sema2& sema, ast::AstNode* ast)
 		return idr;
 	auto id = idr.unwrap();
 
-	return sema.create_name(id.name->c_str(), id.name->size());
+	return to_single_name(sema, id.name_parts);
 }
 
 SemaResult<IRModule*>
@@ -213,22 +231,59 @@ sema::sema_if(Sema2& sema, ast::AstNode* ast)
 	if( !sema.types.equal_types(expr->type_instance, sema.types.BoolType()) )
 		return SemaError("If condition expression must be bool type.");
 
-	auto stmtr = sema_stmt(sema, ifcond.then_block);
-	if( !stmtr.ok() )
-		return stmtr;
-	auto stmt = stmtr.unwrap();
-
-	if( ifcond.else_block )
+	if( ifcond.then_block->type == NodeType::Stmt )
 	{
-		auto else_stmtr = sema_else(sema, ifcond.else_block);
-		if( !else_stmtr.ok() )
-			return else_stmtr;
+		auto stmtr = sema_stmt(sema, ifcond.then_block);
+		if( !stmtr.ok() )
+			return stmtr;
+		auto stmt = stmtr.unwrap();
 
-		return sema.If(ast, expr, stmt, else_stmtr.unwrap());
+		if( ifcond.else_block )
+		{
+			auto else_stmtr = sema_else(sema, ifcond.else_block);
+			if( !else_stmtr.ok() )
+				return else_stmtr;
+
+			return sema.If(ast, expr, stmt, else_stmtr.unwrap());
+		}
+		else
+		{
+			return sema.If(ast, expr, stmt, nullptr);
+		}
 	}
 	else
 	{
-		return sema.If(ast, expr, stmt, nullptr);
+		auto stmtr = sema_stmt(sema, ifcond.then_block);
+		if( !stmtr.ok() )
+			return stmtr;
+		auto stmt = stmtr.unwrap();
+
+		auto ifarrowr = expected(ifcond.then_block, ast::as_if_arrow);
+		if( !ifarrowr.ok() )
+			return SemaError("Expected arrow if.");
+		auto ifarrow = ifarrowr.unwrap();
+
+		auto paramsr = expected(ifarrow.args, ast::as_fn_param_list);
+		if( !paramsr.ok() )
+			return SemaError("Expected args.");
+		auto params = paramsr.unwrap();
+
+		auto args = sema.create_argslist();
+		for( auto param : params.params )
+		{}
+
+		if( ifcond.else_block )
+		{
+			auto else_stmtr = sema_else(sema, ifcond.else_block);
+			if( !else_stmtr.ok() )
+				return else_stmtr;
+
+			return sema.If(ast, expr, stmt, else_stmtr.unwrap());
+		}
+		else
+		{
+			return sema.If(ast, expr, stmt, nullptr);
+		}
 	}
 }
 
@@ -579,22 +634,36 @@ sema::sema_id(Sema2& sema, ast::AstNode* ast)
 		return idr;
 	auto id = idr.unwrap();
 
-	auto maybe_value = sema.lookup_name(*id.name);
+	// TODO: Leaks
+	auto maybe_value = sema.lookup_name(*to_single_name(sema, id.name_parts));
 	if( maybe_value.has_value() )
-		return sema.Id(ast, id.name, maybe_value.value());
+		// TODO: Allocate new
+		return sema.Id(ast, &id.name_parts->list, maybe_value.value(), false);
 
 	// Struct name?
-	auto maybe_struct = sema.lookup_type(*id.name);
-	if( maybe_struct && maybe_struct->is_struct_type() )
+	// TODO: Leaks
+	auto maybe_struct = sema.lookup_type(*to_single_name(sema, id.name_parts));
+	if( maybe_struct )
 	{
-		// Lookup constructor.
-		// Note that we need to generate a constructor?
-		auto str_name = maybe_struct->get_name();
-		auto name = sema.create_name(str_name.c_str(), str_name.size());
-		return sema.Id(ast, name, TypeInstance::OfType(maybe_struct));
+		if( maybe_struct->is_struct_type() )
+		{
+			// Lookup constructor.
+			// Note that we need to generate a constructor?
+			auto str_name = maybe_struct->get_name();
+			auto name = sema.create_name(str_name.c_str(), str_name.size());
+			auto parts = new Vec<String*>();
+			parts->push_back(name);
+			return sema.Id(ast, parts, TypeInstance::OfType(maybe_struct), true);
+		}
+		else
+		{
+			// TODO: Yikes
+			return sema.Id(ast, &id.name_parts->list, TypeInstance::OfType(maybe_struct), true);
+		}
 	}
 
-	return SemaError("Unrecognized variable '" + *id.name + "'");
+	// TODO: Leaks
+	return SemaError("Unrecognized variable '" + *to_single_name(sema, id.name_parts) + "'");
 }
 
 SemaResult<ir::IRMemberAccess*>
@@ -816,6 +885,7 @@ binop_type(Sema2& sema, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
 	case ast::BinOp::and_op:
 	case ast::BinOp::or_op:
 	case ast::BinOp::cmp:
+	case ast::BinOp::is:
 	case ast::BinOp::ne:
 		return sema.types.BoolType();
 	case ast::BinOp::bad:
@@ -837,20 +907,48 @@ sema::sema_binop(Sema2& sema, ast::AstNode* ast)
 		return lhs_exprr;
 	auto lhs = lhs_exprr.unwrap();
 
-	auto rhs_exprr = sema_expr(sema, binop.right);
-	if( !rhs_exprr.ok() )
-		return rhs_exprr;
-	auto rhs = rhs_exprr.unwrap();
+	if( binop.op == BinOp::is )
+	{
+		if( !lhs->type_instance.is_enum_type() )
+			return SemaError("'is' expressions can only be used with enum types.");
 
-	// TODO: Int conversions?
-	if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
-		return SemaError(
-			"Mismatched types: " + sema::to_string(lhs->type_instance) +
-			" != " + sema::to_string(rhs->type_instance));
+		auto rhs_idr = sema_expr(sema, binop.right);
+		if( !rhs_idr.ok() )
+			return rhs_idr;
+		auto rhs_id_expr = rhs_idr.unwrap();
 
-	auto type = binop_type(sema, binop.op, lhs, rhs);
+		// TODO: This is shit.
+		auto rhs_id = rhs_id_expr->expr;
 
-	return sema.BinOp(ast, binop.op, lhs, rhs, type);
+		// if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+		// 	return SemaError(
+		// 		"Mismatched types: " + sema::to_string(lhs->type_instance) +
+		// 		" != " + sema::to_string(rhs->type_instance));
+
+		return sema.BinOp(
+			ast,
+			binop.op,
+			lhs,
+			sema.Expr(sema.Empty(ast, sema.types.VoidType())),
+			sema.types.BoolType());
+	}
+	else
+	{
+		auto rhs_exprr = sema_expr(sema, binop.right);
+		if( !rhs_exprr.ok() )
+			return rhs_exprr;
+		auto rhs = rhs_exprr.unwrap();
+
+		auto type = binop_type(sema, binop.op, lhs, rhs);
+
+		// TODO: Int conversions?
+		if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+			return SemaError(
+				"Mismatched types: " + sema::to_string(lhs->type_instance) +
+				" != " + sema::to_string(rhs->type_instance));
+
+		return sema.BinOp(ast, binop.op, lhs, rhs, type);
+	}
 }
 
 SemaResult<ir::IRBlock*>
@@ -994,7 +1092,7 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 		return idr;
 	auto id = idr.unwrap();
 
-	auto name = sema.create_name(id.name->c_str(), id.name->size());
+	auto name = to_single_name(sema, id.name_parts);
 
 	auto argsr = expected(fn_proto.params, ast::as_fn_param_list);
 	if( !argsr.ok() )
@@ -1159,6 +1257,10 @@ sema::sema_enum_member(Sema2& sema, String const& enum_name, ast::AstNode* ast)
 
 		auto name = namer.unwrap();
 
+		auto type = sema.CreateType(
+			Type::Struct(enum_name + "__" + *name, members_to_members(*ir_struct->members)));
+		sema.add_type_identifier(type);
+
 		auto ir_member = sema.EnumMemberStruct(ast, ir_struct->struct_type, ir_struct, name);
 		return ir_member;
 		break;
@@ -1222,9 +1324,9 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 
 	if( !type_decl.empty )
 	{
-		auto type = sema.lookup_type(*type_decl.name);
+		auto type = sema.lookup_type(*to_single_name(sema, type_decl.name));
 		if( !type )
-			return SemaError("Could not find type '" + *type_decl.name + "'");
+			return SemaError("Could not find type '" + *to_single_name(sema, type_decl.name) + "'");
 
 		auto type_instance = TypeInstance::PointerTo(type, type_decl.indirection_level);
 

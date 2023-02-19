@@ -11,6 +11,35 @@
 
 using namespace ast;
 
+static ParseResult<AstList<String*>*>
+parse_name_parts(AstGen& astgen)
+{
+	auto tok = astgen.cursor.consume(TokenType::identifier);
+	if( !tok.ok() )
+		return ParseError("Expected identifier", tok.as());
+
+	auto name_parts = astgen.ast.create_name_parts();
+
+	auto tok_val = tok.as();
+	auto name = astgen.ast.create_string(tok_val.start, tok_val.size);
+	name_parts->append(name);
+
+	while( astgen.cursor.peek().type == TokenType::colon_colon )
+	{
+		tok = astgen.cursor.consume(TokenType::colon_colon);
+
+		tok = astgen.cursor.consume(TokenType::identifier);
+		if( !tok.ok() )
+			return ParseError("Expected identifier", tok.as());
+
+		tok_val = tok.as();
+		name = astgen.ast.create_string(tok_val.start, tok_val.size);
+		name_parts->append(name);
+	}
+
+	return name_parts;
+}
+
 AstGen::AstGen(Ast& ast, TokenCursor& cursor)
 	: ast(ast)
 	, cursor(cursor)
@@ -162,7 +191,7 @@ AstGen::parse_union()
 		return ParseError("Expected struct identifier.", consume_tok.as());
 	}
 
-	auto struct_name = to_type_identifier(ast, consume_tok, trail.mark());
+	auto struct_name = to_value_identifier(ast, consume_tok, trail.mark());
 
 	consume_tok = cursor.consume(TokenType::open_curly);
 	if( !consume_tok.ok() )
@@ -216,8 +245,8 @@ AstGen::parse_type_decl(bool allow_empty)
 {
 	auto trail = get_parse_trail();
 
-	auto tok = cursor.consume_if_expected(TokenType::identifier);
-	if( !tok.ok() )
+	auto tok = cursor.peek();
+	if( tok.type != TokenType::identifier )
 	{
 		if( allow_empty )
 		{
@@ -225,12 +254,14 @@ AstGen::parse_type_decl(bool allow_empty)
 		}
 		else
 		{
-			return ParseError("Unexpected token while parsing type.", tok.as());
+			return ParseError("Unexpected token while parsing type.", tok);
 		}
 	}
 
-	auto tok_val = tok.as();
-	auto name = ast.create_string(tok_val.start, tok_val.size);
+	auto name_parsed = parse_name_parts(*this);
+	if( !name_parsed.ok() )
+		return ParseError(*name_parsed.unwrap_error().get());
+	auto name = name_parsed.unwrap();
 
 	int indirection_count = 0;
 	auto star_tok = cursor.consume_if_expected(TokenType::star);
@@ -283,6 +314,7 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 			 TokenType::and_and_lex,
 			 TokenType::or_or_lex,
 			 TokenType::cmp,
+			 TokenType::is,
 			 TokenType::ne}); // TODO: Other assignment exprs.
 		if( !tok.ok() )
 			return lhs;
@@ -558,9 +590,9 @@ no_semi:
 }
 
 static ParseResult<ast::AstNode*>
-AstGen::parse_if_block(AstGen& astgen)
+parse_if_block(AstGen& astgen)
 {
-	auto peek = cursor.peek();
+	auto peek = astgen.cursor.peek();
 	if( peek.type == TokenType::fat_arrow )
 		return parse_if_arrow(astgen);
 
@@ -725,38 +757,33 @@ AstGen::parse_literal()
 	}
 }
 
-ParseResult<ast::AstNode*>
-AstGen::parse_type_identifier()
-{
-	auto trail = get_parse_trail();
+// ParseResult<ast::AstNode*>
+// AstGen::parse_type_identifier()
+// {
+// 	auto trail = get_parse_trail();
 
-	auto tok = cursor.consume(TokenType::identifier);
-	if( !tok.ok() )
-	{
-		return ParseError("Expected identifier", tok.as());
-	}
+// 	auto tok = cursor.consume(TokenType::identifier);
+// 	if( !tok.ok() )
+// 	{
+// 		return ParseError("Expected identifier", tok.as());
+// 	}
 
-	auto tok_val = tok.as();
-	auto name = ast.create_string(tok_val.start, tok_val.size);
+// 	auto tok_val = tok.as();
+// 	auto name = ast.create_string(tok_val.start, tok_val.size);
 
-	return ast.TypeId(trail.mark(), name);
-}
+// 	return ast.ValueId(trail.mark(), name);
+// }
 
 ParseResult<ast::AstNode*>
 AstGen::parse_identifier()
 {
 	auto trail = get_parse_trail();
 
-	auto tok = cursor.consume(TokenType::identifier);
-	if( !tok.ok() )
-	{
-		return ParseError("Expected identifier", tok.as());
-	}
+	auto name_parts = parse_name_parts(*this);
+	if( !name_parts.ok() )
+		return ParseError(*name_parts.unwrap_error().get());
 
-	auto tok_val = tok.as();
-	auto name = ast.create_string(tok_val.start, tok_val.size);
-
-	return ast.ValueId(trail.mark(), name);
+	return ast.Id(trail.mark(), name_parts.unwrap());
 }
 
 ParseResult<ast::AstNode*>
@@ -1152,7 +1179,7 @@ AstGen::parse_function_proto()
 {
 	auto trail = get_parse_trail();
 
-	auto fn_identifier = parse_type_identifier();
+	auto fn_identifier = parse_identifier();
 	if( !fn_identifier.ok() )
 	{
 		return fn_identifier;

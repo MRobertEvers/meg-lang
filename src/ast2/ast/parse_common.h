@@ -10,6 +10,5 @@ namespace ast
 class AstGen;
 
 AstNode* to_value_identifier(Ast& ast, ConsumeResult const& tok_res, Span span);
-AstNode* to_type_identifier(Ast& ast, ConsumeResult const& tok_res, Span span);
 
 } // namespace ast

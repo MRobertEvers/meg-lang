@@ -33,6 +33,7 @@ public:
 
 	bool is_function_type() const;
 	bool is_struct_type() const;
+	bool is_enum_type() const;
 	bool is_pointer_type() const { return !is_array_ && indirection_level != 0; }
 	bool is_array_type() const { return is_array_; }
 

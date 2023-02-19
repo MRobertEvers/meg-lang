@@ -12,6 +12,12 @@ Ast::create_string(char const* cstr, unsigned int size)
 	return new String{cstr, size};
 }
 
+AstList<String*>*
+Ast::create_name_parts()
+{
+	return new AstList<String*>{};
+}
+
 AstList<AstNode*>*
 Ast::create_list()
 {
@@ -107,28 +113,28 @@ Ast::BinOp(Span span, enum BinOp op, AstNode* left, AstNode* right)
 }
 
 AstNode*
-Ast::Id(Span span, IdClassification classification, String* name)
-{
-	auto node = make_empty<AstId>(span);
-	node->data.id = AstId{classification, name};
-	return node;
-}
-
-AstNode*
-Ast::TypeId(Span span, String* name)
-{
-	auto node = make_empty<AstId>(span);
-	node->data.id = AstId{IdClassification::TypeIdentifier, name};
-	return node;
-}
-
-AstNode*
-Ast::ValueId(Span span, String* name)
+Ast::Id(Span span, AstList<String*>* name)
 {
 	auto node = make_empty<AstId>(span);
 	node->data.id = AstId{IdClassification::ValueIdentifier, name};
 	return node;
 }
+
+// AstNode*
+// Ast::TypeId(Span span, String* name)
+// {
+// 	auto node = make_empty<AstId>(span);
+// 	node->data.id = AstId{IdClassification::TypeIdentifier, name};
+// 	return node;
+// }
+
+// AstNode*
+// Ast::ValueId(Span span, Vec<String*>* name)
+// {
+// 	auto node = make_empty<AstId>(span);
+// 	node->data.id = AstId{IdClassification::ValueIdentifier, name};
+// 	return node;
+// }
 
 AstNode*
 Ast::Assign(Span span, AssignOp op, AstNode* left, AstNode* right)
@@ -143,6 +149,14 @@ Ast::If(Span span, AstNode* condition, AstNode* then_block, AstNode* else_block)
 {
 	auto node = make_empty<AstIf>(span);
 	node->data.ifcond = AstIf{condition, then_block, else_block};
+	return node;
+}
+
+AstNode*
+Ast::IfArrow(Span span, AstNode* params, AstNode* block)
+{
+	auto node = make_empty<AstIfArrow>(span);
+	node->data.if_arrow = AstIfArrow{params, block};
 	return node;
 }
 
@@ -251,7 +265,7 @@ Ast::NumberLiteral(Span span, long long literal)
 }
 
 AstNode*
-Ast::TypeDeclarator(Span span, String* name, unsigned int indirection_level)
+Ast::TypeDeclarator(Span span, AstList<String*>* name, unsigned int indirection_level)
 {
 	auto node = make_empty<AstTypeDeclarator>(span);
 	node->data.type_declarator = AstTypeDeclarator{name, indirection_level};
@@ -261,7 +275,7 @@ Ast::TypeDeclarator(Span span, String* name, unsigned int indirection_level)
 
 AstNode*
 Ast::TypeDeclaratorArray(
-	Span span, String* name, unsigned int indirection_level, unsigned int array_size)
+	Span span, AstList<String*>* name, unsigned int indirection_level, unsigned int array_size)
 {
 	auto node = make_empty<AstTypeDeclarator>(span);
 	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, array_size};
@@ -339,5 +353,13 @@ Ast::Empty(Span span)
 {
 	auto node = make_empty<AstEmpty>(span);
 	node->data.empty = AstEmpty{};
+	return node;
+}
+
+AstNode*
+Ast::Is(Span span, AstNode* expr, AstNode* type)
+{
+	auto node = make_empty<AstIs>(span);
+	node->data.is = AstIs{expr, type};
 	return node;
 }

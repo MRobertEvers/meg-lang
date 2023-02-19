@@ -185,9 +185,11 @@ struct IRArrayAccess
 struct IRId
 {
 	//
-	String* name;
+	Vec<String*>* name;
 	sema::TypeInstance type_instance;
 	ast::AstNode* node;
+
+	bool is_type_id;
 };
 
 struct IRReturn
@@ -224,6 +226,13 @@ struct IRBinOp
 	sema::TypeInstance type_instance;
 	IRExpr* lhs;
 	IRExpr* rhs;
+};
+
+struct IRIs
+{
+	ast::AstNode* node;
+	sema::TypeInstance type_instance;
+	IRExpr* lhs;
 };
 
 struct IRNumberLiteral
@@ -279,6 +288,18 @@ struct IREnumMember
 };
 
 struct IRIf
+{
+	//
+	ast::AstNode* node;
+	IRExpr* expr;
+	IRStmt* stmt;
+	IRElse* else_stmt;
+
+	// For if arrow
+	Vec<ir::IRParam*>* discriminations;
+};
+
+struct IRIfArrow
 {
 	//
 	ast::AstNode* node;
@@ -402,6 +423,8 @@ struct IRExpr
 		IRIndirectMemberAccess* indirect_member_access;
 	} expr;
 	IRExprType type;
+
+	Vec<IRIs*>* discriminations;
 
 	sema::TypeInstance type_instance;
 };

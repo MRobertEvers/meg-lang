@@ -36,7 +36,7 @@ public:
 	ParseResult<AstNode*> parse_else();
 	ParseResult<AstNode*> parse_for();
 	ParseResult<AstNode*> parse_literal();
-	ParseResult<AstNode*> parse_type_identifier();
+	// ParseResult<AstNode*> parse_type_identifier();
 	ParseResult<AstNode*> parse_identifier();
 	ParseResult<AstNode*> parse_value_list();
 	ParseResult<AstNode*> parse_call(AstNode* base);

@@ -309,3 +309,12 @@ ast::as_if_arrow(ast::AstNode* node)
 
 	return &node->data.if_arrow;
 }
+
+Cast<AstIs>
+as_is(ast::AstNode* node)
+{
+	if( node->type != AstIs::nt )
+		return Cast<AstIs>();
+
+	return &node->data.is;
+}

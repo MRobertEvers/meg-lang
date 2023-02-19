@@ -31,6 +31,7 @@ private:
 		struct_cls,
 		union_cls,
 		enum_cls,
+		enum_member_cls,
 		primitive,
 	};
 

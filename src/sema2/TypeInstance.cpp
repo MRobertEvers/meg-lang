@@ -17,6 +17,12 @@ TypeInstance::is_struct_type() const
 	return !is_array_ && indirection_level == 0 && type->is_struct_type();
 }
 
+bool
+TypeInstance::is_enum_type() const
+{
+	return !is_array_ && indirection_level == 0 && type->is_enum_type();
+}
+
 TypeInstance
 TypeInstance::PointerTo(int indirection)
 {

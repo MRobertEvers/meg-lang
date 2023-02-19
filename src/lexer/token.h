@@ -18,6 +18,7 @@ enum class TokenType
 
 	// =>
 	fat_arrow,
+	is,
 
 	exclam,
 	mul_equal,

@@ -22,6 +22,7 @@ enum class NodeType
 	ExprList,
 	Block,
 	BinOp,
+	Is,
 	Id,
 	Assign,
 	If,
@@ -56,9 +57,9 @@ struct AstNode;
 template<typename T>
 struct AstList
 {
-	Vec<AstNode*> list;
+	Vec<T> list;
 
-	void append(AstNode* elem) { list.push_back(elem); }
+	void append(T elem) { list.push_back(elem); }
 };
 
 template<typename T>
@@ -259,6 +260,20 @@ struct AstBinOp
 	{}
 };
 
+struct AstIs
+{
+	static constexpr NodeType nt = NodeType::Is;
+
+	AstNode* expr;
+	AstNode* type_name;
+
+	AstIs() = default;
+	AstIs(AstNode* expr, AstNode* type_name)
+		: expr(expr)
+		, type_name(type_name)
+	{}
+};
+
 enum IdClassification
 {
 	TypeIdentifier,
@@ -270,12 +285,12 @@ struct AstId
 	static constexpr NodeType nt = NodeType::Id;
 
 	IdClassification classification;
-	String* name;
+	AstList<String*>* name_parts;
 
 	AstId() = default;
-	AstId(IdClassification classification, String* name)
+	AstId(IdClassification classification, AstList<String*>* name)
 		: classification(classification)
-		, name(name)
+		, name_parts(name)
 	{}
 };
 
@@ -327,8 +342,8 @@ struct AstIfArrow
 	AstNode* args;
 	AstNode* block;
 
-	AstIf() = default;
-	AstIf(AstNode* args, AstNode* block)
+	AstIfArrow() = default;
+	AstIfArrow(AstNode* args, AstNode* block)
 		: args(args)
 		, block(block)
 	{}
@@ -478,17 +493,17 @@ struct AstTypeDeclarator
 
 	unsigned int array_size;
 	unsigned int indirection_level;
-	String* name;
+	AstList<String*>* name;
 	bool empty;
 
 	AstTypeDeclarator() = default;
-	AstTypeDeclarator(String* name, unsigned int indirection_level)
+	AstTypeDeclarator(AstList<String*>* name, unsigned int indirection_level)
 		: name(name)
 		, indirection_level(indirection_level)
 		, array_size(0)
 		, empty(false)
 	{}
-	AstTypeDeclarator(String* name, unsigned int indirection_level, unsigned array_size)
+	AstTypeDeclarator(AstList<String*>* name, unsigned int indirection_level, unsigned array_size)
 		: name(name)
 		, indirection_level(indirection_level)
 		, array_size(array_size)
@@ -592,6 +607,7 @@ struct AstNode
 		AstBinOp binop;
 		AstId id;
 		AstAssign assign;
+		AstIs is;
 		AstIf ifcond;
 		AstIfArrow if_arrow;
 		AstElse else_stmt;

@@ -18,6 +18,7 @@ enum BinOp : char
 	and_op,
 	or_op,
 	cmp,
+	is,
 	ne,
 	bad
 };

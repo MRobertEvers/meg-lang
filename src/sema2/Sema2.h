@@ -101,7 +101,8 @@ public:
 	NumberLiteral(ast::AstNode* node, TypeInstance type_instance, long long val);
 	ir::IRStringLiteral*
 	StringLiteral(ast::AstNode* node, TypeInstance type_instance, String* name);
-	ir::IRId* Id(ast::AstNode* node, String* name, sema::TypeInstance type);
+	ir::IRId*
+	Id(ast::AstNode* node, Vec<String*>* name_parts, sema::TypeInstance type, bool is_type_id);
 	ir::IRLet* Let(ast::AstNode* node, String* name, ir::IRAssign* assign);
 	ir::IRLet* LetEmpty(ast::AstNode* node, String* name, sema::TypeInstance type);
 	ir::IRIf* If(ast::AstNode* node, ir::IRExpr* bool_expr, ir::IRStmt*, ir::IRElse*);

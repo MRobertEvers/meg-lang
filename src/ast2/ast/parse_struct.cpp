@@ -81,7 +81,7 @@ ast::parse_struct(AstGen& astgen)
 		return ParseError("Expected struct identifier.", consume_tok.as());
 	}
 
-	auto struct_name = to_type_identifier(astgen.ast, consume_tok, trail.mark());
+	auto struct_name = to_value_identifier(astgen.ast, consume_tok, trail.mark());
 
 	auto members = parse_struct_body(astgen);
 	if( !members.ok() )

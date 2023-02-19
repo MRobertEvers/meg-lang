@@ -47,6 +47,8 @@ add_executable(sushi
     src/ast2/bin_op.cpp
     src/ast2/ParseTrail.cpp
     src/ast2/ParseResult.cpp
+    src/ast2/ast/parse_is.cpp
+    src/ast2/ast/parse_if_arrow.cpp
     src/ast2/ast/parse_common.cpp
     src/ast2/ast/parse_enum.cpp
     src/ast2/ast/parse_struct.cpp

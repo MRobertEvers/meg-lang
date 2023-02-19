@@ -25,6 +25,7 @@ KeywordIdentifierTuple keywords[] =
 	{"while", TokenType::while_keyword},
 	{"for", TokenType::for_keyword},
 	{"...", TokenType::var_args},
+	{"is", TokenType::is},
 	// clang-format off
 };
 // clang-format on
@@ -93,7 +94,10 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::eof, "<EOF>"},
 	{TokenType::bad, "bad"},
 	{TokenType::for_keyword, "for"},
-	{TokenType::var_args, "..."},
+	{TokenType::is, "is"},
+	{TokenType::fat_arrow, "fat_arrow"},
+	{TokenType::colon_colon, "colon_colon"},
+	{TokenType::var_args, "var_args"},
 	{TokenType::indirect_member_access, "indirect_member_access"},
 };
 

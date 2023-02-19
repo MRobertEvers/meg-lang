@@ -5,10 +5,11 @@
 #include "../ParseResult.h"
 #include "lexer/TokenCursor.h"
 
+// TODO: This is unused?
 namespace ast
 {
 class AstGen;
 
-ParseResult<AstNode*> parse_if_arrow(AstGen&);
+ParseResult<AstNode*> parse_is(AstGen&);
 
 } // namespace ast

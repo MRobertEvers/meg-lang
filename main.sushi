@@ -12,5 +12,9 @@ fn main(): i32
 {
     let a: Literal;
 
+    if (a is Literal::Number) => (a_num: Literal::Number) {
+        printf("%d\n", a_num.value);
+    }
+
     return 1;
 }
