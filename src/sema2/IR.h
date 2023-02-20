@@ -232,6 +232,7 @@ struct IRIs
 {
 	ast::AstNode* node;
 	sema::TypeInstance type_instance;
+	IRTypeDeclaraor* type_decl;
 	IRExpr* lhs;
 };
 
@@ -272,6 +273,7 @@ struct IRIndirectMemberAccess
 struct IREnumMember
 {
 	ast::AstNode* node;
+	long long number;
 	enum class Type
 	{
 		Id,
@@ -297,15 +299,6 @@ struct IRIf
 
 	// For if arrow
 	Vec<ir::IRParam*>* discriminations;
-};
-
-struct IRIfArrow
-{
-	//
-	ast::AstNode* node;
-	IRExpr* expr;
-	IRStmt* stmt;
-	IRElse* else_stmt;
 };
 
 struct IRFor
@@ -394,6 +387,7 @@ enum class IRExprType
 	NumberLiteral,
 	StringLiteral,
 	Id,
+	Is,
 	BinOp,
 	ValueDecl,
 	MemberAccess,
@@ -416,6 +410,7 @@ struct IRExpr
 		IRCall* call;
 		IRArrayAccess* array_access;
 		IRBinOp* binop;
+		IRIs* is;
 		IRAddressOf* addr_of;
 		IRDeref* deref;
 		IREmpty* empty;

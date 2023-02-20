@@ -8,6 +8,7 @@
 #include "Codegen/codegen_call.h"
 #include "Codegen/codegen_deref.h"
 #include "Codegen/codegen_function.h"
+#include "Codegen/codegen_is.h"
 #include "Codegen/codegen_member_access.h"
 #include "Codegen/codegen_return.h"
 #include "Codegen/codegen_string_literal.h"
@@ -166,6 +167,8 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 		return codegen_addressof(*this, fn, expr->expr.addr_of);
 	case ir::IRExprType::Deref:
 		return codegen_deref(*this, fn, expr->expr.deref);
+	case ir::IRExprType::Is:
+		return codegen_is(*this, fn, expr->expr.is);
 	case ir::IRExprType::Empty:
 		return CGExpr();
 	}
@@ -316,6 +319,34 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 
 	// Emit then value.
 	Builder->SetInsertPoint(llvm_then_bb);
+
+	// Inject any discriminations
+	if( ir_if->discriminations )
+	{
+		int ind = 0;
+		for( auto param : *ir_if->discriminations )
+		{
+			auto ir_value_decl = param->data.value_decl;
+			auto ir_type_decl = param->data.value_decl->type_decl;
+			auto llvm_type = get_type(*this, ir_type_decl).unwrap();
+
+			auto name = ir_value_decl->name;
+
+			auto enum_value = cond_expr.get_discrimination(ind).address();
+			auto llvm_enum_value = enum_value.llvm_pointer();
+			auto llvm_enum_type = enum_value.llvm_allocated_type();
+			auto llvm_member_value_ptr =
+				Builder->CreateStructGEP(llvm_enum_type, llvm_enum_value, 1);
+
+			auto llvm_member_value =
+				Builder->CreateBitCast(llvm_member_value_ptr, llvm_type->getPointerTo());
+
+			auto lval = LValue(llvm_member_value, llvm_type);
+			this->values.insert_or_assign(*name, lval);
+
+			ind++;
+		}
+	}
 
 	auto then_stmtr = codegen_stmt(fn, ir_if->stmt);
 	if( !then_stmtr.ok() )

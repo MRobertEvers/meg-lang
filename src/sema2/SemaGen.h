@@ -27,7 +27,7 @@ SemaResult<ir::IRModule*> sema_module(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRTopLevelStmt*> sema_tls(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRStmt*> sema_stmt(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRIf*> sema_if(Sema2& sema, ast::AstNode* ast);
-SemaResult<ir::IRIfArrow*> sema_if_arrow(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRIs*> sema_is(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRFor*> sema_for(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRWhile*> sema_while(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRElse*> sema_else(Sema2& sema, ast::AstNode* ast);
@@ -55,7 +55,7 @@ SemaResult<ir::IRStruct*> sema_struct(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRUnion*> sema_union(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IREnum*> sema_enum(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IREnumMember*>
-sema_enum_member(Sema2& sema, String const& enum_name, ast::AstNode* ast);
+sema_enum_member(Sema2& sema, String const&, ast::AstNode* ast, Type const*, long long idx);
 SemaResult<ir::IRValueDecl*> sema_value_decl(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRNumberLiteral*> sema_number_literal(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRStringLiteral*> sema_string_literal(Sema2& sema, ast::AstNode* ast);

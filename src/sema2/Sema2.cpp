@@ -36,7 +36,7 @@ Sema2::pop_scope()
 	current_scope = current_scope->get_parent();
 }
 
-Type const*
+Type*
 Sema2::CreateType(Type ty)
 {
 	return types.define_type(ty);
@@ -315,6 +315,7 @@ Sema2::Expr(ir::IRCall* call)
 	auto t = call->call_target->type_instance.type->get_return_type();
 	assert(t.has_value());
 	nod->type_instance = t.value();
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -328,6 +329,7 @@ Sema2::Expr(ir::IRNumberLiteral* nl)
 	nod->expr.num_literal = nl;
 	nod->type = ir::IRExprType::NumberLiteral;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -341,6 +343,7 @@ Sema2::Expr(ir::IRStringLiteral* nl)
 	nod->expr.str_literal = nl;
 	nod->type = ir::IRExprType::StringLiteral;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -354,6 +357,7 @@ Sema2::Expr(ir::IRId* nl)
 	nod->expr.id = nl;
 	nod->type = ir::IRExprType::Id;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -367,6 +371,7 @@ Sema2::Expr(ir::IRValueDecl* nl)
 	nod->expr.decl = nl;
 	nod->type = ir::IRExprType::ValueDecl;
 	nod->type_instance = nl->type_decl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -380,6 +385,7 @@ Sema2::Expr(ir::IRBinOp* nl)
 	nod->expr.binop = nl;
 	nod->type = ir::IRExprType::BinOp;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -393,6 +399,7 @@ Sema2::Expr(ir::IRMemberAccess* nl)
 	nod->expr.member_access = nl;
 	nod->type = ir::IRExprType::MemberAccess;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -406,6 +413,7 @@ Sema2::Expr(ir::IRIndirectMemberAccess* nl)
 	nod->expr.indirect_member_access = nl;
 	nod->type = ir::IRExprType::IndirectMemberAccess;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -419,6 +427,7 @@ Sema2::Expr(ir::IRAddressOf* nl)
 	nod->expr.addr_of = nl;
 	nod->type = ir::IRExprType::AddressOf;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -432,6 +441,7 @@ Sema2::Expr(ir::IRDeref* nl)
 	nod->expr.deref = nl;
 	nod->type = ir::IRExprType::Deref;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -444,6 +454,7 @@ Sema2::Expr(ir::IRArrayAccess* nl)
 	nod->expr.array_access = nl;
 	nod->type = ir::IRExprType::ArrayAccess;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -457,6 +468,25 @@ Sema2::Expr(ir::IREmpty* nl)
 	nod->expr.empty = nl;
 	nod->type = ir::IRExprType::Empty;
 	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
+
+	return nod;
+}
+
+ir::IRExpr*
+Sema2::Expr(ir::IRIs* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.is = nl;
+	nod->type = ir::IRExprType::Is;
+	nod->type_instance = nl->type_instance;
+	nod->discriminations = new Vec<ir::IRIs*>();
+
+	// TODO: Rewrite this so I don't have to manually pass up descriminations
+	// through all possible expr nodes.
+	nod->discriminations->push_back(nl);
 
 	return nod;
 }
@@ -622,6 +652,23 @@ Sema2::Let(ast::AstNode* node, String* name, ir::IRAssign* assign)
 	return nod;
 }
 
+ir::IRIs*
+Sema2::Is(
+	ast::AstNode* node,
+	ir::IRExpr* expr,
+	ir::IRTypeDeclaraor* type_decl,
+	sema::TypeInstance bool_type)
+{
+	auto nod = new ir::IRIs;
+
+	nod->node = node;
+	nod->type_decl = type_decl;
+	nod->lhs = expr;
+	nod->type_instance = bool_type;
+
+	return nod;
+}
+
 ir::IRLet*
 Sema2::LetEmpty(ast::AstNode* node, String* name, sema::TypeInstance type)
 {
@@ -644,6 +691,26 @@ Sema2::If(ast::AstNode* node, ir::IRExpr* bool_expr, ir::IRStmt* body, ir::IREls
 	nod->expr = bool_expr;
 	nod->stmt = body;
 	nod->else_stmt = else_stmt;
+	nod->discriminations = nullptr;
+
+	return nod;
+}
+
+ir::IRIf*
+Sema2::IfArrow(
+	ast::AstNode* node,
+	ir::IRExpr* cond,
+	ir::IRStmt* block,
+	ir::IRElse* else_stmt,
+	Vec<ir::IRParam*>* args)
+{
+	auto nod = new ir::IRIf;
+
+	nod->node = node;
+	nod->expr = cond;
+	nod->stmt = block;
+	nod->else_stmt = else_stmt;
+	nod->discriminations = args;
 
 	return nod;
 }
@@ -728,28 +795,36 @@ Sema2::Enum(
 
 ir::IREnumMember*
 Sema2::EnumMemberStruct(
-	ast::AstNode* node, sema::Type const* type, ir::IRStruct* struct_stmt, String* name)
+	ast::AstNode* node,
+	sema::Type const* type,
+	ir::IRStruct* struct_stmt,
+	String* name,
+	long long idx)
 {
 	//
 	auto nod = new ir::IREnumMember;
 
+	nod->contained_type = ir::IREnumMember::Type::Struct;
 	nod->node = node;
 	nod->struct_member = struct_stmt;
 	nod->type = type;
 	nod->name = name;
+	nod->number = idx;
 
 	return nod;
 }
 
 ir::IREnumMember*
-Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, String* name)
+Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, String* name, long long idx)
 {
 	//
 	auto nod = new ir::IREnumMember;
 
+	nod->contained_type = ir::IREnumMember::Type::Id;
 	nod->node = node;
 	nod->type = type;
 	nod->name = name;
+	nod->number = idx;
 
 	return nod;
 }

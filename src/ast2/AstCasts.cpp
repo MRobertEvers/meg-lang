@@ -311,7 +311,7 @@ ast::as_if_arrow(ast::AstNode* node)
 }
 
 Cast<AstIs>
-as_is(ast::AstNode* node)
+ast::as_is(ast::AstNode* node)
 {
 	if( node->type != AstIs::nt )
 		return Cast<AstIs>();

@@ -59,9 +59,6 @@ ast::get_bin_op_from_token_type(TokenType token_type)
 	case TokenType::ne:
 		op = BinOp::ne;
 		break;
-	case TokenType::is:
-		op = BinOp::is;
-		break;
 	default:
 		break;
 	}
@@ -71,7 +68,6 @@ ast::get_bin_op_from_token_type(TokenType token_type)
 void
 ast::init_bin_op_lookup()
 {
-	BinopPrecedence[BinOp::is] = 10;
 	BinopPrecedence[BinOp::ne] = 10;
 	BinopPrecedence[BinOp::cmp] = 10;
 	BinopPrecedence[BinOp::or_op] = 10;

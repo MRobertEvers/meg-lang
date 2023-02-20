@@ -314,7 +314,6 @@ AstGen::parse_bin_op(int expr_precidence, ast::AstNode* lhs)
 			 TokenType::and_and_lex,
 			 TokenType::or_or_lex,
 			 TokenType::cmp,
-			 TokenType::is,
 			 TokenType::ne}); // TODO: Other assignment exprs.
 		if( !tok.ok() )
 			return lhs;
@@ -1105,6 +1104,17 @@ AstGen::parse_expr()
 	auto op = parse_bin_op(0, lhs.unwrap());
 	if( !op.ok() )
 		return op;
+
+	if( cursor.peek().type == TokenType::is )
+	{
+		cursor.consume(TokenType::is);
+
+		auto type_id = parse_type_decl(false);
+		if( !type_id.ok() )
+			return type_id;
+
+		op = ast.Is(trail.mark(), ast.Expr(trail.mark(), op.unwrap()), type_id.unwrap());
+	}
 
 	return ast.Expr(trail.mark(), op.unwrap());
 }

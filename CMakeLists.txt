@@ -81,6 +81,7 @@ add_executable(sushi
     src/codegen2/Codegen/codegen_array_access.cpp
     src/codegen2/Codegen/codegen_addressof.cpp
     src/codegen2/Codegen/codegen_deref.cpp
+    src/codegen2/Codegen/codegen_is.cpp
     src/codegen2/Codegen/codegen_string_literal.cpp
     src/codegen2/Codegen/codegen_assign.cpp
     src/codegen2/Codegen/codegen_statement.cpp

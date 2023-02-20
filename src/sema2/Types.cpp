@@ -29,7 +29,7 @@ Types::Types()
 	this->bool_type_ = define_type(_bool_type);
 }
 
-Type const*
+Type*
 Types::define_type(Type type)
 {
 	auto emplaced = types.emplace(type.get_name(), type);

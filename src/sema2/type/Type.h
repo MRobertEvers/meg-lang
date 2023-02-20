@@ -44,6 +44,8 @@ private:
 	TypeInstance return_type;
 	bool is_var_arg_;
 
+	Type const* dependent_on_type_;
+
 	String name;
 
 	Type(String name);
@@ -66,11 +68,16 @@ public:
 	TypedMember get_member(int idx) const;
 	int get_member_count() const;
 
+	// The enum members depend on the parent type.
+	void set_enum_members(std::map<String, TypedMember> members);
+	Type const* get_dependent_type() const { return this->dependent_on_type_; };
+	void set_dependent_type(Type const* t) { this->dependent_on_type_ = t; };
+
 	static Type Function(String const&, Vec<TypedMember>, TypeInstance, bool);
 	static Type Function(String const&, Vec<TypedMember>, TypeInstance);
 	static Type Struct(String const& name, std::map<String, TypedMember> members);
 	static Type Union(String const& name, std::map<String, TypedMember> members);
-	static Type Enum(String const& name, std::map<String, TypedMember> members);
+	static Type EnumPartial(String const& name);
 	static Type Primitive(String name);
 };
 

@@ -3,6 +3,7 @@
 #include "./Codegen/LLVMAddress.h"
 #include "./Codegen/RValue.h"
 #include "./LValue.h"
+#include "common/Vec.h"
 #include <llvm-c/Core.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
@@ -21,6 +22,9 @@ enum class CGExprType
 class CGExpr
 {
 	CGExprType type = CGExprType::Empty;
+
+	Vec<CGExpr> discriminations;
+
 	union
 	{
 		RValue rvalue_;
@@ -36,6 +40,9 @@ class CGExpr
 
 public:
 	CGExpr(){};
+
+	void add_discrimination(CGExpr expr);
+	CGExpr get_discrimination(int ind);
 
 	static CGExpr MakeAddress(LValue addr);
 	static CGExpr MakeAddress(LLVMAddress addr);

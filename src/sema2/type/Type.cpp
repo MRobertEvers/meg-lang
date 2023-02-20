@@ -76,6 +76,14 @@ Type::get_member_count() const
 		return members.size();
 }
 
+void
+Type::set_enum_members(std::map<String, TypedMember> members)
+{
+	this->members = members;
+	for( auto member : members )
+		members_order.push_back(member.second);
+}
+
 // static TypeInstance const*
 // find(std::map<String, TypedMember>& members, String& name)
 // {
@@ -170,9 +178,9 @@ Type::Union(String const& name, std::map<String, TypedMember> members)
 }
 
 Type
-Type::Enum(String const& name, std::map<String, TypedMember> members)
+Type::EnumPartial(String const& name)
 {
-	return Type{name, members, TypeClassification::enum_cls};
+	return Type{name, {}, TypeClassification::enum_cls};
 }
 
 Type

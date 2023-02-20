@@ -253,11 +253,6 @@ sema::sema_if(Sema2& sema, ast::AstNode* ast)
 	}
 	else
 	{
-		auto stmtr = sema_stmt(sema, ifcond.then_block);
-		if( !stmtr.ok() )
-			return stmtr;
-		auto stmt = stmtr.unwrap();
-
 		auto ifarrowr = expected(ifcond.then_block, ast::as_if_arrow);
 		if( !ifarrowr.ok() )
 			return SemaError("Expected arrow if.");
@@ -268,9 +263,44 @@ sema::sema_if(Sema2& sema, ast::AstNode* ast)
 			return SemaError("Expected args.");
 		auto params = paramsr.unwrap();
 
+		if( !expr->discriminations && params.params->list.size() != 0 )
+			return SemaError("???");
+
 		auto args = sema.create_argslist();
+		int ind = 0;
 		for( auto param : params.params )
-		{}
+		{
+			auto paramr = sema_fn_param(sema, param);
+			if( !paramr.ok() )
+				return paramr;
+			auto parsed_param = paramr.unwrap();
+
+			if( parsed_param->type == IRParamType::VarArg )
+				return SemaError("VarArgs cannot be in if arrow");
+
+			auto decl_param = parsed_param->data.value_decl;
+
+			if( ind >= params.params->list.size() )
+				return SemaError("Not enough disc. to unpack.");
+
+			;
+			auto disc = expr->discriminations->at(ind);
+			if( !sema.types.equal_types(
+					disc->type_decl->type_instance, decl_param->type_decl->type_instance) )
+				return SemaError(
+					"Mismatched types: " + sema::to_string(disc->type_instance) +
+					" != " + sema::to_string(decl_param->type_decl->type_instance));
+
+			args->push_back(parsed_param);
+			sema.add_value_identifier(*decl_param->name, decl_param->type_decl->type_instance);
+			ind++;
+		}
+
+		auto stmtr = sema_block(sema, ifarrow.block, false);
+		if( !stmtr.ok() )
+			return stmtr;
+		auto block = stmtr.unwrap();
+		auto stmt = sema.Stmt(block);
 
 		if( ifcond.else_block )
 		{
@@ -278,13 +308,40 @@ sema::sema_if(Sema2& sema, ast::AstNode* ast)
 			if( !else_stmtr.ok() )
 				return else_stmtr;
 
-			return sema.If(ast, expr, stmt, else_stmtr.unwrap());
+			return sema.IfArrow(ast, expr, stmt, else_stmtr.unwrap(), args);
 		}
 		else
 		{
-			return sema.If(ast, expr, stmt, nullptr);
+			return sema.IfArrow(ast, expr, stmt, nullptr, args);
 		}
 	}
+}
+
+SemaResult<ir::IRIs*>
+sema::sema_is(Sema2& sema, ast::AstNode* ast)
+{
+	auto result = expected(ast, ast::as_is);
+	if( !result.ok() )
+		return result;
+	auto is = result.unwrap();
+
+	auto exprr = sema_expr(sema, is.expr);
+	if( !exprr.ok() )
+		return exprr;
+	auto expr = exprr.unwrap();
+
+	if( !expr->type_instance.is_enum_type() )
+		return SemaError("Is expressions can only be used on enum types!");
+
+	auto type_decl_node = is.type_name;
+	auto type_declr = sema_type_decl(sema, type_decl_node);
+	if( !type_declr.ok() )
+		return type_declr;
+
+	// TODO: Leaks type declr
+	// TODO: Check type is member of enum
+
+	return sema.Is(ast, expr, type_declr.unwrap(), sema.types.BoolType());
 }
 
 SemaResult<ir::IRFor*>
@@ -456,6 +513,14 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 	case NodeType::Deref:
 	{
 		auto litr = sema_deref(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
+	case NodeType::Is:
+	{
+		auto litr = sema_is(sema, expr_node);
 		if( !litr.ok() )
 			return litr;
 
@@ -885,7 +950,6 @@ binop_type(Sema2& sema, ast::BinOp op, ir::IRExpr* lhs, ir::IRExpr* rhs)
 	case ast::BinOp::and_op:
 	case ast::BinOp::or_op:
 	case ast::BinOp::cmp:
-	case ast::BinOp::is:
 	case ast::BinOp::ne:
 		return sema.types.BoolType();
 	case ast::BinOp::bad:
@@ -907,48 +971,48 @@ sema::sema_binop(Sema2& sema, ast::AstNode* ast)
 		return lhs_exprr;
 	auto lhs = lhs_exprr.unwrap();
 
-	if( binop.op == BinOp::is )
-	{
-		if( !lhs->type_instance.is_enum_type() )
-			return SemaError("'is' expressions can only be used with enum types.");
+	// if( binop.op == BinOp::is )
+	// {
+	// 	if( !lhs->type_instance.is_enum_type() )
+	// 		return SemaError("'is' expressions can only be used with enum types.");
 
-		auto rhs_idr = sema_expr(sema, binop.right);
-		if( !rhs_idr.ok() )
-			return rhs_idr;
-		auto rhs_id_expr = rhs_idr.unwrap();
+	// 	auto rhs_idr = sema_expr(sema, binop.right);
+	// 	if( !rhs_idr.ok() )
+	// 		return rhs_idr;
+	// 	auto rhs_id_expr = rhs_idr.unwrap();
 
-		// TODO: This is shit.
-		auto rhs_id = rhs_id_expr->expr;
+	// 	// TODO: This is shit.
+	// 	auto rhs_id = rhs_id_expr->expr;
 
-		// if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
-		// 	return SemaError(
-		// 		"Mismatched types: " + sema::to_string(lhs->type_instance) +
-		// 		" != " + sema::to_string(rhs->type_instance));
+	// 	// if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+	// 	// 	return SemaError(
+	// 	// 		"Mismatched types: " + sema::to_string(lhs->type_instance) +
+	// 	// 		" != " + sema::to_string(rhs->type_instance));
 
-		return sema.BinOp(
-			ast,
-			binop.op,
-			lhs,
-			sema.Expr(sema.Empty(ast, sema.types.VoidType())),
-			sema.types.BoolType());
-	}
-	else
-	{
-		auto rhs_exprr = sema_expr(sema, binop.right);
-		if( !rhs_exprr.ok() )
-			return rhs_exprr;
-		auto rhs = rhs_exprr.unwrap();
+	// 	return sema.BinOp(
+	// 		ast,
+	// 		binop.op,
+	// 		lhs,
+	// 		sema.Expr(sema.Empty(ast, sema.types.VoidType())),
+	// 		sema.types.BoolType());
+	// }
+	// else
+	// {
+	auto rhs_exprr = sema_expr(sema, binop.right);
+	if( !rhs_exprr.ok() )
+		return rhs_exprr;
+	auto rhs = rhs_exprr.unwrap();
 
-		auto type = binop_type(sema, binop.op, lhs, rhs);
+	auto type = binop_type(sema, binop.op, lhs, rhs);
 
-		// TODO: Int conversions?
-		if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
-			return SemaError(
-				"Mismatched types: " + sema::to_string(lhs->type_instance) +
-				" != " + sema::to_string(rhs->type_instance));
+	// TODO: Int conversions?
+	if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+		return SemaError(
+			"Mismatched types: " + sema::to_string(lhs->type_instance) +
+			" != " + sema::to_string(rhs->type_instance));
 
-		return sema.BinOp(ast, binop.op, lhs, rhs, type);
-	}
+	return sema.BinOp(ast, binop.op, lhs, rhs, type);
+	// }
 }
 
 SemaResult<ir::IRBlock*>
@@ -1053,8 +1117,8 @@ members_to_members(std::map<String, ir::IREnumMember*>& params)
 	int idx = 0;
 	for( auto param : params )
 	{
-		// map.emplace(
-		// 	param.first, TypedMember(param.second->type->type_instance, param.first, idx++));
+		map.emplace(
+			param.first, TypedMember(TypeInstance::OfType(param.second->type), param.first, idx++));
 	}
 	return map;
 }
@@ -1208,10 +1272,13 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 		return namer;
 	auto name = namer.unwrap();
 
+	auto enum_type = sema.CreateType(Type::EnumPartial(*name));
+
 	auto members = sema.create_enum_member_map();
+	long long number = 0;
 	for( auto stmt : enum_stmt.members )
 	{
-		auto memberr = sema_enum_member(sema, *name, stmt);
+		auto memberr = sema_enum_member(sema, *name, stmt, enum_type, number++);
 		if( !memberr.ok() )
 			return memberr;
 
@@ -1220,14 +1287,16 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 		members->emplace(*member->name, member);
 	}
 
-	auto fn_type = sema.CreateType(Type::Enum(*name, members_to_members(*members)));
-	sema.add_type_identifier(fn_type);
+	enum_type->set_enum_members(members_to_members(*members));
 
-	return sema.Enum(ast, fn_type, members);
+	sema.add_type_identifier(enum_type);
+
+	return sema.Enum(ast, enum_type, members);
 }
 
 SemaResult<ir::IREnumMember*>
-sema::sema_enum_member(Sema2& sema, String const& enum_name, ast::AstNode* ast)
+sema::sema_enum_member(
+	Sema2& sema, String const& enum_name, ast::AstNode* ast, Type const* enum_type, long long idx)
 {
 	auto memberr = expected(ast, ast::as_enum_member);
 	if( !memberr.ok() )
@@ -1239,8 +1308,9 @@ sema::sema_enum_member(Sema2& sema, String const& enum_name, ast::AstNode* ast)
 	case AstEnumMember::Type::Id:
 	{
 		auto type = sema.CreateType(Type::Primitive(*member.identifier));
+		type->set_dependent_type(enum_type);
 		sema.add_type_identifier(type);
-		auto ir_member = sema.EnumMemberId(ast, type, member.identifier);
+		auto ir_member = sema.EnumMemberId(ast, type, member.identifier, idx);
 		return ir_member;
 		break;
 	}
@@ -1257,11 +1327,16 @@ sema::sema_enum_member(Sema2& sema, String const& enum_name, ast::AstNode* ast)
 
 		auto name = namer.unwrap();
 
-		auto type = sema.CreateType(
-			Type::Struct(enum_name + "__" + *name, members_to_members(*ir_struct->members)));
-		sema.add_type_identifier(type);
+		auto type = Type::Struct(enum_name + "__" + *name, members_to_members(*ir_struct->members));
+		type.set_dependent_type(enum_type);
 
-		auto ir_member = sema.EnumMemberStruct(ast, ir_struct->struct_type, ir_struct, name);
+		auto dep_type = sema.CreateType(type);
+
+		// TODO: LEEKS!
+		ir_struct->struct_type = dep_type;
+		sema.add_type_identifier(dep_type);
+
+		auto ir_member = sema.EnumMemberStruct(ast, dep_type, ir_struct, name, idx);
 		return ir_member;
 		break;
 	}

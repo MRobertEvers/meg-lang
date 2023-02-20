@@ -41,7 +41,7 @@ public:
 	void set_expected_return(TypeInstance id);
 	void clear_expected_return();
 
-	Type const* CreateType(Type ty);
+	Type* CreateType(Type ty);
 
 	// SemaResult<TypeInstance> expected(ast::AstNode* node, ast::NodeType type);
 
@@ -87,6 +87,7 @@ public:
 	ir::IRExpr* Expr(ir::IRDeref*);
 	ir::IRExpr* Expr(ir::IRArrayAccess*);
 	ir::IRExpr* Expr(ir::IREmpty*);
+	ir::IRExpr* Expr(ir::IRIs*);
 	ir::IRStmt* Stmt(ir::IRReturn*);
 	ir::IRStmt* Stmt(ir::IRExpr*);
 	ir::IRStmt* Stmt(ir::IRLet*);
@@ -104,8 +105,15 @@ public:
 	ir::IRId*
 	Id(ast::AstNode* node, Vec<String*>* name_parts, sema::TypeInstance type, bool is_type_id);
 	ir::IRLet* Let(ast::AstNode* node, String* name, ir::IRAssign* assign);
+	ir::IRIs*
+	Is(ast::AstNode* node,
+	   ir::IRExpr* expr,
+	   ir::IRTypeDeclaraor* type_decl,
+	   sema::TypeInstance bool_type);
 	ir::IRLet* LetEmpty(ast::AstNode* node, String* name, sema::TypeInstance type);
 	ir::IRIf* If(ast::AstNode* node, ir::IRExpr* bool_expr, ir::IRStmt*, ir::IRElse*);
+	ir::IRIf*
+	IfArrow(ast::AstNode*, ir::IRExpr*, ir::IRStmt*, ir::IRElse*, Vec<ir::IRParam*>* args);
 	ir::IRElse* Else(ast::AstNode* node, ir::IRStmt* assign);
 	ir::IRAssign* Assign(ast::AstNode*, ast::AssignOp, ir::IRExpr*, ir::IRExpr*);
 	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*, TypeInstance);
@@ -113,8 +121,8 @@ public:
 	ir::IRUnion* Union(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 	ir::IREnum* Enum(ast::AstNode*, sema::Type const*, std::map<String, ir::IREnumMember*>*);
 	ir::IREnumMember*
-	EnumMemberStruct(ast::AstNode*, sema::Type const*, ir::IRStruct*, String* name);
-	ir::IREnumMember* EnumMemberId(ast::AstNode*, sema::Type const*, String* name);
+	EnumMemberStruct(ast::AstNode*, sema::Type const*, ir::IRStruct*, String* name, long long idx);
+	ir::IREnumMember* EnumMemberId(ast::AstNode*, sema::Type const*, String* name, long long idx);
 	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
 	ir::IRIndirectMemberAccess*
 	IndirectMemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);

@@ -28,7 +28,7 @@ public:
 	std::map<String, Type> types;
 	Types();
 
-	Type const* define_type(Type type);
+	Type* define_type(Type type);
 
 	Type const* infer_type();
 	Type const* void_type();
