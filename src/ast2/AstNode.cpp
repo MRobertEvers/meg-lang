@@ -84,5 +84,9 @@ ast::to_string(NodeType type)
 		return "Initializer";
 	case NodeType::InitializerDesignator:
 		return "InitializerDesignator";
+	case NodeType::Case:
+		return "Case";
+	case NodeType::Switch:
+		return "Switch";
 	}
 }

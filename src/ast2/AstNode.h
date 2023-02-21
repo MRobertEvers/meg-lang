@@ -34,6 +34,8 @@ enum class NodeType
 	Union,
 	Initializer,
 	InitializerDesignator,
+	Switch,
+	Case,
 	Enum,
 	EnumMember,
 	// MemberDef,
@@ -479,6 +481,32 @@ struct AstWhile
 	{}
 };
 
+struct AstSwitch
+{
+	static constexpr NodeType nt = NodeType::Switch;
+
+	AstNode* expr;
+	AstNode* block;
+
+	AstSwitch() = default;
+	AstSwitch(AstNode* expr, AstNode* block)
+		: expr(expr)
+		, block(block)
+	{}
+};
+
+struct AstCase
+{
+	static constexpr NodeType nt = NodeType::Case;
+
+	AstNode* const_expr;
+
+	AstCase() = default;
+	AstCase(AstNode* const_expr)
+		: const_expr(const_expr)
+	{}
+};
+
 struct AstFor
 {
 	static constexpr NodeType nt = NodeType::For;
@@ -645,6 +673,8 @@ struct AstNode
 		AstInitializer initializer;
 		AstInitializerDesignator designator;
 		AstIf ifcond;
+		AstSwitch switch_stmt;
+		AstCase case_stmt;
 		AstIfArrow if_arrow;
 		AstElse else_stmt;
 		AstLet let;

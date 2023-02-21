@@ -473,6 +473,18 @@ AstGen::parse_while()
 	return ast.While(trail.mark(), condition.unwrap(), loop_block.unwrap());
 }
 
+ParseResult<AstNode*>
+AstGen::parse_switch()
+{
+	//
+}
+
+ParseResult<AstNode*>
+AstGen::parse_case()
+{
+	//
+}
+
 ParseResult<ast::AstNode*>
 AstGen::parse_statement()
 {

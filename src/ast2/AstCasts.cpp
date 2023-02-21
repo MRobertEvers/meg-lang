@@ -338,3 +338,23 @@ ast::as_initializer_designator(ast::AstNode* node)
 
 	return &node->data.designator;
 }
+
+Cast<AstSwitch>
+ast::as_switch(ast::AstNode* node)
+{
+	//
+	if( node->type != AstSwitch::nt )
+		return Cast<AstSwitch>();
+
+	return &node->data.switch_stmt;
+}
+
+Cast<AstCase>
+ast::as_case(ast::AstNode* node)
+{
+	//
+	if( node->type != AstCase::nt )
+		return Cast<AstCase>();
+
+	return &node->data.case_stmt;
+}
