@@ -11,6 +11,8 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Value.h>
 
+#include <optional>
+
 namespace cg
 {
 
@@ -43,6 +45,7 @@ struct LLVMFnInfo
 	std::map<String, LLVMFnArgInfo> named_args;
 
 	std::optional<LLVMFnArgInfo> sret_arg;
+	std::optional<llvm::BasicBlock*> merge_block_;
 
 	LLVMFnInfo(
 		LLVMFnSigInfo sig_info,
@@ -53,5 +56,13 @@ struct LLVMFnInfo
 	LLVMFnArgInfo sret() const;
 
 	llvm::Function* llvm_fn() const { return sig_info.llvm_fn; }
+
+	// TODO: This is inviting bad code.
+	// How to keep track of if - else if - chains, without
+	// creating a huge chain of merge blocks.
+	// Is this the best place to communicate this information.
+	std::optional<llvm::BasicBlock*> merge_block() { return merge_block_; }
+	void set_merge_block(std::optional<llvm::BasicBlock*> bl) { merge_block_ = bl; }
+	void clear_merge_block() { merge_block_.reset(); }
 };
 } // namespace cg

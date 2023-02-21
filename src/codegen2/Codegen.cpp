@@ -319,7 +319,15 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 	// end of the function.
 	llvm::BasicBlock* llvm_then_bb = llvm::BasicBlock::Create(*Context, "then", llvm_fn);
 	llvm::BasicBlock* llvm_else_bb = llvm::BasicBlock::Create(*Context, "else");
-	llvm::BasicBlock* llvm_merge_bb = llvm::BasicBlock::Create(*Context);
+
+	bool own_merge_block = false;
+	if( !fn.merge_block().has_value() )
+	{
+		fn.set_merge_block(llvm::BasicBlock::Create(*Context));
+		own_merge_block = true;
+	}
+
+	llvm::BasicBlock* llvm_merge_bb = fn.merge_block().value();
 
 	Builder->CreateCondBr(llvm_cond_v, llvm_then_bb, llvm_else_bb);
 
@@ -368,14 +376,15 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 		if( !then_stmtr.ok() )
 			return then_stmtr;
 	}
-	Builder->CreateBr(llvm_merge_bb);
-
-	// Codegen of 'Else' can change the current block, update ElseBB for the PHI.
-	llvm_else_bb = Builder->GetInsertBlock();
 
 	// Emit merge block.
-	llvm_fn->getBasicBlockList().push_back(llvm_merge_bb);
-	Builder->SetInsertPoint(llvm_merge_bb);
+	if( own_merge_block )
+	{
+		Builder->CreateBr(llvm_merge_bb);
+		llvm_fn->getBasicBlockList().push_back(llvm_merge_bb);
+		Builder->SetInsertPoint(llvm_merge_bb);
+		fn.clear_merge_block();
+	}
 
 	return CGExpr();
 }

@@ -23,6 +23,8 @@ fn print_enum(a: Literal): void {
         printf("Point (%d, %d)\n", a_p.point.x, a_p.point.y);
     } else if (a is Literal::Void) {
         printf("Void\n");
+    } else {
+        printf("???\n");
     }
 
     return;
