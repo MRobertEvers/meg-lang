@@ -22,24 +22,15 @@ cg::codegen_assign(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAssign* ir_assign)
 
 	auto rexpr = rhsr.unwrap();
 
-	// TODO: The RHS might be a Struct type name.
-	// E.g.
-	//
-	// let my_point = Point;
-	//
-	// In this case, assignment is a no op.
 	// TODO: Later, insert a constructor call?
 	if( rexpr.is_empty() )
 		return CGExpr();
 
-	// auto lhs = codegen_operand_expr(codegen, lexpr);
 	auto lhs = lexpr.address().llvm_pointer();
 	auto rhs = codegen_operand_expr(codegen, rexpr);
 
 	assert(lhs && rhs && "nullptr for assignment!");
 
-	// TODO: Promote to value really only needs to be done for allocas??
-	// Confusing, we'll see where this goes.
 	switch( ir_assign->op )
 	{
 	// case ast::AssignOp::add:
@@ -71,11 +62,6 @@ cg::codegen_assign(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAssign* ir_assign)
 	// }
 	// break;
 	case ast::AssignOp::assign:
-		// TODO: Constant expressions return their exact values,
-		// All other expressions return a pointer to their result.
-		// LValue expressions return a pointer to them, so LValues need
-		// to be promoted. Need to create LValue type
-		// auto RValuePromoted = !rexpr.literal ? promote_to_value(*this, RValue) : RValue;
 		codegen.Builder->CreateStore(rhs, lhs);
 		break;
 	}

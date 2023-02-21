@@ -824,18 +824,18 @@ AstGen::parse_initializer(AstNode* identifier)
 
 		consume_result = cursor.consume(TokenType::comma, TokenType::close_curly);
 		if( !consume_result.ok() )
-			return ParseError("Expected ',' or ';'.", consume_result.as());
+			return ParseError("Expected ',' or '}'.", consume_result.as());
 
 		designators->append(
 			ast.InitializerDesignator(member_trail.mark(), name, initilizer_expr.unwrap()));
 
+		tok = cursor.peek();
 		if( consume_result.as().type == TokenType::close_curly )
 			break;
-
-		tok = cursor.peek();
 	}
 
-	cursor.consume_if_expected(TokenType::close_curly);
+	if( tok.type != TokenType::close_curly )
+		cursor.consume_if_expected(TokenType::close_curly);
 
 	return ast.Initializer(trail.mark(), identifier, designators);
 }

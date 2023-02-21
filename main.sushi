@@ -40,7 +40,7 @@ fn main(): i32
         .point = Point {
             .x = 5,
             .y = 11
-        },
+        }
     };
 
     print_enum(a);
