@@ -14,5 +14,7 @@ fn main(): i32
         .y = 11
     };
 
+    printf("Point (%d, %d)\n", a.x, a.y);
+
     return 1;
 }

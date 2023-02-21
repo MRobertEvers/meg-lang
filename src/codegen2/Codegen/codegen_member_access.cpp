@@ -79,7 +79,7 @@ cg::codegen_member_access(CG& codegen, cg::LLVMFnInfo& fn, ir::IRMemberAccess* i
 		return llvm_member_tyr;
 	auto llvm_member_type = llvm_member_tyr.unwrap();
 
-	if( ir_ma->type_instance.is_struct_type() )
+	if( expr_ty.is_struct_type() )
 	{
 		auto llvm_member_value =
 			codegen.Builder->CreateStructGEP(llvm_expr_type, llvm_expr_value, member.idx);
