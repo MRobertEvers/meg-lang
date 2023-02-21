@@ -1,23 +1,35 @@
 extern fn printf(str: i8*, ...): void;
 
-enum Literal {
-    Void,
-    String { size: i32; bytes: i8* }
-    Number { value: i32 }
+struct Point {
+    x: i32;
+    y: i32;
+}
+
+union LEInt {
+    val: i32;
+    point: Point;
+}
+
+fn print_point(p: Point*): void {
+    printf("Point (%d, %d)\n", p->x, p->y);
+    return;
 }
 
 fn main(): i32 
 {
-    let a: Literal = Literal::String {
-        .size = 5,
-        .bytes = "lumpy"
+    let a: LEInt = LEInt {
+        .point = Point {
+            .x = 5,
+            .y = 12
+        }
+    };
+    let b: Point = Point {
+        .x = 5,
+        .y = 11
     };
 
-    if (a is Literal::Number) => (a_num: Literal::Number) {
-        printf("%d\n", a_num.value);
-    } else if (a is Literal::String) => (a_str: Literal::String) {
-        printf("%.*s\n", a_str.size, a_str.bytes);
-    }
-
+    print_point(&a.point);
+    print_point(&b);
+  
     return 1;
 }

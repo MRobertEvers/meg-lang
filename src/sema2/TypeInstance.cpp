@@ -39,21 +39,34 @@ TypeInstance::is_enum_type() const
 	return !is_array_ && indirection_level == 0 && type->is_enum_type();
 }
 
+bool
+TypeInstance::is_union_type() const
+{
+	return !is_array_ && indirection_level == 0 && type->is_union_type();
+}
+
 TypeInstance
-TypeInstance::PointerTo(int indirection)
+TypeInstance::Dereference() const
+{
+	assert(indirection_level > 0);
+	return TypeInstance(this->type, this->indirection_level - 1);
+}
+
+TypeInstance
+TypeInstance::PointerTo(int indirection) const
 {
 	return TypeInstance(this->type, this->indirection_level + indirection);
 }
 
 TypeInstance
-TypeInstance::PointerElementType()
+TypeInstance::PointerElementType() const
 {
 	assert(!is_array_ && this->indirection_level > 0);
 	return TypeInstance(this->type, this->indirection_level - 1);
 }
 
 TypeInstance
-TypeInstance::ArrayElementType()
+TypeInstance::ArrayElementType() const
 {
 	assert(is_array_);
 	return TypeInstance(this->type, this->indirection_level);

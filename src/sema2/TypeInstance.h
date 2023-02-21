@@ -39,12 +39,14 @@ public:
 	bool is_function_type() const;
 	bool is_struct_type() const;
 	bool is_enum_type() const;
+	bool is_union_type() const;
 	bool is_pointer_type() const { return !is_array_ && indirection_level != 0; }
 	bool is_array_type() const { return is_array_; }
 
-	TypeInstance PointerTo(int indirection);
-	TypeInstance PointerElementType();
-	TypeInstance ArrayElementType();
+	TypeInstance Dereference() const;
+	TypeInstance PointerTo(int indirection) const;
+	TypeInstance PointerElementType() const;
+	TypeInstance ArrayElementType() const;
 
 	static TypeInstance OfType(Type const* type);
 	static TypeInstance PointerTo(Type const* type, int indirection);

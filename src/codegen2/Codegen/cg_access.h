@@ -7,5 +7,14 @@
 namespace cg
 {
 class CG;
-CGResult<CGExpr> cg_access(CG&, LLVMAddress src, sema::MemberTypeInstance const& member);
+/**
+ * @brief
+ *
+ * @param src
+ * @param type Semantic type of src
+ * @param member
+ * @return CGResult<CGExpr>
+ */
+CGResult<CGExpr> cg_access(
+	CG&, LLVMAddress src, sema::TypeInstance const& type, sema::MemberTypeInstance const& member);
 } // namespace cg

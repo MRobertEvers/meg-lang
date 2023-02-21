@@ -46,7 +46,7 @@ private:
 	bool is_var_arg_;
 
 	// For enums
-	Type const* dependent_on_type_;
+	Type const* dependent_on_type_ = nullptr;
 	std::optional<EnumNominal> nominal_;
 
 	// All Type classes

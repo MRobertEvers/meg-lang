@@ -28,7 +28,11 @@ cg::codegen_indirect_member_access(
 		return exprr;
 	auto expr = exprr.unwrap();
 
-	return cg_access(codegen, dereference(codegen, expr.address()), ir_ma->member);
+	return cg_access(
+		codegen,
+		dereference(codegen, expr.address()),
+		ir_ma->expr->type_instance.Dereference(),
+		ir_ma->member);
 }
 
 CGResult<CGExpr>
@@ -39,5 +43,5 @@ cg::codegen_member_access(CG& codegen, cg::LLVMFnInfo& fn, ir::IRMemberAccess* i
 		return exprr;
 	auto expr = exprr.unwrap();
 
-	return cg_access(codegen, expr.address(), ir_ma->member);
+	return cg_access(codegen, expr.address(), ir_ma->expr->type_instance, ir_ma->member);
 }

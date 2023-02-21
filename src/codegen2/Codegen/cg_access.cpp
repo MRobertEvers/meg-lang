@@ -6,7 +6,11 @@
 using namespace cg;
 
 CGResult<CGExpr>
-cg::cg_access(CG& codegen, LLVMAddress address, sema::MemberTypeInstance const& member)
+cg::cg_access(
+	CG& codegen,
+	LLVMAddress address,
+	sema::TypeInstance const& type,
+	sema::MemberTypeInstance const& member)
 {
 	auto llvm_expr_value = address.llvm_pointer();
 	auto llvm_expr_type = address.llvm_allocated_type();
@@ -18,7 +22,7 @@ cg::cg_access(CG& codegen, LLVMAddress address, sema::MemberTypeInstance const& 
 		return llvm_member_tyr;
 	auto llvm_member_type = llvm_member_tyr.unwrap();
 
-	if( expr_ty.is_struct_type() )
+	if( type.is_struct_type() )
 	{
 		auto llvm_member_value =
 			codegen.Builder->CreateStructGEP(llvm_expr_type, llvm_expr_value, member.idx);
