@@ -34,7 +34,7 @@ public:
 
 	// Enum related
 	EnumNominal as_nominal() const;
-	Type const* dependent_type() const;
+	TypeInstance storage_type() const;
 
 	bool is_function_type() const;
 	bool is_struct_type() const;

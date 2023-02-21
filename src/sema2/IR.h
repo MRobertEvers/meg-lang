@@ -256,12 +256,19 @@ struct IRStringLiteral
 	sema::TypeInstance type_instance;
 };
 
+struct IRDesignator
+{
+	ast::AstNode* node;
+	sema::MemberTypeInstance member;
+	ir::IRExpr* expr;
+};
+
 struct IRInitializer
 {
 	//
 	ast::AstNode* node;
 	String* name;
-	std::map<String, ir::IRExpr*>* initializers;
+	Vec<IRDesignator*>* initializers;
 	sema::TypeInstance type_instance;
 };
 

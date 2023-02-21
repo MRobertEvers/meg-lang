@@ -74,6 +74,7 @@ add_executable(sushi
     src/codegen2/CGExpr.cpp
     src/codegen2/Scope.cpp
     src/codegen2/LValue.cpp
+    src/codegen2/Codegen/cg_assign.cpp
     src/codegen2/Codegen/cg_access.cpp
     src/codegen2/Codegen/cg_copy.cpp
     src/codegen2/Codegen/cg_fixdown.cpp

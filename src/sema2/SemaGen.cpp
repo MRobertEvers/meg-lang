@@ -24,7 +24,7 @@ to_single_name(Sema2& sema, AstList<String*>* list)
 	for( auto part : list )
 	{
 		if( !first )
-			*name += "__";
+			*name += "#";
 		*name += *part;
 
 		first = false;
@@ -42,7 +42,7 @@ idname(AstId id)
 	for( auto part : id.name_parts )
 	{
 		if( !first )
-			name += "__";
+			name += "#";
 		name += *part;
 
 		first = false;
@@ -1265,7 +1265,7 @@ unpack_struct_node(Sema2& sema, ast::AstNode* ast)
 		return structr;
 	auto struct_node = structr.unwrap();
 
-	auto idr = expected(ast, ast::as_id);
+	auto idr = expected(struct_node.type_name, ast::as_id);
 	if( !idr.ok() )
 		return idr;
 	auto id = idr.unwrap();
@@ -1321,7 +1321,7 @@ sema::sema_initializer(Sema2& sema, ast::AstNode* ast)
 	if( !initializer_type )
 		return SemaError("Initializer for unknown type.");
 
-	auto designators = sema.create_expr_map();
+	auto designators = sema.create_designator_list();
 
 	for( auto designator_node : initializer.members )
 	{
@@ -1335,12 +1335,17 @@ sema::sema_initializer(Sema2& sema, ast::AstNode* ast)
 			return exprr;
 		auto expr = exprr.unwrap();
 
-		auto namer = as_name(sema, designator.name);
-		if( !namer.ok() )
-			return namer;
-		auto name = namer.unwrap();
+		auto idr = expected(designator.name, ast::as_id);
+		if( !idr.ok() )
+			return idr;
+		auto id = idr.unwrap();
+		auto name = idname(id);
 
-		designators->emplace(*name, expr);
+		auto member = initializer_type->get_member(name);
+		if( !member.has_value() )
+			return SemaError("Unknown designator field: " + name);
+
+		designators->push_back(sema.Designator(designator_node, member.value(), expr));
 	}
 
 	return sema.Initializer(ast, type_name, designators, TypeInstance::OfType(initializer_type));
@@ -1405,6 +1410,7 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 		auto member = memberr.unwrap();
 
 		members->emplace(*member->name, member);
+		number++;
 	}
 
 	enum_type->set_enum_members(members_to_members(*members));
@@ -1452,7 +1458,7 @@ sema::sema_enum_member(
 		auto name = namer.unwrap();
 
 		auto type = Type::Struct(
-			enum_name + "__" + idname(unpacked.name),
+			enum_name + "#" + idname(unpacked.name),
 			members_to_members(*unpacked.members),
 			nominal);
 		type.set_dependent_type(enum_type);

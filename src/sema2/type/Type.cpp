@@ -13,7 +13,14 @@ Type::Type(String name, std::map<String, MemberTypeInstance> members, TypeClassi
 	: name(name)
 	, members(members)
 	, is_var_arg_(false)
-	, cls(cls){};
+	, cls(cls)
+{
+	// TODO: Ensure idx matches order.
+	for( auto [name, member] : members )
+	{
+		members_order.push_back(member);
+	}
+};
 
 Type::Type(String name, Vec<MemberTypeInstance> args, TypeInstance return_type, bool is_var_arg)
 	: name(name)
@@ -98,6 +105,16 @@ Type::get_return_type() const
 		return std::optional<TypeInstance>();
 
 	return this->return_type;
+}
+
+Type const*
+Type::get_dependent_type() const
+{
+	// TODO: I'm not sure this is the best way. Perhaps this should return null?
+	if( this->dependent_on_type_ )
+		return this->dependent_on_type_;
+	else
+		return this;
 }
 
 Type

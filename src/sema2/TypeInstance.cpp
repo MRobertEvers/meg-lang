@@ -12,10 +12,13 @@ TypeInstance::as_nominal() const
 	return type->as_nominal();
 }
 
-Type const*
-TypeInstance::dependent_type() const
+TypeInstance
+TypeInstance::storage_type() const
 {
-	return type->get_dependent_type();
+	if( !is_array_ && indirection_level == 0 )
+		return TypeInstance::OfType(type->get_dependent_type());
+	else
+		return *this;
 }
 
 bool

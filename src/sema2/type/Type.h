@@ -78,7 +78,7 @@ public:
 
 	// The enum members depend on the parent type.
 	void set_enum_members(std::map<String, MemberTypeInstance> members);
-	Type const* get_dependent_type() const { return this->dependent_on_type_; };
+	Type const* get_dependent_type() const;
 	void set_dependent_type(Type const* t) { this->dependent_on_type_ = t; };
 
 	static Type Function(String const&, Vec<MemberTypeInstance>, TypeInstance, bool);

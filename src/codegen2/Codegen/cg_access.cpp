@@ -12,9 +12,6 @@ cg::cg_access(CG& codegen, LLVMAddress address, sema::MemberTypeInstance const& 
 	auto llvm_expr_type = address.llvm_allocated_type();
 
 	auto expr_ty = member.type;
-	assert(
-		(expr_ty.type->is_struct_type() || expr_ty.type->is_union_type()) &&
-		expr_ty.indirection_level == 0);
 
 	auto llvm_member_tyr = get_type(codegen, expr_ty);
 	if( !llvm_member_tyr.ok() )

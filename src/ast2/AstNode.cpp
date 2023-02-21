@@ -80,5 +80,9 @@ ast::to_string(NodeType type)
 		return "ArrayAccess";
 	case NodeType::IfArrow:
 		return "IfArrow";
+	case NodeType::Initializer:
+		return "Initializer";
+	case NodeType::InitializerDesignator:
+		return "InitializerDesignator";
 	}
 }

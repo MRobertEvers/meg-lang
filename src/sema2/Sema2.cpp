@@ -88,6 +88,12 @@ Sema2::lookup_type(String const& name)
 	return current_scope->lookup_type(name);
 }
 
+Vec<ir::IRDesignator*>*
+Sema2::create_designator_list()
+{
+	return new Vec<ir::IRDesignator*>();
+}
+
 Vec<ir::IRTopLevelStmt*>*
 Sema2::create_tlslist()
 {
@@ -990,16 +996,28 @@ ir::IRInitializer*
 Sema2::Initializer(
 	ast::AstNode* node,
 	String* name,
-	std::map<String, ir::IRExpr*>* exprs,
+	Vec<ir::IRDesignator*>* initializers,
 	sema::TypeInstance type_instance)
 {
 	//
 	auto nod = new ir::IRInitializer;
 
 	nod->node = node;
-	nod->initializers = exprs;
+	nod->initializers = initializers;
 	nod->name = name;
 	nod->type_instance = type_instance;
+
+	return nod;
+}
+
+ir::IRDesignator*
+Sema2::Designator(ast::AstNode* node, sema::MemberTypeInstance member, ir::IRExpr* expr)
+{
+	auto nod = new ir::IRDesignator;
+
+	nod->node = node;
+	nod->member = member;
+	nod->expr = expr;
 
 	return nod;
 }

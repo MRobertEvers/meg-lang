@@ -48,6 +48,7 @@ public:
 	std::optional<TypeInstance> lookup_name(String const& name);
 	Type const* lookup_type(String const& name);
 
+	Vec<ir::IRDesignator*>* create_designator_list();
 	Vec<ir::IRTopLevelStmt*>* create_tlslist();
 	std::map<String, ir::IREnumMember*>* create_enum_member_map();
 	std::map<String, ir::IRValueDecl*>* create_member_map();
@@ -141,7 +142,8 @@ public:
 	For(ast::AstNode*, ir::IRExpr* condition, ir::IRStmt* init, ir::IRStmt* end, ir::IRStmt* body);
 	ir::IRWhile* While(ast::AstNode*, ir::IRExpr* condition, ir::IRStmt* body);
 	ir::IRInitializer*
-	Initializer(ast::AstNode*, String*, std::map<String, ir::IRExpr*>*, sema::TypeInstance);
+	Initializer(ast::AstNode*, String*, Vec<ir::IRDesignator*>*, sema::TypeInstance);
+	ir::IRDesignator* Designator(ast::AstNode*, sema::MemberTypeInstance, ir::IRExpr* expr);
 };
 
 } // namespace sema
