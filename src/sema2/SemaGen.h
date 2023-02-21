@@ -10,18 +10,6 @@
 
 namespace sema
 {
-template<typename NodeType>
-SemaResult<NodeType>
-expected(ast::AstNode* node, ast::Cast<NodeType> (*cast)(ast::AstNode* node))
-{
-	auto castr = cast(node);
-	if( !castr.ok() )
-		return SemaError(
-			"Expected type '" + ast::to_string(NodeType::nt) + "'. Received '" +
-			ast::to_string(node->type) + "'.");
-
-	return SemaResult(castr.unwrap());
-}
 
 SemaResult<ir::IRModule*> sema_module(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRTopLevelStmt*> sema_tls(Sema2& sema, ast::AstNode* ast);
@@ -39,7 +27,7 @@ SemaResult<ir::IRFunction*> sema_fn(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRArgs*> sema_fn_args(Sema2& sema, ast::AstNode* ast, sema::Type const& fn_type);
 SemaResult<ir::IRCall*> sema_fn_call(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRArrayAccess*> sema_array_access(Sema2& sema, ast::AstNode* ast);
-SemaResult<ir::IRId*> sema_id(Sema2& sema, ast::AstNode* ast);
+
 SemaResult<ir::IRMemberAccess*> sema_member_access(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRIndirectMemberAccess*> sema_indirect_member_access(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRAddressOf*> sema_addressof(Sema2& sema, ast::AstNode* ast);

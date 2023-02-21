@@ -58,6 +58,7 @@ add_executable(sushi
     src/ast2/AstTags.h
     src/ast2/Ast.cpp
     src/sema2/Scope.cpp
+    src/sema2/sema/sema_id.cpp
     src/sema2/SemaGen.cpp
     src/sema2/Sema2.cpp
     src/sema2/SemaResult.cpp

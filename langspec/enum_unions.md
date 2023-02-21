@@ -62,9 +62,7 @@ if (coin is Coin::Quarter) => (quarter: Coin::Quarter) {
 }
 
 switch (coin) {
-    case Coin::Quarter => (quarter: Coin::Quarter) {
-    
-    }
+    case Coin::Quarter => handle_quarter;
     case Coin::Penny {
 
     }

@@ -4,6 +4,8 @@
 
 #include "ast2/AstCasts.h"
 #include "lowering/lower_for.h"
+#include "sema/sema_id.h"
+#include "sema_expected.h"
 
 using namespace sema;
 using namespace ir;
@@ -481,8 +483,14 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 		auto litr = sema_id(sema, expr_node);
 		if( !litr.ok() )
 			return litr;
-
-		return sema.Expr(litr.unwrap());
+		auto idt = litr.unwrap();
+		switch( idt.type )
+		{
+		case sema_id_t::Type::Id:
+			return sema.Expr(idt.id);
+		case sema_id_t::Type::Initializer:
+			return sema.Expr(idt.initializer);
+		}
 	}
 	case NodeType::Expr:
 	{
@@ -715,46 +723,6 @@ sema::sema_array_access(Sema2& sema, ast::AstNode* ast)
 								 ? call_target_type.ArrayElementType()
 								 : call_target_type.PointerElementType();
 	return sema.ArrayAcess(ast, call_target, expr, array_access_type);
-}
-
-SemaResult<ir::IRId*>
-sema::sema_id(Sema2& sema, ast::AstNode* ast)
-{
-	auto idr = expected(ast, ast::as_id);
-	if( !idr.ok() )
-		return idr;
-	auto id = idr.unwrap();
-
-	// TODO: Leaks
-	auto maybe_value = sema.lookup_name(*to_single_name(sema, id.name_parts));
-	if( maybe_value.has_value() )
-		// TODO: Allocate new
-		return sema.Id(ast, &id.name_parts->list, maybe_value.value(), false);
-
-	// Struct name?
-	// TODO: Leaks
-	auto maybe_struct = sema.lookup_type(*to_single_name(sema, id.name_parts));
-	if( maybe_struct )
-	{
-		if( maybe_struct->is_struct_type() )
-		{
-			// Lookup constructor.
-			// Note that we need to generate a constructor?
-			auto str_name = maybe_struct->get_name();
-			auto name = sema.create_name(str_name.c_str(), str_name.size());
-			auto parts = new Vec<String*>();
-			parts->push_back(name);
-			return sema.Id(ast, parts, TypeInstance::OfType(maybe_struct), true);
-		}
-		else
-		{
-			// TODO: Yikes
-			return sema.Id(ast, &id.name_parts->list, TypeInstance::OfType(maybe_struct), true);
-		}
-	}
-
-	// TODO: Leaks
-	return SemaError("Unrecognized variable '" + *to_single_name(sema, id.name_parts) + "'");
 }
 
 SemaResult<ir::IRMemberAccess*>
