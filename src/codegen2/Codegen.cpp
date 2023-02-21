@@ -8,6 +8,7 @@
 #include "Codegen/codegen_call.h"
 #include "Codegen/codegen_deref.h"
 #include "Codegen/codegen_function.h"
+#include "Codegen/codegen_initializer.h"
 #include "Codegen/codegen_is.h"
 #include "Codegen/codegen_member_access.h"
 #include "Codegen/codegen_return.h"
@@ -169,6 +170,8 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 		return codegen_deref(*this, fn, expr->expr.deref);
 	case ir::IRExprType::Is:
 		return codegen_is(*this, fn, expr->expr.is);
+	case ir::IRExprType::Initializer:
+		return codegen_initializer(*this, fn, expr->expr.initializer, lvalue);
 	case ir::IRExprType::Empty:
 		return CGExpr();
 	}

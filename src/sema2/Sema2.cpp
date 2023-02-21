@@ -107,6 +107,12 @@ Sema2::create_member_map()
 	return new std::map<String, ir::IRValueDecl*>();
 }
 
+std::map<String, ir::IRExpr*>*
+Sema2::create_expr_map()
+{
+	return new std::map<String, ir::IRExpr*>();
+}
+
 Vec<ir::IRStmt*>*
 Sema2::create_slist()
 {
@@ -487,6 +493,20 @@ Sema2::Expr(ir::IRIs* nl)
 	// TODO: Rewrite this so I don't have to manually pass up descriminations
 	// through all possible expr nodes.
 	nod->discriminations->push_back(nl);
+
+	return nod;
+}
+
+ir::IRExpr*
+Sema2::Expr(ir::IRInitializer* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.initializer = nl;
+	nod->type = ir::IRExprType::Initializer;
+	nod->type_instance = nl->type_instance;
+	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -962,6 +982,24 @@ Sema2::While(ast::AstNode* node, ir::IRExpr* condition, ir::IRStmt* body)
 	nod->node = node;
 	nod->condition = condition;
 	nod->body = body;
+
+	return nod;
+}
+
+ir::IRInitializer*
+Sema2::Initializer(
+	ast::AstNode* node,
+	String* name,
+	std::map<String, ir::IRExpr*>* exprs,
+	sema::TypeInstance type_instance)
+{
+	//
+	auto nod = new ir::IRInitializer;
+
+	nod->node = node;
+	nod->initializers = exprs;
+	nod->name = name;
+	nod->type_instance = type_instance;
 
 	return nod;
 }

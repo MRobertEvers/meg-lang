@@ -53,6 +53,8 @@ Cast<AstEnum> as_enum(ast::AstNode* node);
 Cast<AstEnumMember> as_enum_member(ast::AstNode* node);
 Cast<AstIfArrow> as_if_arrow(ast::AstNode* node);
 Cast<AstIs> as_is(ast::AstNode* node);
+Cast<AstInitializer> as_initializer(ast::AstNode* node);
+Cast<AstInitializerDesignator> as_initializer_designator(ast::AstNode* node);
 
 // template<template<typename> typename Container, typename NodeType>
 // Container<NodeType>

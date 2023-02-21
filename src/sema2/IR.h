@@ -252,6 +252,15 @@ struct IRStringLiteral
 	sema::TypeInstance type_instance;
 };
 
+struct IRInitializer
+{
+	//
+	ast::AstNode* node;
+	String* name;
+	std::map<String, ir::IRExpr*>* initializers;
+	sema::TypeInstance type_instance;
+};
+
 struct IRMemberAccess
 {
 	//
@@ -388,6 +397,7 @@ enum class IRExprType
 	StringLiteral,
 	Id,
 	Is,
+	Initializer,
 	BinOp,
 	ValueDecl,
 	MemberAccess,
@@ -411,6 +421,7 @@ struct IRExpr
 		IRArrayAccess* array_access;
 		IRBinOp* binop;
 		IRIs* is;
+		IRInitializer* initializer;
 		IRAddressOf* addr_of;
 		IRDeref* deref;
 		IREmpty* empty;

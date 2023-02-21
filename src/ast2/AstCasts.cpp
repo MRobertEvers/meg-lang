@@ -318,3 +318,23 @@ ast::as_is(ast::AstNode* node)
 
 	return &node->data.is;
 }
+
+Cast<AstInitializer>
+ast::as_initializer(ast::AstNode* node)
+{
+	//
+	if( node->type != AstInitializer::nt )
+		return Cast<AstInitializer>();
+
+	return &node->data.initializer;
+}
+
+Cast<AstInitializerDesignator>
+ast::as_initializer_designator(ast::AstNode* node)
+{
+	//
+	if( node->type != AstInitializerDesignator::nt )
+		return Cast<AstInitializerDesignator>();
+
+	return &node->data.designator;
+}

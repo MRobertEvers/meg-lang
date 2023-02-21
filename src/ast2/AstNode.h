@@ -32,6 +32,8 @@ enum class NodeType
 	Return,
 	Struct,
 	Union,
+	Initializer,
+	InitializerDesignator,
 	Enum,
 	EnumMember,
 	// MemberDef,
@@ -312,6 +314,10 @@ struct AstAssign
 	AstNode* right;
 
 	AstAssign() = default;
+	/// @brief
+	/// @param op
+	/// @param left
+	/// @param right
 	AstAssign(AssignOp op, AstNode* left, AstNode* right)
 		: op(op)
 		, left(left)
@@ -412,6 +418,34 @@ struct AstUnion
 
 	AstUnion() = default;
 	AstUnion(AstNode* type_name, AstList<AstNode*>* members)
+		: type_name(type_name)
+		, members(members)
+	{}
+};
+
+struct AstInitializerDesignator
+{
+	static constexpr NodeType nt = NodeType::InitializerDesignator;
+
+	AstNode* name;
+	AstNode* expr;
+
+	AstInitializerDesignator() = default;
+	AstInitializerDesignator(AstNode* name, AstNode* expr)
+		: name(name)
+		, expr(expr)
+	{}
+};
+
+struct AstInitializer
+{
+	static constexpr NodeType nt = NodeType::Initializer;
+
+	AstNode* type_name;
+	AstList<AstNode*>* members;
+
+	AstInitializer() = default;
+	AstInitializer(AstNode* type_name, AstList<AstNode*>* members)
 		: type_name(type_name)
 		, members(members)
 	{}
@@ -608,6 +642,8 @@ struct AstNode
 		AstId id;
 		AstAssign assign;
 		AstIs is;
+		AstInitializer initializer;
+		AstInitializerDesignator designator;
 		AstIf ifcond;
 		AstIfArrow if_arrow;
 		AstElse else_stmt;

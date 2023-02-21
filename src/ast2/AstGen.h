@@ -38,6 +38,7 @@ public:
 	ParseResult<AstNode*> parse_literal();
 	// ParseResult<AstNode*> parse_type_identifier();
 	ParseResult<AstNode*> parse_identifier();
+	ParseResult<AstNode*> parse_initializer(AstNode* identifier);
 	ParseResult<AstNode*> parse_value_list();
 	ParseResult<AstNode*> parse_call(AstNode* base);
 	ParseResult<AstNode*> parse_indirect_member_reference(AstNode* base);

@@ -363,3 +363,21 @@ Ast::Is(Span span, AstNode* expr, AstNode* type)
 	node->data.is = AstIs{expr, type};
 	return node;
 }
+
+AstNode*
+Ast::Initializer(Span span, AstNode* type_name, AstList<AstNode*>* members)
+{
+	//
+	auto node = make_empty<AstInitializer>(span);
+	node->data.initializer = AstInitializer{type_name, members};
+	return node;
+}
+
+AstNode*
+Ast::InitializerDesignator(Span span, AstNode* name, AstNode* expr)
+{
+	//
+	auto node = make_empty<AstInitializerDesignator>(span);
+	node->data.designator = AstInitializerDesignator{name, expr};
+	return node;
+}

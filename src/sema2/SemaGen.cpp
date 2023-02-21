@@ -526,6 +526,14 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 
 		return sema.Expr(litr.unwrap());
 	}
+	case NodeType::Initializer:
+	{
+		auto litr = sema_initializer(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
 	default:
 		break;
 	}
@@ -1224,6 +1232,49 @@ sema::sema_struct(Sema2& sema, ast::AstNode* ast)
 	sema.add_type_identifier(fn_type);
 
 	return sema.Struct(ast, fn_type, members);
+}
+
+SemaResult<ir::IRInitializer*>
+sema::sema_initializer(Sema2& sema, ast::AstNode* ast)
+{
+	//
+	auto initializerr = expected(ast, ast::as_initializer);
+	if( !initializerr.ok() )
+		return initializerr;
+	auto initializer = initializerr.unwrap();
+	// TODO: Somehow expect id??
+	auto type_namer = as_name(sema, initializer.type_name->data.expr.expr);
+	if( !type_namer.ok() )
+		return type_namer;
+	auto type_name = type_namer.unwrap();
+
+	auto initializer_type = sema.lookup_type(*type_name);
+	if( !initializer_type )
+		return SemaError("Initializer for unknown type.");
+
+	auto designators = sema.create_expr_map();
+
+	for( auto designator_node : initializer.members )
+	{
+		auto designatorr = expected(designator_node, ast::as_initializer_designator);
+		if( !designatorr.ok() )
+			return designatorr;
+		auto designator = designatorr.unwrap();
+
+		auto exprr = sema_expr(sema, designator.expr);
+		if( !exprr.ok() )
+			return exprr;
+		auto expr = exprr.unwrap();
+
+		auto namer = as_name(sema, designator.name);
+		if( !namer.ok() )
+			return namer;
+		auto name = namer.unwrap();
+
+		designators->emplace(*name, expr);
+	}
+
+	return sema.Initializer(ast, type_name, designators, TypeInstance::OfType(initializer_type));
 }
 
 SemaResult<ir::IRUnion*>

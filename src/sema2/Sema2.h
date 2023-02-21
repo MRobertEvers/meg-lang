@@ -51,6 +51,7 @@ public:
 	Vec<ir::IRTopLevelStmt*>* create_tlslist();
 	std::map<String, ir::IREnumMember*>* create_enum_member_map();
 	std::map<String, ir::IRValueDecl*>* create_member_map();
+	std::map<String, ir::IRExpr*>* create_expr_map();
 	Vec<ir::IRStmt*>* create_slist();
 	Vec<ir::IRExpr*>* create_elist();
 	Vec<ir::IRParam*>* create_argslist();
@@ -88,6 +89,7 @@ public:
 	ir::IRExpr* Expr(ir::IRArrayAccess*);
 	ir::IRExpr* Expr(ir::IREmpty*);
 	ir::IRExpr* Expr(ir::IRIs*);
+	ir::IRExpr* Expr(ir::IRInitializer*);
 	ir::IRStmt* Stmt(ir::IRReturn*);
 	ir::IRStmt* Stmt(ir::IRExpr*);
 	ir::IRStmt* Stmt(ir::IRLet*);
@@ -137,6 +139,8 @@ public:
 	ir::IRFor*
 	For(ast::AstNode*, ir::IRExpr* condition, ir::IRStmt* init, ir::IRStmt* end, ir::IRStmt* body);
 	ir::IRWhile* While(ast::AstNode*, ir::IRExpr* condition, ir::IRStmt* body);
+	ir::IRInitializer*
+	Initializer(ast::AstNode*, String*, std::map<String, ir::IRExpr*>*, sema::TypeInstance);
 };
 
 } // namespace sema

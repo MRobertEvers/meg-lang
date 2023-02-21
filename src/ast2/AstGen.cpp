@@ -785,6 +785,58 @@ AstGen::parse_identifier()
 	return ast.Id(trail.mark(), name_parts.unwrap());
 }
 
+ParseResult<AstNode*>
+AstGen::parse_initializer(AstNode* identifier)
+{
+	auto trail = get_parse_trail();
+
+	auto designators = ast.create_list();
+
+	auto consume_result = cursor.consume(TokenType::open_curly);
+	if( !consume_result.ok() )
+		return ParseError("Expected '{'", consume_result.as());
+
+	auto tok = consume_result.unwrap();
+
+	while( tok.type != TokenType::close_curly )
+	{
+		auto member_trail = get_parse_trail();
+
+		consume_result = cursor.consume(TokenType::dot);
+		if( !consume_result.ok() )
+			return ParseError("Expected '.'.", consume_result.as());
+
+		consume_result = cursor.consume(TokenType::identifier);
+		if( !consume_result.ok() )
+			return ParseError("Expected identifier.", consume_result.as());
+
+		tok = consume_result.unwrap();
+		auto name = to_value_identifier(ast, consume_result, member_trail.mark());
+
+		consume_result = cursor.consume(TokenType::equal);
+		if( !consume_result.ok() )
+			return ParseError("Expected '='.", consume_result.as());
+
+		auto initilizer_expr = parse_expr();
+		if( !initilizer_expr.ok() )
+			return ParseError(*initilizer_expr.unwrap_error());
+
+		consume_result = cursor.consume(TokenType::comma, TokenType::close_curly);
+		if( !consume_result.ok() )
+			return ParseError("Expected ',' or ';'.", consume_result.as());
+
+		designators->append(
+			ast.InitializerDesignator(member_trail.mark(), name, initilizer_expr.unwrap()));
+
+		if( consume_result.as().type == TokenType::close_curly )
+			break;
+
+		tok = cursor.peek();
+	}
+
+	return ast.Initializer(trail.mark(), identifier, designators);
+}
+
 ParseResult<ast::AstNode*>
 AstGen::parse_value_list()
 {
@@ -1084,7 +1136,6 @@ AstGen::parse_postfix_expr()
 			expr = ast.Expr(trail.mark(), expr.unwrap());
 			break;
 		default:
-			expr = ast.Expr(trail.mark(), expr.unwrap());
 			goto done;
 			break;
 		}
@@ -1113,7 +1164,15 @@ AstGen::parse_expr()
 		if( !type_id.ok() )
 			return type_id;
 
-		op = ast.Is(trail.mark(), ast.Expr(trail.mark(), op.unwrap()), type_id.unwrap());
+		op = ast.Is(trail.mark(), op.unwrap(), type_id.unwrap());
+	}
+	else if( cursor.peek().type == TokenType::open_curly )
+	{
+		auto initializer_block = parse_initializer(op.unwrap());
+		if( !initializer_block.ok() )
+			return initializer_block;
+
+		op = initializer_block.unwrap();
 	}
 
 	return ast.Expr(trail.mark(), op.unwrap());
