@@ -890,10 +890,28 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 			return rhs_exprr;
 		auto rhs = rhs_exprr.unwrap();
 
-		if( !sema.types.equal_types(type_declr->type_instance, rhs->type_instance) )
-			return SemaError(
-				"Mismatched types: " + sema::to_string(type_declr->type_instance) +
-				" != " + sema::to_string(rhs->type_instance));
+		if( type_declr->type_instance.type->is_enum_type() )
+		{
+			if( !sema.types.equal_types(
+					type_declr->type_instance,
+					TypeInstance::OfType(rhs->type_instance.type->get_dependent_type())) &&
+				!sema.types.equal_types(type_declr->type_instance, rhs->type_instance) )
+				return SemaError(
+					"Mismatched types let: " + sema::to_string(type_declr->type_instance) +
+					" != " + sema::to_string(rhs->type_instance));
+		}
+		else
+		{
+			if( !sema.types.equal_types(type_declr->type_instance, rhs->type_instance) )
+				return SemaError(
+					"Mismatched types let: " + sema::to_string(type_declr->type_instance) +
+					" != " + sema::to_string(rhs->type_instance));
+		}
+
+		// if( !sema.types.equal_types(type_declr->type_instance, rhs->type_instance) )
+		// 	return SemaError(
+		// 		"Mismatched types: " + sema::to_string(type_declr->type_instance) +
+		// 		" != " + sema::to_string(rhs->type_instance));
 
 		// TODO: Do I really need to do this?
 		type_declr->type_instance =
@@ -933,10 +951,22 @@ sema::sema_assign(Sema2& sema, ast::AstNode* ast)
 		return rhs_exprr;
 	auto rhs = rhs_exprr.unwrap();
 
-	if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
-		return SemaError(
-			"Mismatched types: " + sema::to_string(lhs->type_instance) +
-			" != " + sema::to_string(rhs->type_instance));
+	if( lhs->type_instance.type->is_enum_type() )
+	{
+		if( !sema.types.equal_types(
+				lhs->type_instance,
+				TypeInstance::OfType(rhs->type_instance.type->get_dependent_type())) )
+			return SemaError(
+				"Mismatched types: " + sema::to_string(lhs->type_instance) +
+				" != " + sema::to_string(rhs->type_instance));
+	}
+	else
+	{
+		if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+			return SemaError(
+				"Mismatched types: " + sema::to_string(lhs->type_instance) +
+				" != " + sema::to_string(rhs->type_instance));
+	}
 
 	return sema.Assign(ast, assign.op, lhs, rhs);
 }

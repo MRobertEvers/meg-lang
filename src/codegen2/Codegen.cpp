@@ -190,23 +190,50 @@ CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* ir_let)
 {
 	auto name = ir_let->name;
 	auto type = ir_let->type_instance;
-	auto typer = get_type(*this, type);
-	if( !typer.ok() )
-		return typer;
-	auto llvm_allocated_type = typer.unwrap();
 
-	llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_allocated_type, nullptr, *name);
-	auto lvalue = LValue(llvm_alloca, llvm_allocated_type);
-	values.insert_or_assign(*name, lvalue);
-
-	if( !ir_let->is_empty() )
+	auto ctype = type.type->get_dependent_type();
+	if( !ctype )
 	{
-		auto assignr = codegen_assign(*this, fn, ir_let->assign);
-		if( !assignr.ok() )
-			return assignr;
-	}
+		auto typer = get_type(*this, type);
+		if( !typer.ok() )
+			return typer;
+		auto llvm_allocated_type = typer.unwrap();
 
-	return CGExpr();
+		llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_allocated_type, nullptr, *name);
+		auto lvalue = LValue(llvm_alloca, llvm_allocated_type);
+		values.insert_or_assign(*name, lvalue);
+
+		if( !ir_let->is_empty() )
+		{
+			auto assignr = codegen_assign(*this, fn, ir_let->assign);
+			if( !assignr.ok() )
+				return assignr;
+		}
+
+		return CGExpr();
+	}
+	else
+	{
+		// Enum
+		auto contained_type = sema::TypeInstance::OfType(ctype);
+		auto typer = get_type(*this, contained_type);
+		if( !typer.ok() )
+			return typer;
+		auto llvm_allocated_type = typer.unwrap();
+
+		llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_allocated_type, nullptr, *name);
+		auto lvalue = LValue(llvm_alloca, llvm_allocated_type);
+		values.insert_or_assign(*name, lvalue);
+
+		if( !ir_let->is_empty() )
+		{
+			auto assignr = codegen_assign(*this, fn, ir_let->assign);
+			if( !assignr.ok() )
+				return assignr;
+		}
+
+		return CGExpr();
+	}
 }
 
 CGResult<CGExpr>
