@@ -1,6 +1,6 @@
 #pragma once
+#include "../MemberTypeInstance.h"
 #include "../TypeInstance.h"
-#include "../TypedMember.h"
 #include "common/String.h"
 #include "common/Vec.h"
 
@@ -12,9 +12,9 @@ struct FunctionTypeInfo
 {
 	// For structs, this is the members
 	// For functions, this is the arguments
-	std::map<String, TypedMember> members;
+	std::map<String, MemberTypeInstance> members;
 
-	Vec<TypedMember> members_order;
+	Vec<MemberTypeInstance> members_order;
 
 	// For functions return type
 	TypeInstance return_type;

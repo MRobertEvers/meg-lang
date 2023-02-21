@@ -1,4 +1,5 @@
 #pragma once
+#include "MemberTypeInstance.h"
 #include "TypeInstance.h"
 #include "ast2/AstNode.h"
 #include "common/String.h"
@@ -231,7 +232,10 @@ struct IRBinOp
 struct IRIs
 {
 	ast::AstNode* node;
+	// This is always BOOL TYPE!
 	sema::TypeInstance type_instance;
+
+	// If you want the checked type, look here.
 	IRTypeDeclaraor* type_decl;
 	IRExpr* lhs;
 };
@@ -266,7 +270,7 @@ struct IRMemberAccess
 	//
 	ast::AstNode* node;
 	String* member_name;
-	sema::TypeInstance type_instance;
+	sema::MemberTypeInstance member;
 	IRExpr* expr;
 };
 
@@ -275,14 +279,14 @@ struct IRIndirectMemberAccess
 	//
 	ast::AstNode* node;
 	String* member_name;
-	sema::TypeInstance type_instance;
+	sema::MemberTypeInstance member;
 	IRExpr* expr;
 };
 
 struct IREnumMember
 {
 	ast::AstNode* node;
-	long long number;
+	sema::EnumNominal number;
 	enum class Type
 	{
 		Id,

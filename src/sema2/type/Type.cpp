@@ -9,13 +9,13 @@ Type::Type(String name)
 	, is_var_arg_(false)
 	, cls(TypeClassification::primitive){};
 
-Type::Type(String name, std::map<String, TypedMember> members, TypeClassification cls)
+Type::Type(String name, std::map<String, MemberTypeInstance> members, TypeClassification cls)
 	: name(name)
 	, members(members)
 	, is_var_arg_(false)
 	, cls(cls){};
 
-Type::Type(String name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg)
+Type::Type(String name, Vec<MemberTypeInstance> args, TypeInstance return_type, bool is_var_arg)
 	: name(name)
 	, members_order(args)
 	, return_type(return_type)
@@ -49,17 +49,24 @@ Type::get_name() const
 	return name;
 }
 
-std::optional<TypedMember>
+EnumNominal
+Type::as_nominal() const
+{
+	assert(nominal_.has_value());
+	return nominal_.value();
+}
+
+std::optional<MemberTypeInstance>
 Type::get_member(String const& name) const
 {
 	auto iter_member = members.find(name);
 	if( iter_member != members.end() )
 		return iter_member->second;
 
-	return std::optional<TypedMember>();
+	return std::optional<MemberTypeInstance>();
 }
 
-TypedMember
+MemberTypeInstance
 Type::get_member(int idx) const
 {
 	assert(idx < members_order.size());
@@ -77,72 +84,12 @@ Type::get_member_count() const
 }
 
 void
-Type::set_enum_members(std::map<String, TypedMember> members)
+Type::set_enum_members(std::map<String, MemberTypeInstance> members)
 {
 	this->members = members;
 	for( auto member : members )
 		members_order.push_back(member.second);
 }
-
-// static TypeInstance const*
-// find(std::map<String, TypedMember>& members, String& name)
-// {
-// 	auto member = members.find(name);
-// 	if( member != members.cend() )
-// 	{
-// 		return &member->second.type;
-// 	}
-// 	else
-// 	{
-// 		return nullptr;
-// 	}
-// }
-
-// TypeInstance const*
-// Type::get_member_type(String const& name) const
-// {
-// 	switch( cls )
-// 	{
-// 	case TypeClassification::primitive:
-// 		return nullptr;
-// 	case TypeClassification::struct_cls:
-// 		return find(this->type_info.struct_.members, name);
-// 	case TypeClassification::function:
-// 		return find(this->type_info.fn_.members, name);
-// 	default:
-// 		break;
-// 	}
-// }
-
-// TypeInstance const*
-// Type::get_member_type(int idx) const
-// {
-// 	if( cls != TypeClassification::function )
-// 		return nullptr;
-
-// 	if( idx < this->type_info.fn_.members_order.size() )
-// 	{
-// 		return &this->type_info.fn_.members_order.at(idx).type;
-// 	}
-// 	else
-// 	{
-// 		return nullptr;
-// 	}
-// }
-
-// TypeInstance
-// Type::get_return_type() const
-// {
-// 	return return_type;
-// }
-
-// void
-// Type::add_member(String const& name, TypeInstance type)
-// {
-// 	members.insert(std::make_pair(name, TypedMember{type, name}));
-
-// 	members_order.emplace_back(TypedMember{type, name});
-// }
 
 std::optional<TypeInstance>
 Type::get_return_type() const
@@ -154,25 +101,34 @@ Type::get_return_type() const
 }
 
 Type
-Type::Function(String const& name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg)
+Type::Function(
+	String const& name, Vec<MemberTypeInstance> args, TypeInstance return_type, bool is_var_arg)
 {
 	return Type{name, args, return_type, is_var_arg};
 }
 
 Type
-Type::Function(String const& name, Vec<TypedMember> args, TypeInstance return_type)
+Type::Function(String const& name, Vec<MemberTypeInstance> args, TypeInstance return_type)
 {
 	return Type{name, args, return_type, false};
 }
 
 Type
-Type::Struct(String const& name, std::map<String, TypedMember> members)
+Type::Struct(String const& name, std::map<String, MemberTypeInstance> members)
 {
 	return Type{name, members, TypeClassification::struct_cls};
 }
 
 Type
-Type::Union(String const& name, std::map<String, TypedMember> members)
+Type::Struct(String const& name, std::map<String, MemberTypeInstance> members, EnumNominal nominal)
+{
+	auto type = Type{name, members, TypeClassification::struct_cls};
+	type.nominal_ = nominal;
+	return type;
+}
+
+Type
+Type::Union(String const& name, std::map<String, MemberTypeInstance> members)
 {
 	return Type{name, members, TypeClassification::union_cls};
 }
@@ -187,4 +143,12 @@ Type
 Type::Primitive(String name)
 {
 	return Type{name};
+}
+
+Type
+Type::Primitive(String name, EnumNominal nominal)
+{
+	auto type = Type{name};
+	type.nominal_ = nominal;
+	return type;
 }

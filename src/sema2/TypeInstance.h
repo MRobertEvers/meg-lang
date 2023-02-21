@@ -1,4 +1,5 @@
 #pragma once
+#include "type/EnumNominal.h"
 
 namespace sema
 {
@@ -30,6 +31,10 @@ public:
 		return this->indirection_level == rhs.indirection_level && this->type == rhs.type;
 	}
 	bool operator!=(const TypeInstance& rhs) { return !operator==(rhs); }
+
+	// Enum related
+	EnumNominal as_nominal() const;
+	Type const* dependent_type() const;
 
 	bool is_function_type() const;
 	bool is_struct_type() const;

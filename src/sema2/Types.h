@@ -1,8 +1,8 @@
 
 #pragma once
 
+#include "MemberTypeInstance.h"
 #include "TypeInstance.h"
-#include "TypedMember.h"
 #include "common/String.h"
 #include "type/Type.h"
 

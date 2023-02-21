@@ -404,7 +404,7 @@ Sema2::Expr(ir::IRMemberAccess* nl)
 	nod->node = nl->node;
 	nod->expr.member_access = nl;
 	nod->type = ir::IRExprType::MemberAccess;
-	nod->type_instance = nl->type_instance;
+	nod->type_instance = nl->member.type;
 	nod->discriminations = nullptr;
 
 	return nod;
@@ -418,7 +418,7 @@ Sema2::Expr(ir::IRIndirectMemberAccess* nl)
 	nod->node = nl->node;
 	nod->expr.indirect_member_access = nl;
 	nod->type = ir::IRExprType::IndirectMemberAccess;
-	nod->type_instance = nl->type_instance;
+	nod->type_instance = nl->member.type;
 	nod->discriminations = nullptr;
 
 	return nod;
@@ -819,7 +819,7 @@ Sema2::EnumMemberStruct(
 	sema::Type const* type,
 	ir::IRStruct* struct_stmt,
 	String* name,
-	long long idx)
+	EnumNominal idx)
 {
 	//
 	auto nod = new ir::IREnumMember;
@@ -835,7 +835,7 @@ Sema2::EnumMemberStruct(
 }
 
 ir::IREnumMember*
-Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, String* name, long long idx)
+Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, String* name, EnumNominal idx)
 {
 	//
 	auto nod = new ir::IREnumMember;
@@ -851,13 +851,13 @@ Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, String* name, lo
 
 ir::IRMemberAccess*
 Sema2::MemberAccess(
-	ast::AstNode* node, ir::IRExpr* expr, sema::TypeInstance member_type, String* member_name)
+	ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member, String* member_name)
 {
 	auto nod = new ir::IRMemberAccess;
 
 	nod->node = node;
 	nod->member_name = member_name;
-	nod->type_instance = member_type;
+	nod->member = member;
 	nod->expr = expr;
 
 	return nod;
@@ -865,13 +865,13 @@ Sema2::MemberAccess(
 
 ir::IRIndirectMemberAccess*
 Sema2::IndirectMemberAccess(
-	ast::AstNode* node, ir::IRExpr* expr, sema::TypeInstance member_type, String* member_name)
+	ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member, String* member_name)
 {
 	auto nod = new ir::IRIndirectMemberAccess;
 
 	nod->node = node;
 	nod->member_name = member_name;
-	nod->type_instance = member_type;
+	nod->member = member;
 	nod->expr = expr;
 
 	return nod;

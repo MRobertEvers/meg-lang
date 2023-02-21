@@ -5,6 +5,19 @@
 
 using namespace sema;
 
+EnumNominal
+TypeInstance::as_nominal() const
+{
+	assert(!is_array_ && indirection_level == 0);
+	return type->as_nominal();
+}
+
+Type const*
+TypeInstance::dependent_type() const
+{
+	return type->get_dependent_type();
+}
+
 bool
 TypeInstance::is_function_type() const
 {

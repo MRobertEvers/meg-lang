@@ -479,10 +479,14 @@ CGResult<CGExpr>
 CG::codegen_struct(ir::IRStruct* st)
 {
 	Vec<llvm::Type*> members;
-	for( auto& member : *st->members )
+	for( int i = 0; i < st->struct_type->get_member_count(); i++ )
 	{
-		auto value_decl = member.second;
-		auto typerr = get_type(*this, value_decl->type_decl);
+		// Order in llvm type must match the order in the sema type
+		// because the member idx is used to access members
+		// as an index.
+		auto member = st->struct_type->get_member(i);
+
+		auto typerr = get_type(*this, member.type);
 		if( !typerr.ok() )
 			return typerr;
 

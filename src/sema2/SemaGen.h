@@ -56,7 +56,7 @@ SemaResult<ir::IRInitializer*> sema_initializer(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRUnion*> sema_union(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IREnum*> sema_enum(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IREnumMember*>
-sema_enum_member(Sema2& sema, String const&, ast::AstNode* ast, Type const*, long long idx);
+sema_enum_member(Sema2& sema, String const&, ast::AstNode* ast, Type const*, EnumNominal idx);
 SemaResult<ir::IRValueDecl*> sema_value_decl(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRNumberLiteral*> sema_number_literal(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRStringLiteral*> sema_string_literal(Sema2& sema, ast::AstNode* ast);

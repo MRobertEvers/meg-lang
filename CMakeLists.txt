@@ -67,13 +67,16 @@ add_executable(sushi
     src/sema2/type/StructTypeInfo.cpp
     src/sema2/Types.cpp
     src/sema2/TypeInstance.cpp
-    src/sema2/TypedMember.cpp
+    src/sema2/MemberTypeInstance.cpp
     src/sema2/SemaTag.cpp
     src/codegen2/Codegen.cpp
     src/codegen2/CGResult.cpp
     src/codegen2/CGExpr.cpp
     src/codegen2/Scope.cpp
     src/codegen2/LValue.cpp
+    src/codegen2/Codegen/cg_access.cpp
+    src/codegen2/Codegen/cg_copy.cpp
+    src/codegen2/Codegen/cg_fixdown.cpp
     src/codegen2/Codegen/codegen_initializer.cpp
     src/codegen2/Codegen/codegen_while.cpp
     src/codegen2/Codegen/codegen_return.cpp

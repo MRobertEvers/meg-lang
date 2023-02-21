@@ -13,7 +13,6 @@ cg::codegen_initializer(
 	ir::IRInitializer* ir_initializer,
 	std::optional<LValue> maybe_lvalue)
 {
-	//
 	auto lvalue = maybe_lvalue.value();
 
 	auto ctype = ir_initializer->type_instance.type->get_dependent_type();
@@ -24,11 +23,8 @@ cg::codegen_initializer(
 			return maybe_llvm_type;
 		auto llvm_type = maybe_llvm_type.unwrap();
 
-		// TODO: Enum types .
-
 		for( auto [designator, ir_expr] : *ir_initializer->initializers )
 		{
-			//
 			auto maybe_member = ir_initializer->type_instance.type->get_member(designator);
 			auto member = maybe_member.value();
 
@@ -60,36 +56,20 @@ cg::codegen_initializer(
 			return maybe_llvm_enum_type;
 		auto llvm_enum_type = maybe_llvm_enum_type.unwrap();
 
-		long long enum_value = -1;
 		bool found = false;
-		// TODO: Better lookup
-		auto test_type = ir_initializer->type_instance.type;
-		llvm::Type* llvm_enum_member_type = nullptr;
-		for( int i = 0; i < ctype->get_member_count(); i++ )
-		{
-			auto mem = ctype->get_member(i);
-			auto member_type = mem.type.type;
-			if( member_type == test_type )
-			{
-				auto maybe_llvm_member_typer =
-					get_type(codegen, sema::TypeInstance::OfType(member_type));
-				if( !maybe_llvm_member_typer.ok() )
-					return maybe_llvm_member_typer;
+		auto member_type = ir_initializer->type_instance;
+		auto maybe_llvm_member_type = get_type(codegen, member_type);
+		if( !maybe_llvm_member_type.ok() )
+			return maybe_llvm_member_type;
+		auto llvm_enum_member_type = maybe_llvm_member_type.unwrap();
 
-				llvm_enum_member_type = maybe_llvm_member_typer.unwrap();
-
-				enum_value = mem.idx;
-				found = true;
-				break;
-			}
-		}
-		assert(found);
+		auto nominal = member_type.as_nominal();
 
 		auto llvm_enum_value =
 			codegen.Builder->CreateStructGEP(llvm_enum_type, lvalue.address().llvm_pointer(), 0);
 
 		llvm::Value* llvm_wanted_value =
-			llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, enum_value, true));
+			llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, nominal.value, true));
 
 		codegen.Builder->CreateStore(llvm_wanted_value, llvm_enum_value);
 

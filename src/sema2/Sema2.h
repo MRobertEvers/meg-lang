@@ -122,12 +122,13 @@ public:
 	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 	ir::IRUnion* Union(ast::AstNode*, sema::Type const*, std::map<String, ir::IRValueDecl*>*);
 	ir::IREnum* Enum(ast::AstNode*, sema::Type const*, std::map<String, ir::IREnumMember*>*);
-	ir::IREnumMember*
-	EnumMemberStruct(ast::AstNode*, sema::Type const*, ir::IRStruct*, String* name, long long idx);
-	ir::IREnumMember* EnumMemberId(ast::AstNode*, sema::Type const*, String* name, long long idx);
-	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
+	ir::IREnumMember* EnumMemberStruct(
+		ast::AstNode*, sema::Type const*, ir::IRStruct*, String* name, EnumNominal idx);
+	ir::IREnumMember* EnumMemberId(ast::AstNode*, sema::Type const*, String* name, EnumNominal idx);
+	ir::IRMemberAccess*
+	MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::MemberTypeInstance, String*);
 	ir::IRIndirectMemberAccess*
-	IndirectMemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance, String*);
+	IndirectMemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::MemberTypeInstance, String*);
 	ir::IRVarArg* VarArg(ast::AstNode*);
 	ir::IRAddressOf* AddressOf(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
 	ir::IRDeref* Deref(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);

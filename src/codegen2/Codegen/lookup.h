@@ -22,7 +22,7 @@ namespace cg
 
 class CG;
 
-CGResult<llvm::Type*> get_base_type(CG& cg, sema::TypeInstance ty);
+CGResult<llvm::Type*> get_base_type(CG& cg, sema::Type const* ty);
 
 CGResult<llvm::Type*> get_type(CG& cg, sema::TypeInstance ty);
 

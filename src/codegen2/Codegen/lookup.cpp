@@ -6,9 +6,9 @@
 using namespace cg;
 
 CGResult<llvm::Type*>
-cg::get_base_type(CG& cg, sema::TypeInstance ty)
+cg::get_base_type(CG& cg, sema::Type const* ty)
 {
-	auto maybe_llvm_type = cg.find_type(ty.type);
+	auto maybe_llvm_type = cg.find_type(ty);
 	if( !maybe_llvm_type.has_value() )
 		return CGError("Missing Type!");
 
@@ -18,7 +18,7 @@ cg::get_base_type(CG& cg, sema::TypeInstance ty)
 CGResult<llvm::Type*>
 cg::get_type(CG& cg, sema::TypeInstance ty)
 {
-	auto maybe_llvm_type = get_base_type(cg, ty);
+	auto maybe_llvm_type = get_base_type(cg, ty.type);
 	if( !maybe_llvm_type.ok() )
 		return maybe_llvm_type;
 

@@ -18,25 +18,10 @@ cg::codegen_is(CG& codegen, cg::LLVMFnInfo& fn, ir::IRIs* ir_is)
 	auto enum_type = ir_is->type_decl->type_instance.type->get_dependent_type();
 	assert(enum_type && enum_type->is_enum_type());
 
-	long long wanted_val = -1;
-	bool found = false;
-	// TODO: Better lookup
-	auto test_type = ir_is->type_decl->type_instance.type;
-	for( int i = 0; i < enum_type->get_member_count(); i++ )
-	{
-		auto mem = enum_type->get_member(i);
-		auto member_type = mem.type.type;
-		if( member_type == test_type )
-		{
-			wanted_val = mem.idx;
-			found = true;
-			break;
-		}
-	}
-	assert(found);
+	auto nominal = ir_is->type_decl->type_instance.as_nominal();
 
 	llvm::Value* llvm_wanted_value =
-		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, wanted_val, true));
+		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, nominal.value, true));
 
 	auto llvm_member_type_value = codegen.Builder->CreateStructGEP(
 		lhs.address().llvm_allocated_type(), lhs.address().llvm_pointer(), 0);

@@ -1,6 +1,7 @@
 #pragma once
+#include "../MemberTypeInstance.h"
 #include "../TypeInstance.h"
-#include "../TypedMember.h"
+#include "EnumNominal.h"
 #include "FunctionTypeInfo.h"
 #include "StructTypeInfo.h"
 #include "common/String.h"
@@ -36,21 +37,24 @@ private:
 	};
 
 	TypeClassification cls = TypeClassification::primitive;
-	std::map<String, TypedMember> members;
+	std::map<String, MemberTypeInstance> members;
 
-	Vec<TypedMember> members_order;
+	Vec<MemberTypeInstance> members_order;
 
 	// For functions return type
 	TypeInstance return_type;
 	bool is_var_arg_;
 
+	// For enums
 	Type const* dependent_on_type_;
+	std::optional<EnumNominal> nominal_;
 
+	// All Type classes
 	String name;
 
 	Type(String name);
-	Type(String name, std::map<String, TypedMember> members, TypeClassification);
-	Type(String name, Vec<TypedMember> args, TypeInstance return_type, bool is_var_arg);
+	Type(String name, std::map<String, MemberTypeInstance> members, TypeClassification);
+	Type(String name, Vec<MemberTypeInstance> args, TypeInstance return_type, bool is_var_arg);
 
 public:
 	~Type();
@@ -62,23 +66,29 @@ public:
 	bool is_enum_type() const { return cls == TypeClassification::enum_cls; }
 	String get_name() const;
 
+	// Enum members only
+	EnumNominal as_nominal() const;
+
+	// TODO: Assert we are a function.
 	bool is_var_arg() const { return is_var_arg_; }
 
-	std::optional<TypedMember> get_member(String const& name) const;
-	TypedMember get_member(int idx) const;
+	std::optional<MemberTypeInstance> get_member(String const& name) const;
+	MemberTypeInstance get_member(int idx) const;
 	int get_member_count() const;
 
 	// The enum members depend on the parent type.
-	void set_enum_members(std::map<String, TypedMember> members);
+	void set_enum_members(std::map<String, MemberTypeInstance> members);
 	Type const* get_dependent_type() const { return this->dependent_on_type_; };
 	void set_dependent_type(Type const* t) { this->dependent_on_type_ = t; };
 
-	static Type Function(String const&, Vec<TypedMember>, TypeInstance, bool);
-	static Type Function(String const&, Vec<TypedMember>, TypeInstance);
-	static Type Struct(String const& name, std::map<String, TypedMember> members);
-	static Type Union(String const& name, std::map<String, TypedMember> members);
+	static Type Function(String const&, Vec<MemberTypeInstance>, TypeInstance, bool);
+	static Type Function(String const&, Vec<MemberTypeInstance>, TypeInstance);
+	static Type Struct(String const& name, std::map<String, MemberTypeInstance> members);
+	static Type Struct(String const& name, std::map<String, MemberTypeInstance>, EnumNominal);
+	static Type Union(String const& name, std::map<String, MemberTypeInstance> members);
 	static Type EnumPartial(String const& name);
 	static Type Primitive(String name);
+	static Type Primitive(String name, EnumNominal);
 };
 
 } // namespace sema
