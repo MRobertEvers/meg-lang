@@ -31,6 +31,8 @@ cg::codegen_is(CG& codegen, cg::LLVMFnInfo& fn, ir::IRIs* ir_is)
 	auto result =
 		CGExpr::MakeRValue(RValue(codegen.Builder->CreateICmpEQ(llvm_lhs, llvm_wanted_value)));
 
-	result.add_discrimination(lhs);
+	if( ir_is->type_decl->type_instance.is_struct_type() )
+		result.add_discrimination(lhs);
+
 	return result;
 }

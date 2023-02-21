@@ -498,7 +498,9 @@ Sema2::Expr(ir::IRIs* nl)
 
 	// TODO: Rewrite this so I don't have to manually pass up descriminations
 	// through all possible expr nodes.
-	nod->discriminations->push_back(nl);
+	// TODO: Also no business logic here
+	if( nl->type_decl->type_instance.is_struct_type() )
+		nod->discriminations->push_back(nl);
 
 	return nod;
 }

@@ -797,6 +797,7 @@ AstGen::parse_initializer(AstNode* identifier)
 		return ParseError("Expected '{'", consume_result.as());
 
 	auto tok = consume_result.unwrap();
+	tok = cursor.peek();
 
 	while( tok.type != TokenType::close_curly )
 	{
@@ -833,6 +834,8 @@ AstGen::parse_initializer(AstNode* identifier)
 
 		tok = cursor.peek();
 	}
+
+	cursor.consume_if_expected(TokenType::close_curly);
 
 	return ast.Initializer(trail.mark(), identifier, designators);
 }

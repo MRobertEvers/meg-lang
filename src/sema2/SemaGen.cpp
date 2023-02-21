@@ -298,7 +298,7 @@ sema::sema_if(Sema2& sema, ast::AstNode* ast)
 
 			auto decl_param = parsed_param->data.value_decl;
 
-			if( ind >= params.params->list.size() )
+			if( ind >= expr->discriminations->size() )
 				return SemaError("Not enough disc. to unpack.");
 
 			;
@@ -1437,7 +1437,7 @@ sema::sema_enum_member(
 	{
 	case AstEnumMember::Type::Id:
 	{
-		auto type = sema.CreateType(Type::Primitive(*member.identifier, nominal));
+		auto type = sema.CreateType(Type::Primitive(enum_name + "#" + *member.identifier, nominal));
 		type->set_dependent_type(enum_type);
 		sema.add_type_identifier(type);
 		auto ir_member = sema.EnumMemberId(ast, type, member.identifier, nominal);
@@ -1530,7 +1530,10 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 
 	if( !type_decl.empty )
 	{
+		// TODO: Leaks
 		auto type = sema.lookup_type(*to_single_name(sema, type_decl.name));
+
+		// TODO: Leaks
 		if( !type )
 			return SemaError("Could not find type '" + *to_single_name(sema, type_decl.name) + "'");
 

@@ -49,11 +49,6 @@ enum_initializer(
 {
 	auto llvm_enum_type = lvalue.address().llvm_allocated_type();
 
-	auto maybe_llvm_member_type = get_type(codegen, member_type);
-	if( !maybe_llvm_member_type.ok() )
-		return maybe_llvm_member_type;
-	auto llvm_enum_member_type = maybe_llvm_member_type.unwrap();
-
 	auto nominal = member_type.as_nominal();
 
 	auto llvm_enum_nominal_value =
@@ -64,8 +59,17 @@ enum_initializer(
 
 	codegen.Builder->CreateStore(llvm_nominal_value, llvm_enum_nominal_value);
 
+	// For enum fields with no value.
+	if( !member_type.is_struct_type() )
+		return CGExpr();
+
 	auto llvm_enum_union_value =
 		codegen.Builder->CreateStructGEP(llvm_enum_type, lvalue.address().llvm_pointer(), 1);
+
+	auto maybe_llvm_member_type = get_type(codegen, member_type);
+	if( !maybe_llvm_member_type.ok() )
+		return maybe_llvm_member_type;
+	auto llvm_enum_member_type = maybe_llvm_member_type.unwrap();
 
 	auto llvm_enum_union_casted_value = codegen.Builder->CreateBitCast(
 		llvm_enum_union_value, llvm_enum_member_type->getPointerTo());
