@@ -59,6 +59,7 @@ enum class TokenType
 	fn,
 	switch_keyword,
 	case_keyword,
+	default_keyword,
 	extern_keyword,
 	return_keyword,
 	let,

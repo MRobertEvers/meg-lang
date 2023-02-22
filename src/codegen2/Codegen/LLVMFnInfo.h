@@ -38,18 +38,24 @@ struct LLVMSwitchInfo
 {
 	llvm::SwitchInst* switch_inst_;
 	LLVMAddress switch_cond_;
+	llvm::BasicBlock* default_block_;
 	llvm::BasicBlock* after_block_;
 
 	LLVMSwitchInfo(
-		llvm::SwitchInst* switch_inst, LLVMAddress switch_cond, llvm::BasicBlock* after_block)
+		llvm::SwitchInst* switch_inst,
+		LLVMAddress switch_cond,
+		llvm::BasicBlock* after_block,
+		llvm::BasicBlock* default_block)
 		: switch_inst_(switch_inst)
 		, switch_cond_(switch_cond)
 		, after_block_(after_block)
+		, default_block_(default_block)
 	{}
 
 	llvm::SwitchInst* switch_inst() const { return switch_inst_; }
 	LLVMAddress switch_cond() const { return switch_cond_; }
 	llvm::BasicBlock* merge_bb() const { return after_block_; }
+	llvm::BasicBlock* default_bb() const { return default_block_; }
 };
 
 /**

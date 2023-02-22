@@ -110,6 +110,7 @@ public:
 	ir::IRId*
 	Id(ast::AstNode* node, Vec<String*>* name_parts, sema::TypeInstance type, bool is_type_id);
 	ir::IRSwitch* Switch(ast::AstNode* node, ir::IRExpr* expr, ir::IRBlock* block);
+	ir::IRCase* CaseDefault(ast::AstNode* node, ir::IRStmt* stmt);
 	ir::IRCase* Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt);
 	ir::IRCase* Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt, Vec<ir::IRParam*>* args);
 	ir::IRLet* Let(ast::AstNode* node, String* name, ir::IRAssign* assign);

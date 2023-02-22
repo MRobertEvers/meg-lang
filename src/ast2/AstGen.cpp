@@ -512,6 +512,7 @@ AstGen::parse_case()
 {
 	//
 	auto trail = get_parse_trail();
+
 	auto tok = cursor.consume(TokenType::case_keyword);
 	if( !tok.ok() )
 		return ParseError("Expected case keyword", tok.as());
@@ -535,6 +536,31 @@ AstGen::parse_case()
 		return stmt;
 
 	return ast.Case(trail.mark(), expr.unwrap(), stmt.unwrap());
+}
+
+ParseResult<AstNode*>
+AstGen::parse_default()
+{
+	//
+	auto trail = get_parse_trail();
+
+	auto tok = cursor.consume(TokenType::default_keyword);
+	if( !tok.ok() )
+		return ParseError("Expected default keyword", tok.as());
+
+	// I'm allowing colon here because of weird cases like
+	// case Val *ptr += 1;
+	// This would be parsed as case (Val*ptr) += 1
+	// Which is wrong.
+	// So you would need to write it
+	// case Val: *ptr += 1; (among other ways)
+	tok = cursor.consume_if_expected(TokenType::colon);
+
+	auto stmt = parse_statement();
+	if( !stmt.ok() )
+		return stmt;
+
+	return ast.Case(trail.mark(), nullptr, stmt.unwrap());
 }
 
 ParseResult<ast::AstNode*>
@@ -594,6 +620,19 @@ AstGen::parse_statement()
 		}
 
 		stmt = expr.unwrap();
+		goto no_semi;
+	}
+	break;
+	case TokenType::default_keyword:
+	{
+		auto expr = parse_default();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+
 		goto no_semi;
 	}
 	break;

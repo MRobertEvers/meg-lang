@@ -32,6 +32,7 @@ public:
 	ParseResult<AstNode*> parse_while();
 	ParseResult<AstNode*> parse_switch();
 	ParseResult<AstNode*> parse_case();
+	ParseResult<AstNode*> parse_default();
 	ParseResult<AstNode*> parse_statement();
 
 	ParseResult<AstNode*> parse_if();

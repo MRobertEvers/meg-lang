@@ -703,6 +703,20 @@ Sema2::Switch(ast::AstNode* node, ir::IRExpr* expr, ir::IRBlock* block)
 }
 
 ir::IRCase*
+Sema2::CaseDefault(ast::AstNode* node, ir::IRStmt* stmt)
+{
+	auto nod = new ir::IRCase;
+
+	nod->node = node;
+	nod->value = 0;
+	nod->block = stmt;
+	nod->discriminations = nullptr;
+	nod->is_default = true;
+
+	return nod;
+}
+
+ir::IRCase*
 Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt)
 {
 	//
@@ -712,6 +726,7 @@ Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt)
 	nod->value = expr;
 	nod->block = stmt;
 	nod->discriminations = nullptr;
+	nod->is_default = false;
 
 	return nod;
 }
@@ -726,6 +741,7 @@ Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt, Vec<ir::IRPara
 	nod->value = expr;
 	nod->block = stmt;
 	nod->discriminations = args;
+	nod->is_default = false;
 
 	return nod;
 }

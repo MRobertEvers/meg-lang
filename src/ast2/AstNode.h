@@ -500,12 +500,19 @@ struct AstCase
 	static constexpr NodeType nt = NodeType::Case;
 
 	AstNode* const_expr;
+	bool is_default;
 	AstNode* stmt;
 
 	AstCase() = default;
 	AstCase(AstNode* const_expr, AstNode* stmt)
 		: const_expr(const_expr)
 		, stmt(stmt)
+		, is_default(false)
+	{}
+	AstCase(AstNode* stmt)
+		: const_expr(nullptr)
+		, stmt(stmt)
+		, is_default(true)
 	{}
 };
 

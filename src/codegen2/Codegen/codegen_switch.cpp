@@ -30,7 +30,7 @@ cg::codegen_switch(CG& codegen, cg::LLVMFnInfo& fn, ir::IRSwitch* ir_switch)
 	auto restore_switch = fn.switch_inst();
 	llvm::SwitchInst* llvm_switch =
 		codegen.Builder->CreateSwitch(llvm_switch_value, llvm_default_bb, 4);
-	fn.set_switch_inst(LLVMSwitchInfo(llvm_switch, expr.address(), llvm_merge_bb));
+	fn.set_switch_inst(LLVMSwitchInfo(llvm_switch, expr.address(), llvm_merge_bb, llvm_default_bb));
 
 	auto blockgen = codegen.codegen_block(fn, ir_switch->block);
 	if( !blockgen.ok() )
@@ -61,14 +61,15 @@ cg::codegen_case(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCase* ir_case)
 	llvm::ConstantInt* llvm_const_int =
 		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, ir_case->value, true));
 
+	// TODO: If default block.
 	llvm::BasicBlock* llvm_case_bb =
-		llvm::BasicBlock::Create(*codegen.Context, std::to_string(ir_case->value), fn.llvm_fn());
+		ir_case->is_default ? switch_info.default_bb()
+							: llvm::BasicBlock::Create(
+								  *codegen.Context, std::to_string(ir_case->value), fn.llvm_fn());
 
 	llvm_switch_inst->addCase(llvm_const_int, llvm_case_bb);
 
 	codegen.Builder->SetInsertPoint(llvm_case_bb);
-
-	// Add descriminations here
 
 	if( ir_case->discriminations )
 	{
@@ -82,7 +83,8 @@ cg::codegen_case(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCase* ir_case)
 		return codegen_result;
 
 	// TODO: Have fallthrough block stored in switch ctx.
-	codegen.Builder->CreateBr(switch_info.merge_bb());
+	if( !ir_case->is_default )
+		codegen.Builder->CreateBr(switch_info.merge_bb());
 
 	return CGExpr();
 }

@@ -980,6 +980,16 @@ sema::sema_switch(Sema2& sema, ast::AstNode* ast)
 	return sema.Switch(ast, switch_expr, block_stmt);
 }
 
+static SemaResult<ir::IRCase*>
+sema_default_case(Sema2& sema, ast::AstNode* ast, ast::AstCase& case_node)
+{
+	auto stmt = sema_stmt(sema, case_node.stmt);
+	if( !stmt.ok() )
+		return stmt;
+
+	return sema.CaseDefault(ast, stmt.unwrap());
+}
+
 SemaResult<ir::IRCase*>
 sema::sema_case(Sema2& sema, ast::AstNode* ast)
 {
@@ -988,6 +998,9 @@ sema::sema_case(Sema2& sema, ast::AstNode* ast)
 	if( !case_noder.ok() )
 		return case_noder;
 	auto case_node = case_noder.unwrap();
+
+	if( !case_node.const_expr )
+		return sema_default_case(sema, ast, case_node);
 
 	// TODO: Must be const
 	// Assume id for now

@@ -381,6 +381,14 @@ Ast::Case(Span span, AstNode* expr, AstNode* stmt)
 }
 
 AstNode*
+Ast::CaseDefault(Span span, AstNode* stmt)
+{
+	auto node = make_empty<AstCase>(span);
+	node->data.case_stmt = AstCase{stmt};
+	return node;
+}
+
+AstNode*
 Ast::Initializer(Span span, AstNode* type_name, AstList<AstNode*>* members)
 {
 	//

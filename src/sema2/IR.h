@@ -306,6 +306,7 @@ struct IRCase
 	// TODO: Constant integral
 	long long value;
 	IRStmt* block;
+	bool is_default;
 
 	Vec<ir::IRParam*>* discriminations;
 };
