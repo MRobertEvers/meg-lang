@@ -326,15 +326,15 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 	llvm::BasicBlock* llvm_then_bb = llvm::BasicBlock::Create(*Context, "then", llvm_fn);
 	llvm::BasicBlock* llvm_else_bb = llvm::BasicBlock::Create(*Context, "else");
 
-	// bool own_merge_block = false;
-	// if( !fn.merge_block().has_value() )
-	// {
-	// 	fn.set_merge_block(llvm::BasicBlock::Create(*Context));
-	// 	own_merge_block = true;
-	// }
+	bool own_merge_block = false;
+	if( !fn.merge_block().has_value() )
+	{
+		fn.set_merge_block(llvm::BasicBlock::Create(*Context));
+		own_merge_block = true;
+	}
 
-	// llvm::BasicBlock* llvm_merge_bb = fn.merge_block().value();
-	llvm::BasicBlock* llvm_merge_bb = llvm::BasicBlock::Create(*Context);
+	llvm::BasicBlock* llvm_merge_bb = fn.merge_block().value();
+	// llvm::BasicBlock* llvm_merge_bb = llvm::BasicBlock::Create(*Context);
 
 	Builder->CreateCondBr(llvm_cond_v, llvm_then_bb, llvm_else_bb);
 
@@ -361,13 +361,13 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 	}
 
 	// Emit merge block.
-	// if( own_merge_block )
-	// {
-	Builder->CreateBr(llvm_merge_bb);
-	llvm_fn->getBasicBlockList().push_back(llvm_merge_bb);
-	Builder->SetInsertPoint(llvm_merge_bb);
-	// fn.clear_merge_block();
-	// }
+	if( own_merge_block )
+	{
+		Builder->CreateBr(llvm_merge_bb);
+		llvm_fn->getBasicBlockList().push_back(llvm_merge_bb);
+		Builder->SetInsertPoint(llvm_merge_bb);
+		fn.clear_merge_block();
+	}
 
 	return CGExpr();
 }
@@ -430,6 +430,9 @@ CGResult<CGExpr>
 CG::codegen_block(cg::LLVMFnInfo& fn, ir::IRBlock* ir_block)
 {
 	//
+	auto restore_merge = fn.merge_block();
+	fn.clear_merge_block();
+
 	auto previous_scope = this->values;
 	for( auto stmt : *ir_block->stmts )
 	{
@@ -439,6 +442,7 @@ CG::codegen_block(cg::LLVMFnInfo& fn, ir::IRBlock* ir_block)
 			return stmtr;
 	}
 	this->values = previous_scope;
+	fn.set_merge_block(restore_merge);
 
 	return CGExpr();
 }

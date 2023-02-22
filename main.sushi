@@ -38,7 +38,19 @@ fn main(): i32
         .bytes = "lumpy"
     };
 
-    print_enum(a);
-    
+    let b: i32 = 5;
+
+    if (a is Literal::String) {
+        if (b == 4) {
+            printf("4\n");
+        } else if (b == 5) {
+            printf("5\n");
+        }
+    } else if (a is Literal::Void) {
+        printf("???\n");
+    } else {
+        print_enum(a);
+    }
+
     return 1;
 }

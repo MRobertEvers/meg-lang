@@ -118,9 +118,7 @@ AstGen::parse_let()
 
 	tok = cursor.consume(TokenType::colon, TokenType::equal);
 	if( !tok.ok() )
-	{
-		return ParseError("Expected identifier or '='", tok.as());
-	}
+		return ParseError("Expected ':' or '='", tok.as());
 
 	auto type_decl = ast.TypeDeclaratorEmpty();
 	if( tok.unwrap().type == TokenType::colon )
@@ -143,9 +141,7 @@ AstGen::parse_let()
 	{
 		auto expr = parse_expr();
 		if( !expr.ok() )
-		{
 			return expr;
-		}
 
 		return ast.Let(trail.mark(), identifier.unwrap(), type_decl, expr.unwrap());
 	}
