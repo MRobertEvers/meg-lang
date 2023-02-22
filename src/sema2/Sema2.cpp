@@ -619,6 +619,28 @@ Sema2::Stmt(ir::IRBlock* e)
 	return nod;
 }
 
+ir::IRStmt*
+Sema2::Stmt(ir::IRSwitch* sw)
+{
+	auto nod = new ir::IRStmt;
+
+	nod->node = sw->node;
+	nod->stmt.switch_stmt = sw;
+	nod->type = ir::IRStmtType::Switch;
+	return nod;
+}
+
+ir::IRStmt*
+Sema2::Stmt(ir::IRCase* c)
+{
+	auto nod = new ir::IRStmt;
+
+	nod->node = c->node;
+	nod->stmt.case_stmt = c;
+	nod->type = ir::IRStmtType::Case;
+	return nod;
+}
+
 ir::IRArgs*
 Sema2::Args(ast::AstNode* node, Vec<ir::IRExpr*>* args)
 {
@@ -663,6 +685,47 @@ Sema2::Id(ast::AstNode* node, Vec<String*>* name_parts, sema::TypeInstance type,
 	nod->name = name_parts;
 	nod->type_instance = type;
 	nod->is_type_id = is_type_id;
+
+	return nod;
+}
+
+ir::IRSwitch*
+Sema2::Switch(ast::AstNode* node, ir::IRExpr* expr, ir::IRBlock* block)
+{
+	//
+	auto nod = new ir::IRSwitch;
+
+	nod->node = node;
+	nod->expr = expr;
+	nod->block = block;
+
+	return nod;
+}
+
+ir::IRCase*
+Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt)
+{
+	//
+	auto nod = new ir::IRCase;
+
+	nod->node = node;
+	nod->value = expr;
+	nod->block = stmt;
+	nod->discriminations = nullptr;
+
+	return nod;
+}
+
+ir::IRCase*
+Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt, Vec<ir::IRParam*>* args)
+{
+	//
+	auto nod = new ir::IRCase;
+
+	nod->node = node;
+	nod->value = expr;
+	nod->block = stmt;
+	nod->discriminations = args;
 
 	return nod;
 }

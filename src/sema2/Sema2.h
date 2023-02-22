@@ -100,6 +100,8 @@ public:
 	ir::IRStmt* Stmt(ir::IRWhile*);
 	ir::IRStmt* Stmt(ir::IRElse*);
 	ir::IRStmt* Stmt(ir::IRBlock*);
+	ir::IRStmt* Stmt(ir::IRSwitch*);
+	ir::IRStmt* Stmt(ir::IRCase*);
 	ir::IRArgs* Args(ast::AstNode* node, Vec<ir::IRExpr*>* args);
 	ir::IRNumberLiteral*
 	NumberLiteral(ast::AstNode* node, TypeInstance type_instance, long long val);
@@ -107,6 +109,9 @@ public:
 	StringLiteral(ast::AstNode* node, TypeInstance type_instance, String* name);
 	ir::IRId*
 	Id(ast::AstNode* node, Vec<String*>* name_parts, sema::TypeInstance type, bool is_type_id);
+	ir::IRSwitch* Switch(ast::AstNode* node, ir::IRExpr* expr, ir::IRBlock* block);
+	ir::IRCase* Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt);
+	ir::IRCase* Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt, Vec<ir::IRParam*>* args);
 	ir::IRLet* Let(ast::AstNode* node, String* name, ir::IRAssign* assign);
 	ir::IRIs*
 	Is(ast::AstNode* node,

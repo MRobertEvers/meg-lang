@@ -365,6 +365,22 @@ Ast::Is(Span span, AstNode* expr, AstNode* type)
 }
 
 AstNode*
+Ast::Switch(Span span, AstNode* expr, AstNode* block)
+{
+	auto node = make_empty<AstSwitch>(span);
+	node->data.switch_stmt = AstSwitch{expr, block};
+	return node;
+}
+
+AstNode*
+Ast::Case(Span span, AstNode* expr, AstNode* stmt)
+{
+	auto node = make_empty<AstCase>(span);
+	node->data.case_stmt = AstCase{expr, stmt};
+	return node;
+}
+
+AstNode*
 Ast::Initializer(Span span, AstNode* type_name, AstList<AstNode*>* members)
 {
 	//

@@ -76,10 +76,13 @@ add_executable(sushi
     src/codegen2/Scope.cpp
     src/codegen2/LValue.cpp
     src/codegen2/Codegen/cg_assign.cpp
+    src/codegen2/Codegen/cg_discriminations.cpp
     src/codegen2/Codegen/cg_access.cpp
     src/codegen2/Codegen/cg_copy.cpp
     src/codegen2/Codegen/cg_fixdown.cpp
+    src/codegen2/Codegen/cg_enum_helpers.cpp
     src/codegen2/Codegen/codegen_initializer.cpp
+    src/codegen2/Codegen/codegen_switch.cpp
     src/codegen2/Codegen/codegen_while.cpp
     src/codegen2/Codegen/codegen_return.cpp
     src/codegen2/Codegen/codegen_function.cpp

@@ -2,6 +2,7 @@
 
 #include "Codegen/CGNotImpl.h"
 #include "Codegen/RValue.h"
+#include "Codegen/cg_discriminations.h"
 #include "Codegen/codegen_addressof.h"
 #include "Codegen/codegen_array_access.h"
 #include "Codegen/codegen_assign.h"
@@ -13,6 +14,7 @@
 #include "Codegen/codegen_member_access.h"
 #include "Codegen/codegen_return.h"
 #include "Codegen/codegen_string_literal.h"
+#include "Codegen/codegen_switch.h"
 #include "Codegen/codegen_while.h"
 #include "Codegen/lookup.h"
 #include "Codegen/operand.h"
@@ -130,6 +132,10 @@ CG::codegen_stmt(cg::LLVMFnInfo& fn, ir::IRStmt* stmt)
 		return codegen_else(fn, stmt->stmt.else_stmt);
 	case ir::IRStmtType::Block:
 		return codegen_block(fn, stmt->stmt.block);
+	case ir::IRStmtType::Switch:
+		return codegen_switch(*this, fn, stmt->stmt.switch_stmt);
+	case ir::IRStmtType::Case:
+		return codegen_case(*this, fn, stmt->stmt.case_stmt);
 	}
 
 	return NotImpl();
@@ -296,9 +302,9 @@ CG::codegen_id(ir::IRId* id)
 	// Need to rethink it.
 	// TODO: This should be get type by name...
 	// Otherwise bad codegen.
-	auto maybe_type = get_type(*this, id->type_instance);
-	if( maybe_type.ok() )
-		return CGExpr();
+	// auto maybe_type = get_type(*this, id->type_instance);
+	// if( maybe_type.ok() )
+	// 	return CGExpr();
 
 	return CGError("Undeclared identifier! " + to_single_name(id->name));
 }
@@ -337,31 +343,7 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 
 	// Inject any discriminations
 	if( ir_if->discriminations )
-	{
-		int ind = 0;
-		for( auto param : *ir_if->discriminations )
-		{
-			auto ir_value_decl = param->data.value_decl;
-			auto ir_type_decl = param->data.value_decl->type_decl;
-			auto llvm_type = get_type(*this, ir_type_decl).unwrap();
-
-			auto name = ir_value_decl->name;
-
-			auto enum_value = cond_expr.get_discrimination(ind).address();
-			auto llvm_enum_value = enum_value.llvm_pointer();
-			auto llvm_enum_type = enum_value.llvm_allocated_type();
-			auto llvm_member_value_ptr =
-				Builder->CreateStructGEP(llvm_enum_type, llvm_enum_value, 1);
-
-			auto llvm_member_value =
-				Builder->CreateBitCast(llvm_member_value_ptr, llvm_type->getPointerTo());
-
-			auto lval = LValue(llvm_member_value, llvm_type);
-			this->values.insert_or_assign(*name, lval);
-
-			ind++;
-		}
-	}
+		cg_discriminations(*this, cond_expr, *ir_if->discriminations);
 
 	auto then_stmtr = codegen_stmt(fn, ir_if->stmt);
 	if( !then_stmtr.ok() )

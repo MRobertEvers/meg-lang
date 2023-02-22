@@ -1,0 +1,52 @@
+extern fn printf(str: i8*, ...): void;
+
+struct Point {
+    x: i32;
+    y: i32;
+}
+
+
+enum Literal {
+    Void,
+    String { size: i32; bytes: i8* }
+    Number { value: i32 }
+    Point { point: Point }
+}
+
+fn print_enum(a: Literal): void {
+    if (a is Literal::Number) => (a_num: Literal::Number) {
+        printf("Number(%d)\n", a_num.value);
+    } else if (a is Literal::String) => (a_str: Literal::String) {
+        printf("String (%.*s)\n", a_str.size, a_str.bytes);
+    } else if (a is Literal::Point) => (a_p: Literal::Point) {
+        printf("Point (%d, %d)\n", a_p.point.x, a_p.point.y);
+    } else if (a is Literal::Void) {
+        printf("Void\n");
+    } else {
+        printf("???\n");
+    }
+
+    return;
+}
+
+fn main(): i32 
+{
+    let a: Literal = Literal::String {
+        .size = 5,
+        .bytes = "lumpy"
+    };
+
+    let a_void: Literal = Literal::Void;
+    let a_point: Literal = Literal::Point {
+        .point = Point {
+            .x = 5,
+            .y = 11
+        }
+    };
+
+    print_enum(a);
+    print_enum(a_void);
+    print_enum(a_point);
+  
+    return 1;
+}

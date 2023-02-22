@@ -290,6 +290,26 @@ struct IRIndirectMemberAccess
 	IRExpr* expr;
 };
 
+struct IRSwitch
+{
+	//
+	ast::AstNode* node;
+	IRExpr* expr;
+	IRBlock* block;
+};
+
+struct IRCase
+{
+	//
+	ast::AstNode* node;
+	// IRExpr* expr;
+	// TODO: Constant integral
+	long long value;
+	IRStmt* block;
+
+	Vec<ir::IRParam*>* discriminations;
+};
+
 struct IREnumMember
 {
 	ast::AstNode* node;
@@ -378,6 +398,8 @@ enum class IRStmtType
 	If,
 	For,
 	While,
+	Case,
+	Switch,
 	Else,
 	Block,
 };
@@ -392,6 +414,8 @@ struct IRStmt
 		IRElse* else_stmt;
 		IRWhile* while_stmt;
 		IRExpr* expr;
+		IRSwitch* switch_stmt;
+		IRCase* case_stmt;
 		IRBlock* block;
 		IRReturn* ret;
 		IRLet* let;

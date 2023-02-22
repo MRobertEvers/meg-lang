@@ -221,6 +221,22 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 
 		return sema.Stmt(ifr.unwrap());
 	}
+	case NodeType::Switch:
+	{
+		auto ifr = sema_switch(sema, stmt_node);
+		if( !ifr.ok() )
+			return ifr;
+
+		return sema.Stmt(ifr.unwrap());
+	}
+	case NodeType::Case:
+	{
+		auto ifr = sema_case(sema, stmt_node);
+		if( !ifr.ok() )
+			return ifr;
+
+		return sema.Stmt(ifr.unwrap());
+	}
 	default:
 	{
 		auto exprstmtr = sema_expr_any(sema, stmt_node);
@@ -232,6 +248,69 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 	}
 
 	return NotImpl();
+}
+
+struct sema_if_arrow_t
+{
+	ir::IRStmt* stmt;
+	Vec<ir::IRParam*>* args;
+};
+static SemaResult<sema_if_arrow_t>
+sema_if_arrow(Sema2& sema, Vec<ir::IRIs*>* discriminations, ast::AstNode* ast)
+{
+	auto ifarrowr = expected(ast, ast::as_if_arrow);
+	if( !ifarrowr.ok() )
+		return SemaError("Expected arrow.");
+	auto ifarrow = ifarrowr.unwrap();
+
+	auto paramsr = expected(ifarrow.args, ast::as_fn_param_list);
+	if( !paramsr.ok() )
+		return SemaError("Expected args.");
+	auto params = paramsr.unwrap();
+
+	if( !discriminations && params.params->list.size() != 0 )
+		return SemaError("???");
+
+	auto args = sema.create_argslist();
+	int ind = 0;
+	for( auto param : params.params )
+	{
+		auto paramr = sema_fn_param(sema, param);
+		if( !paramr.ok() )
+			return paramr;
+		auto parsed_param = paramr.unwrap();
+
+		if( parsed_param->type == IRParamType::VarArg )
+			return SemaError("VarArgs cannot be in if arrow");
+
+		auto decl_param = parsed_param->data.value_decl;
+
+		if( ind >= discriminations->size() )
+			return SemaError("Not enough disc. to unpack.");
+
+		;
+		auto disc = discriminations->at(ind);
+		if( !sema.types.equal_types(
+				disc->type_decl->type_instance, decl_param->type_decl->type_instance) )
+			return SemaError(
+				"Mismatched types: " + sema::to_string(disc->type_instance) +
+				" != " + sema::to_string(decl_param->type_decl->type_instance));
+
+		args->push_back(parsed_param);
+		sema.add_value_identifier(*decl_param->name, decl_param->type_decl->type_instance);
+		ind++;
+	}
+
+	auto stmtr = sema_block(sema, ifarrow.block, false);
+	if( !stmtr.ok() )
+		return stmtr;
+	auto block = stmtr.unwrap();
+	auto stmt = sema.Stmt(block);
+
+	return (sema_if_arrow_t){
+		.stmt = stmt, //
+		.args = args  //
+	};
 }
 
 SemaResult<ir::IRIf*>
@@ -273,54 +352,12 @@ sema::sema_if(Sema2& sema, ast::AstNode* ast)
 	}
 	else
 	{
-		auto ifarrowr = expected(ifcond.then_block, ast::as_if_arrow);
-		if( !ifarrowr.ok() )
-			return SemaError("Expected arrow if.");
-		auto ifarrow = ifarrowr.unwrap();
-
-		auto paramsr = expected(ifarrow.args, ast::as_fn_param_list);
-		if( !paramsr.ok() )
-			return SemaError("Expected args.");
-		auto params = paramsr.unwrap();
-
-		if( !expr->discriminations && params.params->list.size() != 0 )
-			return SemaError("???");
-
-		auto args = sema.create_argslist();
-		int ind = 0;
-		for( auto param : params.params )
-		{
-			auto paramr = sema_fn_param(sema, param);
-			if( !paramr.ok() )
-				return paramr;
-			auto parsed_param = paramr.unwrap();
-
-			if( parsed_param->type == IRParamType::VarArg )
-				return SemaError("VarArgs cannot be in if arrow");
-
-			auto decl_param = parsed_param->data.value_decl;
-
-			if( ind >= expr->discriminations->size() )
-				return SemaError("Not enough disc. to unpack.");
-
-			;
-			auto disc = expr->discriminations->at(ind);
-			if( !sema.types.equal_types(
-					disc->type_decl->type_instance, decl_param->type_decl->type_instance) )
-				return SemaError(
-					"Mismatched types: " + sema::to_string(disc->type_instance) +
-					" != " + sema::to_string(decl_param->type_decl->type_instance));
-
-			args->push_back(parsed_param);
-			sema.add_value_identifier(*decl_param->name, decl_param->type_decl->type_instance);
-			ind++;
-		}
-
-		auto stmtr = sema_block(sema, ifarrow.block, false);
-		if( !stmtr.ok() )
-			return stmtr;
-		auto block = stmtr.unwrap();
-		auto stmt = sema.Stmt(block);
+		auto if_arrowr = sema_if_arrow(sema, expr->discriminations, ifcond.then_block);
+		if( !if_arrowr.ok() )
+			return if_arrowr;
+		auto if_arrow = if_arrowr.unwrap();
+		auto stmt = if_arrow.stmt;
+		auto args = if_arrow.args;
 
 		if( ifcond.else_block )
 		{
@@ -915,6 +952,109 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 
 		sema.add_value_identifier(*name, type_declr->type_instance);
 		return sema.LetEmpty(ast, name, type_declr->type_instance);
+	}
+}
+
+SemaResult<ir::IRSwitch*>
+sema::sema_switch(Sema2& sema, ast::AstNode* ast)
+{
+	//
+	auto switch_noder = expected(ast, ast::as_switch);
+	if( !switch_noder.ok() )
+		return switch_noder;
+	auto switch_node = switch_noder.unwrap();
+
+	auto switch_exprr = sema_expr(sema, switch_node.expr);
+	if( !switch_exprr.ok() )
+		return switch_exprr;
+	auto switch_expr = switch_exprr.unwrap();
+
+	if( !switch_expr->type_instance.is_enum_type() )
+		return SemaError("Switch statements can only be used with enum types");
+
+	auto block_stmtr = sema_block(sema, switch_node.block, false);
+	if( !block_stmtr.ok() )
+		return block_stmtr;
+	auto block_stmt = block_stmtr.unwrap();
+
+	return sema.Switch(ast, switch_expr, block_stmt);
+}
+
+SemaResult<ir::IRCase*>
+sema::sema_case(Sema2& sema, ast::AstNode* ast)
+{
+	//
+	auto case_noder = expected(ast, ast::as_case);
+	if( !case_noder.ok() )
+		return case_noder;
+	auto case_node = case_noder.unwrap();
+
+	// TODO: Must be const
+	// Assume id for now
+	if( case_node.const_expr->type != NodeType::Id )
+		return SemaError("Case labels can only contain enum member ids.");
+
+	auto id_node = case_node.const_expr->data.id;
+	auto const_name = sema.lookup_type(idname(id_node));
+	if( !const_name )
+		return SemaError("Unrecognized case label.");
+
+	// TODO: Shouldn't need to to this once we have the notion of a constant expr.
+	// TODO: Allocate new list instead of referencing name parts list
+	// auto const_expr = sema.Expr(sema.Id(
+	// 	case_node.const_expr, &id_node.name_parts->list, TypeInstance::OfType(const_name), true));
+
+	if( case_node.stmt->type == NodeType::IfArrow )
+	{
+		auto ifarrowr = expected(case_node.stmt, ast::as_if_arrow);
+		if( !ifarrowr.ok() )
+			return SemaError("Expected arrow.");
+		auto ifarrow = ifarrowr.unwrap();
+
+		auto paramsr = expected(ifarrow.args, ast::as_fn_param_list);
+		if( !paramsr.ok() )
+			return SemaError("Expected args.");
+		auto params = paramsr.unwrap();
+
+		if( params.params->list.size() != 1 )
+			return SemaError("Arrow params can only be 1.");
+
+		auto args = sema.create_argslist();
+		for( auto param : params.params )
+		{
+			auto paramr = sema_fn_param(sema, param);
+			if( !paramr.ok() )
+				return paramr;
+			auto parsed_param = paramr.unwrap();
+
+			if( parsed_param->type == IRParamType::VarArg )
+				return SemaError("VarArgs cannot be in if arrow");
+
+			auto decl_param = parsed_param->data.value_decl;
+
+			auto case_name_type = TypeInstance::OfType(const_name);
+			if( !sema.types.equal_types(case_name_type, decl_param->type_decl->type_instance) )
+				return SemaError(
+					"Mismatched types: " + sema::to_string(case_name_type) +
+					" != " + sema::to_string(decl_param->type_decl->type_instance));
+
+			args->push_back(parsed_param);
+			sema.add_value_identifier(*decl_param->name, decl_param->type_decl->type_instance);
+		}
+
+		auto stmt = sema_block(sema, ifarrow.block, false);
+		if( !stmt.ok() )
+			return stmt;
+
+		return sema.Case(ast, const_name->as_nominal().value, sema.Stmt(stmt.unwrap()), args);
+	}
+	else
+	{
+		auto stmt = sema_stmt(sema, case_node.stmt);
+		if( !stmt.ok() )
+			return stmt;
+
+		return sema.Case(ast, const_name->as_nominal().value, stmt.unwrap());
 	}
 }
 

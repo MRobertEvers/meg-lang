@@ -34,7 +34,7 @@ get_named_params(CG& cg, ir::IRProto* proto)
 			auto llvm_arg_ty = argsr.unwrap();
 			auto name = *ir_value_decl->name;
 			auto sema_ty = ir_value_decl->type_decl->type_instance;
-			if( sema_ty.is_struct_type() )
+			if( sema_ty.is_struct_type() || sema_ty.is_enum_type() || sema_ty.is_union_type() )
 			{
 				args.args.emplace_back(
 					String(name),

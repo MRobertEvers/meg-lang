@@ -62,9 +62,13 @@ if (coin is Coin::Quarter) => (quarter: Coin::Quarter) {
 }
 
 switch (coin) {
-    case Coin::Quarter => handle_quarter;
+    case Coin::Quarter => (quarter: Coin::Quarter) {
+    
+    }
+    case Coin::Nickel fallthrough;
     case Coin::Penny {
 
     }
+
 }
 ```

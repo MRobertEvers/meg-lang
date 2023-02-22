@@ -57,6 +57,8 @@ enum class TokenType
 
 	// Keyword
 	fn,
+	switch_keyword,
+	case_keyword,
 	extern_keyword,
 	return_keyword,
 	let,

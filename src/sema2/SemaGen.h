@@ -34,6 +34,8 @@ SemaResult<ir::IRAddressOf*> sema_addressof(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRDeref*> sema_deref(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRReturn*> sema_return(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRLet*> sema_let(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRSwitch*> sema_switch(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRCase*> sema_case(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRAssign*> sema_assign(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRBinOp*> sema_binop(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRBlock*> sema_block(Sema2& sema, ast::AstNode* ast, bool new_scope);

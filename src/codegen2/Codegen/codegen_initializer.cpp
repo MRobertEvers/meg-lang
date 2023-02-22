@@ -2,6 +2,7 @@
 
 #include "../Codegen.h"
 #include "cg_access.h"
+#include "cg_enum_helpers.h"
 #include "lookup.h"
 #include "operand.h"
 
@@ -51,8 +52,8 @@ enum_initializer(
 
 	auto nominal = member_type.as_nominal();
 
-	auto llvm_enum_nominal_value =
-		codegen.Builder->CreateStructGEP(llvm_enum_type, lvalue.address().llvm_pointer(), 0);
+	auto nominal_value = cg_enum_nominal(codegen, lvalue.address());
+	auto llvm_enum_nominal_value = nominal_value.llvm_pointer();
 
 	llvm::Value* llvm_nominal_value =
 		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, nominal.value, true));

@@ -40,6 +40,16 @@ parse_name_parts(AstGen& astgen)
 	return name_parts;
 }
 
+static ParseResult<ast::AstNode*>
+parse_if_block(AstGen& astgen)
+{
+	auto peek = astgen.cursor.peek();
+	if( peek.type == TokenType::fat_arrow )
+		return parse_if_arrow(astgen);
+
+	return astgen.parse_statement();
+}
+
 AstGen::AstGen(Ast& ast, TokenCursor& cursor)
 	: ast(ast)
 	, cursor(cursor)
@@ -150,9 +160,7 @@ AstGen::parse_block()
 
 	auto tok = cursor.consume(TokenType::open_curly);
 	if( !tok.ok() )
-	{
 		return ParseError("Expected '{'", tok.as());
-	}
 
 	auto curr_tok = cursor.peek();
 	while( curr_tok.type != TokenType::close_curly )
@@ -477,12 +485,58 @@ ParseResult<AstNode*>
 AstGen::parse_switch()
 {
 	//
+	auto trail = get_parse_trail();
+	auto tok = cursor.consume(TokenType::switch_keyword);
+	if( !tok.ok() )
+		return ParseError("Expected switch keyword", tok.as());
+
+	tok = cursor.consume(TokenType::open_paren);
+	if( !tok.ok() )
+		return ParseError("Expected '(' keyword", tok.as());
+
+	auto expr = parse_expr();
+	if( !expr.ok() )
+		return expr;
+
+	tok = cursor.consume(TokenType::close_paren);
+	if( !tok.ok() )
+		return ParseError("Expected ')' keyword", tok.as());
+
+	auto block = parse_block();
+	if( !block.ok() )
+		return block;
+
+	return ast.Switch(trail.mark(), expr.unwrap(), block.unwrap());
 }
 
 ParseResult<AstNode*>
 AstGen::parse_case()
 {
 	//
+	auto trail = get_parse_trail();
+	auto tok = cursor.consume(TokenType::case_keyword);
+	if( !tok.ok() )
+		return ParseError("Expected case keyword", tok.as());
+
+	// TODO: const expression?
+	// TODO: parse identifiers and literals.
+	auto expr = parse_identifier();
+	if( !expr.ok() )
+		return expr;
+
+	// I'm allowing colon here because of weird cases like
+	// case Val *ptr += 1;
+	// This would be parsed as case (Val*ptr) += 1
+	// Which is wrong.
+	// So you would need to write it
+	// case Val: *ptr += 1; (among other ways)
+	tok = cursor.consume_if_expected(TokenType::colon);
+
+	auto stmt = parse_if_block(*this);
+	if( !stmt.ok() )
+		return stmt;
+
+	return ast.Case(trail.mark(), expr.unwrap(), stmt.unwrap());
 }
 
 ParseResult<ast::AstNode*>
@@ -531,6 +585,31 @@ AstGen::parse_statement()
 		}
 
 		stmt = expr.unwrap();
+	}
+	break;
+	case TokenType::switch_keyword:
+	{
+		auto expr = parse_switch();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+		goto no_semi;
+	}
+	break;
+	case TokenType::case_keyword:
+	{
+		auto expr = parse_case();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		stmt = expr.unwrap();
+
+		goto no_semi;
 	}
 	break;
 	case TokenType::if_keyword:
@@ -591,23 +670,11 @@ AstGen::parse_statement()
 	{
 		auto curr_tok = cursor.consume(TokenType::semicolon);
 		if( !curr_tok.ok() )
-		{
 			return ParseError("Expected ';'", curr_tok.as());
-		}
 	}
 
 no_semi:
 	return ast.Stmt(trail.mark(), stmt);
-}
-
-static ParseResult<ast::AstNode*>
-parse_if_block(AstGen& astgen)
-{
-	auto peek = astgen.cursor.peek();
-	if( peek.type == TokenType::fat_arrow )
-		return parse_if_arrow(astgen);
-
-	return astgen.parse_statement();
 }
 
 ParseResult<ast::AstNode*>

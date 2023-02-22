@@ -6,5 +6,5 @@
 namespace cg
 {
 class CG;
-CGResult<CGExpr> cg_fixdown(CG&, LLVMAddress const&, LLVMFixup const&);
+LLVMAddress cg_enum_nominal(CG&, LLVMAddress const&);
 } // namespace cg

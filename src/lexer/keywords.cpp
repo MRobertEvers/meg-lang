@@ -26,6 +26,8 @@ KeywordIdentifierTuple keywords[] =
 	{"for", TokenType::for_keyword},
 	{"...", TokenType::var_args},
 	{"is", TokenType::is},
+	{"switch", TokenType::switch_keyword},
+	{"case", TokenType::case_keyword},
 	// clang-format off
 };
 // clang-format on
@@ -99,6 +101,8 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::colon_colon, "colon_colon"},
 	{TokenType::var_args, "var_args"},
 	{TokenType::indirect_member_access, "indirect_member_access"},
+	{TokenType::switch_keyword, "switch"},
+	{TokenType::case_keyword, "case"},
 };
 
 char const*

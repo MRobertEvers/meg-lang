@@ -73,6 +73,8 @@ public:
 	AstNode* VarArg(Span span);
 	AstNode* Empty(Span span);
 	AstNode* Is(Span span, AstNode* expr, AstNode* type);
+	AstNode* Switch(Span span, AstNode* expr, AstNode* block);
+	AstNode* Case(Span span, AstNode* expr, AstNode* stmt);
 	AstNode* Initializer(Span span, AstNode* type_name, AstList<AstNode*>* members);
 	AstNode* InitializerDesignator(Span span, AstNode* name, AstNode* expr);
 };
