@@ -16,6 +16,15 @@
 namespace sema
 {
 
+struct SwitchContext
+{
+	TypeInstance cond_expr_type;
+
+	SwitchContext(TypeInstance cond)
+		: cond_expr_type(cond)
+	{}
+};
+
 class Sema2
 {
 	using TagType = SemaTag;
@@ -27,6 +36,8 @@ class Sema2
 	// generated functions.
 
 	Vec<ir::IRTopLevelStmt*> generated;
+
+	std::optional<SwitchContext> switch_context_;
 
 public:
 	Types types;
@@ -40,6 +51,10 @@ public:
 	std::optional<TypeInstance> get_expected_return();
 	void set_expected_return(TypeInstance id);
 	void clear_expected_return();
+
+	std::optional<SwitchContext> switch_context() { return switch_context_; }
+	void switch_context_set(std::optional<SwitchContext> ctx) { switch_context_ = ctx; }
+	void switch_context_clear() { switch_context_.reset(); }
 
 	Type* CreateType(Type ty);
 

@@ -8,6 +8,22 @@
 
 using namespace cg;
 
+static llvm::Value*
+cg_switch_expr(CG& codegen, CGExpr expr, sema::TypeInstance expr_type)
+{
+	if( expr_type.is_enum_type() )
+	{
+		auto switch_value = cg_enum_nominal(codegen, expr.address());
+
+		auto temp_addr = CGExpr::MakeAddress(switch_value);
+		return codegen_operand_expr(codegen, temp_addr);
+	}
+	else
+	{
+		return codegen_operand_expr(codegen, expr);
+	}
+}
+
 CGResult<CGExpr>
 cg::codegen_switch(CG& codegen, cg::LLVMFnInfo& fn, ir::IRSwitch* ir_switch)
 {
@@ -15,11 +31,8 @@ cg::codegen_switch(CG& codegen, cg::LLVMFnInfo& fn, ir::IRSwitch* ir_switch)
 	if( !exprr.ok() )
 		return exprr;
 	auto expr = exprr.unwrap();
-	// TODO: RValues support?
-	auto switch_value = cg_enum_nominal(codegen, expr.address());
 
-	auto temp_addr = CGExpr::MakeAddress(switch_value);
-	auto llvm_switch_value = codegen_operand_expr(codegen, temp_addr);
+	auto llvm_switch_value = cg_switch_expr(codegen, expr, ir_switch->expr->type_instance);
 
 	auto restore_merge_block = fn.merge_block();
 	llvm::BasicBlock* llvm_merge_bb = llvm::BasicBlock::Create(*codegen.Context, "Merge");

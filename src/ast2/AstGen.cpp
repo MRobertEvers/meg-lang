@@ -519,7 +519,7 @@ AstGen::parse_case()
 
 	// TODO: const expression?
 	// TODO: parse identifiers and literals.
-	auto expr = parse_identifier();
+	auto expr = parse_const_expr();
 	if( !expr.ok() )
 		return expr;
 
@@ -899,6 +899,41 @@ AstGen::parse_identifier()
 		return ParseError(*name_parts.unwrap_error().get());
 
 	return ast.Id(trail.mark(), name_parts.unwrap());
+}
+
+ParseResult<AstNode*>
+AstGen::parse_const_expr()
+{
+	auto trail = get_parse_trail();
+	AstNode* result = nullptr;
+	auto tok = cursor.peek();
+	switch( tok.type )
+	{
+	case TokenType::literal:
+	{
+		auto expr = parse_literal();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+		result = expr.unwrap();
+		break;
+	}
+	case TokenType::identifier:
+	{
+		auto expr = parse_identifier();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+		result = expr.unwrap();
+		break;
+	}
+	default:
+		return ParseError("Expected const expression.", tok);
+	}
+
+	return result;
 }
 
 ParseResult<AstNode*>

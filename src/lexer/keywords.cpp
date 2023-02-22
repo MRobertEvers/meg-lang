@@ -38,7 +38,9 @@ get_identifier_or_keyword_type(Token const& token)
 {
 	for( auto& keyword : keywords )
 	{
-		if( strncmp(keyword.keyword, token.start, strlen(keyword.keyword)) == 0 )
+		auto kw_len = strlen(keyword.keyword);
+
+		if( kw_len == token.size && strncmp(keyword.keyword, token.start, kw_len) == 0 )
 		{
 			return keyword.type;
 		}

@@ -1,5 +1,18 @@
 extern fn printf(str: i8*, ...): void;
 
+fn switch_int(a: i32): void {
+    switch(a) {
+        case 1:
+            printf("1\n");
+        case 2:
+            printf("2\n");
+        default:
+            printf("default\n");
+    }
+
+    return;
+}
+
 struct Point {
     x: i32;
     y: i32;
@@ -18,12 +31,13 @@ fn print_enum(a: Literal): void {
         case Literal::Number => (a_num: Literal::Number) {
             printf("Number(%d)\n", a_num.value);
         }
+        case Literal::String => (a_str: Literal::String) {
+            printf("String (%.*s)\n", a_str.size, a_str.bytes);
+        } 
         case Literal::Point => (a_p: Literal::Point) {
             printf("Point (%d, %d)\n", a_p.point.x, a_p.point.y);
         }
         case Literal::Void:
-            printf("Void\n");
-        default:
             printf("Void\n");
     }
 
@@ -32,32 +46,7 @@ fn print_enum(a: Literal): void {
 
 fn main(): i32 
 {
-    let a: Literal = Literal::String {
-        .size = 5,
-        .bytes = "lumpy"
-    };
-
-    let b = 5;
-
-    let lit_pool: Literal[20];
-
-    lit_pool[1] = Literal::String {
-        .size = 11,
-        .bytes = "who is this"
-    };
-    print_enum(lit_pool[1]);
-
-    if (a is Literal::String) {
-        if (b == 4) {
-            printf("4\n");
-        } else if (b == 5) {
-            printf("5\n");
-        }
-    } else if (a is Literal::Void) {
-        printf("???\n");
-    } else {
-        print_enum(a);
-    }
+    switch_int(1);
 
     return 1;
 }

@@ -969,13 +969,19 @@ sema::sema_switch(Sema2& sema, ast::AstNode* ast)
 		return switch_exprr;
 	auto switch_expr = switch_exprr.unwrap();
 
-	if( !switch_expr->type_instance.is_enum_type() )
-		return SemaError("Switch statements can only be used with enum types");
+	auto switch_expr_type = switch_expr->type_instance;
+	if( !switch_expr_type.is_enum_type() && !sema.types.is_integer_type(switch_expr_type) )
+		return SemaError("Switch statements can only be used with enum or integer types");
+
+	auto restore_context = sema.switch_context();
+	sema.switch_context_set(SwitchContext(switch_expr_type));
 
 	auto block_stmtr = sema_block(sema, switch_node.block, false);
 	if( !block_stmtr.ok() )
 		return block_stmtr;
 	auto block_stmt = block_stmtr.unwrap();
+
+	sema.switch_context_set(restore_context);
 
 	return sema.Switch(ast, switch_expr, block_stmt);
 }
@@ -990,18 +996,9 @@ sema_default_case(Sema2& sema, ast::AstNode* ast, ast::AstCase& case_node)
 	return sema.CaseDefault(ast, stmt.unwrap());
 }
 
-SemaResult<ir::IRCase*>
-sema::sema_case(Sema2& sema, ast::AstNode* ast)
+static SemaResult<ir::IRCase*>
+sema_enum_case(Sema2& sema, ast::AstNode* ast, ast::AstCase& case_node)
 {
-	//
-	auto case_noder = expected(ast, ast::as_case);
-	if( !case_noder.ok() )
-		return case_noder;
-	auto case_node = case_noder.unwrap();
-
-	if( !case_node.const_expr )
-		return sema_default_case(sema, ast, case_node);
-
 	// TODO: Must be const
 	// Assume id for now
 	if( case_node.const_expr->type != NodeType::Id )
@@ -1069,6 +1066,46 @@ sema::sema_case(Sema2& sema, ast::AstNode* ast)
 
 		return sema.Case(ast, const_name->as_nominal().value, stmt.unwrap());
 	}
+}
+
+static SemaResult<ir::IRCase*>
+sema_integral_case(Sema2& sema, ast::AstNode* ast, ast::AstCase& case_node)
+{
+	// Assume id for now
+	// TODO: ExprContext that track constness
+	if( case_node.const_expr->type != NodeType::NumberLiteral )
+		return SemaError("Case labels can only contain number id.");
+
+	auto num_node = case_node.const_expr->data.number_literal;
+
+	auto stmt = sema_stmt(sema, case_node.stmt);
+	if( !stmt.ok() )
+		return stmt;
+
+	return sema.Case(ast, num_node.literal, stmt.unwrap());
+}
+
+SemaResult<ir::IRCase*>
+sema::sema_case(Sema2& sema, ast::AstNode* ast)
+{
+	if( !sema.switch_context().has_value() )
+		return SemaError("'case' statements can only appear inside switch blocks.");
+	//
+	auto case_noder = expected(ast, ast::as_case);
+	if( !case_noder.ok() )
+		return case_noder;
+	auto case_node = case_noder.unwrap();
+
+	if( !case_node.const_expr )
+		return sema_default_case(sema, ast, case_node);
+
+	auto switch_context = sema.switch_context().value();
+	if( switch_context.cond_expr_type.is_enum_type() )
+		return sema_enum_case(sema, ast, case_node);
+	else if( sema.types.is_integer_type(switch_context.cond_expr_type) )
+		return sema_integral_case(sema, ast, case_node);
+	else
+		return SemaError("Unreachable?");
 }
 
 SemaResult<ir::IRAssign*>
