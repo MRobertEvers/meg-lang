@@ -120,6 +120,7 @@ AstGen::parse_let()
 	if( !tok.ok() )
 		return ParseError("Expected ':' or '='", tok.as());
 
+	// TODO: This leaks
 	auto type_decl = ast.TypeDeclaratorEmpty();
 	if( tok.unwrap().type == TokenType::colon )
 	{
@@ -132,8 +133,9 @@ AstGen::parse_let()
 		type_decl = type_decl_result.unwrap();
 	}
 
-	auto equal_let = cursor.consume_if_expected(TokenType::equal);
-	if( !equal_let.ok() )
+	auto equal_present =
+		tok.unwrap().type == TokenType::equal || cursor.consume_if_expected(TokenType::equal).ok();
+	if( !equal_present )
 	{
 		return ast.Let(trail.mark(), identifier.unwrap(), type_decl, ast.Empty(trail.mark()));
 	}

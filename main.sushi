@@ -38,7 +38,7 @@ fn main(): i32
         .bytes = "lumpy"
     };
 
-    let b: i32 = 5;
+    let b = 5;
 
     if (a is Literal::String) {
         if (b == 4) {
