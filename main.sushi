@@ -40,6 +40,14 @@ fn main(): i32
 
     let b = 5;
 
+    let lit_pool: Literal[20];
+
+    lit_pool[1] = Literal::String {
+        .size = 11,
+        .bytes = "who is this"
+    };
+    print_enum(lit_pool[1]);
+
     if (a is Literal::String) {
         if (b == 4) {
             printf("4\n");
