@@ -8,14 +8,14 @@ static char const infer_type_name[] = "@_infer";
 
 static Type _void_type = Type::Primitive("void");
 static Type _infer_type = Type::Primitive(infer_type_name);
-static Type _i8_type = Type::Primitive("i8");
-static Type _i16_type = Type::Primitive("i16");
-static Type _i32_type = Type::Primitive("i32");
-static Type _i64_type = Type::Primitive("i64");
-static Type _u8_type = Type::Primitive("u8");
-static Type _u16_type = Type::Primitive("u16");
-static Type _u32_type = Type::Primitive("u32");
-static Type _u64_type = Type::Primitive("u64");
+static Type _i8_type = Type::Primitive("i8", 8);
+static Type _i16_type = Type::Primitive("i16", 16);
+static Type _i32_type = Type::Primitive("i32", 32);
+static Type _i64_type = Type::Primitive("i64", 64);
+static Type _u8_type = Type::Primitive("u8", 8);
+static Type _u16_type = Type::Primitive("u16", 16);
+static Type _u32_type = Type::Primitive("u32", 32);
+static Type _u64_type = Type::Primitive("u64", 64);
 static Type _bool_type = Type::Primitive("bool");
 
 Types::Types()

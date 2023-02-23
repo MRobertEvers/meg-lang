@@ -163,6 +163,14 @@ Type::Primitive(String name)
 }
 
 Type
+Type::Primitive(String name, int bit_width)
+{
+	auto type = Type{name};
+	type.int_width_ = bit_width;
+	return type;
+}
+
+Type
 Type::Primitive(String name, EnumNominal nominal)
 {
 	auto type = Type{name};

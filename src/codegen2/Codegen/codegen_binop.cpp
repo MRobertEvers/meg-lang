@@ -7,6 +7,83 @@
 
 using namespace cg;
 
+// Clang does widening then truncating.
+// static
+
+enum class WidenSign
+{
+	Signed,
+	Unsigned,
+};
+WidenSign
+signof(CG& codegen, sema::TypeInstance type)
+{
+	if( codegen.sema.types.is_signed_integer_type(type) )
+		return WidenSign::Signed;
+	else
+		return WidenSign::Unsigned;
+}
+
+static llvm::Type*
+sizefor(CG& codegen, int size)
+{
+	switch( size )
+	{
+	case 8:
+		return llvm::Type::getInt8Ty(*codegen.Context);
+	case 16:
+		return llvm::Type::getInt16Ty(*codegen.Context);
+	case 32:
+		return llvm::Type::getInt32Ty(*codegen.Context);
+	case 64:
+		return llvm::Type::getInt64Ty(*codegen.Context);
+	default:
+		assert(0);
+	}
+}
+
+static llvm::Value*
+widen(CG& codegen, llvm::Value* value, WidenSign sign, int size)
+{
+	switch( sign )
+	{
+	case WidenSign::Signed:
+		// S is for Signed-Extend
+		return codegen.Builder->CreateSExt(value, sizefor(codegen, size));
+	case WidenSign::Unsigned:
+		// Z is for Zero-Extend
+		return codegen.Builder->CreateZExt(value, sizefor(codegen, size));
+	}
+}
+
+CGResult<CGExpr>
+cg::codegen_arithmetic_binop(CG& codegen, SemaTypedInt lhs, SemaTypedInt rhs, ast::BinOp op)
+{
+	auto left_width = lhs.value->getType()->getIntegerBitWidth();
+	auto right_width = rhs.value->getType()->getIntegerBitWidth();
+	auto max_width = left_width > right_width ? left_width : right_width;
+
+	lhs.value = widen(codegen, lhs.value, signof(codegen, lhs.type), max_width);
+	rhs.value = widen(codegen, rhs.value, signof(codegen, lhs.type), max_width);
+
+	switch( op )
+	{
+	case ast::BinOp::plus:
+		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateAdd(lhs.value, rhs.value)));
+	case ast::BinOp::minus:
+		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateSub(lhs.value, rhs.value)));
+	case ast::BinOp::star:
+		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateMul(lhs.value, rhs.value)));
+	case ast::BinOp::slash:
+	{
+		auto llvm_result = cg_division(codegen, lhs.value, rhs.value, lhs.type);
+		return CGExpr::MakeRValue(RValue(llvm_result));
+	}
+	default:
+		assert(0);
+	}
+}
+
 CGResult<CGExpr>
 cg::codegen_binop(CG& codegen, cg::LLVMFnInfo& fn, ir::IRBinOp* ir_binop)
 {
@@ -26,21 +103,19 @@ cg::codegen_binop(CG& codegen, cg::LLVMFnInfo& fn, ir::IRBinOp* ir_binop)
 
 	assert(llvm_lhs && llvm_rhs && "nullptr for assignment!");
 
-	assert(llvm_lhs->getType()->isIntegerTy() && llvm_rhs->getType()->isIntegerTy());
+	// assert(llvm_lhs->getType()->isIntegerTy() && llvm_rhs->getType()->isIntegerTy());
 
 	switch( ir_binop->op )
 	{
 	case ast::BinOp::plus:
-		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateAdd(llvm_lhs, llvm_rhs)));
 	case ast::BinOp::minus:
-		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateSub(llvm_lhs, llvm_rhs)));
 	case ast::BinOp::star:
-		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateMul(llvm_lhs, llvm_rhs)));
 	case ast::BinOp::slash:
-	{
-		auto llvm_result = cg_division(codegen, llvm_lhs, llvm_rhs, ir_binop->lhs->type_instance);
-		return CGExpr::MakeRValue(RValue(llvm_result));
-	}
+		return codegen_arithmetic_binop(
+			codegen,
+			SemaTypedInt(ir_binop->lhs->type_instance, llvm_lhs),
+			SemaTypedInt(ir_binop->rhs->type_instance, llvm_rhs),
+			ir_binop->op);
 	case ast::BinOp::gt:
 		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateICmpSGT(llvm_lhs, llvm_rhs)));
 	case ast::BinOp::gte:
@@ -53,6 +128,8 @@ cg::codegen_binop(CG& codegen, cg::LLVMFnInfo& fn, ir::IRBinOp* ir_binop)
 		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateICmpEQ(llvm_lhs, llvm_rhs)));
 	case ast::BinOp::ne:
 		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateICmpNE(llvm_lhs, llvm_rhs)));
+
+		// TODO: These two are different.
 	case ast::BinOp::and_op:
 		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateAnd(llvm_lhs, llvm_rhs)));
 	case ast::BinOp::or_op:

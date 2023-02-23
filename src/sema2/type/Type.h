@@ -41,6 +41,9 @@ private:
 
 	Vec<MemberTypeInstance> members_order;
 
+	// For integers
+	int int_width_ = 0;
+
 	// For functions return type
 	TypeInstance return_type;
 	bool is_var_arg_;
@@ -69,6 +72,9 @@ public:
 	// Enum members only
 	EnumNominal as_nominal() const;
 
+	// Integer types
+	int int_width() const { return int_width_; }
+
 	// TODO: Assert we are a function.
 	bool is_var_arg() const { return is_var_arg_; }
 
@@ -88,6 +94,7 @@ public:
 	static Type Union(String const& name, std::map<String, MemberTypeInstance> members);
 	static Type EnumPartial(String const& name);
 	static Type Primitive(String name);
+	static Type Primitive(String name, int bit_width);
 	static Type Primitive(String name, EnumNominal);
 };
 

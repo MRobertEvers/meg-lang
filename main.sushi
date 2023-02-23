@@ -1,57 +1,13 @@
 extern fn printf(str: i8*, ...): void;
 
-fn switch_int(a: i32): void {
-    switch(a) {
-        case 1:
-            printf("1\n");
-        case 2:
-            printf("2\n");
-        default:
-            printf("default\n");
-    }
-
-    return;
-}
-
-struct Point {
-    x: i32;
-    y: i32;
-}
-
-
-enum Literal {
-    Void,
-    String { size: i32; bytes: i8* }
-    Number { value: i32 }
-    Point { point: Point }
-}
-
-fn print_enum(a: Literal): void {
-    switch (a) {
-        case Literal::Number => (a_num: Literal::Number) {
-            printf("Number(%d)\n", a_num.value);
-        }
-        case Literal::String => (a_str: Literal::String) {
-            printf("String (%.*s)\n", a_str.size, a_str.bytes);
-        } 
-        case Literal::Point => (a_p: Literal::Point) {
-            printf("Point (%d, %d)\n", a_p.point.x, a_p.point.y);
-        }
-        case Literal::Void:
-            printf("Void\n");
-    }
-
-    return;
-}
 
 fn main(): i32 
 {
-    switch_int(1);
+    let big: i32 = 88;
 
-    for (let i = 0; i < 10; i += 1)
-    {
-        printf("%d\n", i);
-    }
+    let small: i8 = 8;
+
+    small = big;
 
     return 1;
 }

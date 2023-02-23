@@ -64,6 +64,12 @@ as_name(Sema2& sema, ast::AstNode* ast)
 	return to_single_name(sema, id.name_parts);
 }
 
+static bool
+compatible_binop_int_types(Sema2& sema, sema::TypeInstance lhs, sema::TypeInstance rhs)
+{
+	return sema.types.is_integer_type(lhs) && sema.types.is_integer_type(rhs);
+}
+
 SemaResult<IRModule*>
 sema::sema_module(Sema2& sema, AstNode* node)
 {
@@ -925,7 +931,8 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 		}
 		else
 		{
-			if( !sema.types.equal_types(type_declr->type_instance, rhs->type_instance) )
+			if( !sema.types.equal_types(type_declr->type_instance, rhs->type_instance) &&
+				!compatible_binop_int_types(sema, type_declr->type_instance, rhs->type_instance) )
 				return SemaError(
 					"Mismatched types let: " + sema::to_string(type_declr->type_instance) +
 					" != " + sema::to_string(rhs->type_instance));
@@ -1108,6 +1115,21 @@ sema::sema_case(Sema2& sema, ast::AstNode* ast)
 		return SemaError("Unreachable?");
 }
 
+static bool
+compatible_assign_int_types(Sema2& sema, sema::TypeInstance lhs, sema::TypeInstance rhs)
+{
+	// TODO: Correctly check types;
+	return sema.types.is_integer_type(lhs) && sema.types.is_integer_type(rhs);
+
+	if( !sema.types.is_integer_type(lhs) || !sema.types.is_integer_type(rhs) )
+		return false;
+
+	if( lhs.type->int_width() > rhs.type->int_width() )
+		return true;
+
+	return sema.types.equal_types(lhs, rhs);
+}
+
 SemaResult<ir::IRAssign*>
 sema::sema_assign(Sema2& sema, ast::AstNode* ast)
 {
@@ -1138,7 +1160,8 @@ sema::sema_assign(Sema2& sema, ast::AstNode* ast)
 	}
 	else
 	{
-		if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+		if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) &&
+			!compatible_assign_int_types(sema, lhs->type_instance, rhs->type_instance) )
 			return SemaError(
 				"Mismatched types: " + sema::to_string(lhs->type_instance) +
 				" != " + sema::to_string(rhs->type_instance));
@@ -1220,10 +1243,13 @@ sema::sema_binop(Sema2& sema, ast::AstNode* ast)
 	auto type = binop_type(sema, binop.op, lhs, rhs);
 
 	// TODO: Int conversions?
-	if( !sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+	if( !compatible_binop_int_types(sema, lhs->type_instance, rhs->type_instance) &&
+		!sema.types.equal_types(lhs->type_instance, rhs->type_instance) )
+	{
 		return SemaError(
 			"Mismatched types: " + sema::to_string(lhs->type_instance) +
 			" != " + sema::to_string(rhs->type_instance));
+	}
 
 	return sema.BinOp(ast, binop.op, lhs, rhs, type);
 	// }

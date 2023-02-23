@@ -2,10 +2,61 @@
 
 #include "../Codegen.h"
 #include "cg_division.h"
+#include "codegen_binop.h"
 #include "lookup.h"
 #include "operand.h"
 
 using namespace cg;
+
+static ast::BinOp
+to_binop(ast::AssignOp op)
+{
+	switch( op )
+	{
+	case ast::AssignOp::add:
+		return ast::BinOp::plus;
+	case ast::AssignOp::sub:
+		return ast::BinOp::minus;
+	case ast::AssignOp::div:
+		return ast::BinOp::slash;
+	case ast::AssignOp::mul:
+		return ast::BinOp::star;
+	default:
+		assert(0);
+	}
+}
+
+static llvm::Type*
+sizefor(CG& codegen, int size)
+{
+	switch( size )
+	{
+	case 8:
+		return llvm::Type::getInt8Ty(*codegen.Context);
+	case 16:
+		return llvm::Type::getInt16Ty(*codegen.Context);
+	case 32:
+		return llvm::Type::getInt32Ty(*codegen.Context);
+	case 64:
+		return llvm::Type::getInt64Ty(*codegen.Context);
+	default:
+		assert(0);
+	}
+}
+
+static llvm::Value*
+trunc(CG& codegen, sema::TypeInstance dest, llvm::Value* rhs)
+{
+	auto size = dest.type->int_width();
+	auto other_size = rhs->getType()->getIntegerBitWidth();
+	if( size == other_size )
+		return rhs;
+
+	if( codegen.sema.types.is_signed_integer_type(dest) )
+		return codegen.Builder->CreateSExtOrTrunc(rhs, sizefor(codegen, size));
+	else
+		return codegen.Builder->CreateZExtOrTrunc(rhs, sizefor(codegen, size));
+}
 
 CGResult<CGExpr>
 cg::codegen_assign(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAssign* ir_assign)
@@ -35,36 +86,23 @@ cg::codegen_assign(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAssign* ir_assign)
 	switch( ir_assign->op )
 	{
 	case ast::AssignOp::add:
-	{
-		auto lhs_value = codegen_operand_expr(codegen, lexpr);
-		auto llvm_rval = codegen.Builder->CreateAdd(rhs, lhs_value);
-		codegen.Builder->CreateStore(llvm_rval, lhs);
-	}
-	break;
 	case ast::AssignOp::sub:
-	{
-		auto lhs_value = codegen_operand_expr(codegen, lexpr);
-		auto llvm_rval = codegen.Builder->CreateSub(rhs, lhs_value);
-		codegen.Builder->CreateStore(llvm_rval, lhs);
-	}
-	break;
 	case ast::AssignOp::mul:
-	{
-		auto lhs_value = codegen_operand_expr(codegen, lexpr);
-		auto llvm_rval = codegen.Builder->CreateMul(rhs, lhs_value);
-		codegen.Builder->CreateStore(llvm_rval, lhs);
-	}
-	break;
 	case ast::AssignOp::div:
 	{
-		// Clang chooses SDiv vs UDiv based on the numerator
 		auto lhs_value = codegen_operand_expr(codegen, lexpr);
-		auto llvm_rval = cg_division(codegen, lhs_value, rhs, ir_assign->lhs->type_instance);
+		auto llvm_rval = codegen_arithmetic_binop(
+			codegen, //
+			SemaTypedInt(ir_assign->lhs->type_instance, lhs_value),
+			SemaTypedInt(ir_assign->rhs->type_instance, rhs),
+			to_binop(ir_assign->op));
 
-		codegen.Builder->CreateStore(llvm_rval, lhs);
+		rhs = trunc(codegen, ir_assign->lhs->type_instance, rhs);
+		codegen.Builder->CreateStore(rhs, lhs);
 	}
 	break;
 	case ast::AssignOp::assign:
+		rhs = trunc(codegen, ir_assign->lhs->type_instance, rhs);
 		codegen.Builder->CreateStore(rhs, lhs);
 		break;
 	}
