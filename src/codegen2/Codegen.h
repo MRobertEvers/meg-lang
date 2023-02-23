@@ -57,7 +57,6 @@ public:
 	// TODO: Return RValue type?
 	CGResult<CGExpr> codegen_number_literal(ir::IRNumberLiteral*);
 	CGResult<CGExpr> codegen_value_decl(ir::IRValueDecl*);
-	CGResult<CGExpr> codegen_binop(cg::LLVMFnInfo&, ir::IRBinOp*);
 	CGResult<CGExpr> codegen_id(ir::IRId*);
 	CGResult<CGExpr> codegen_if(cg::LLVMFnInfo&, ir::IRIf*);
 	CGResult<CGExpr> codegen_for(cg::LLVMFnInfo&, ir::IRFor*);

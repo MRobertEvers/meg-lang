@@ -77,6 +77,7 @@ add_executable(sushi
     src/codegen2/LValue.cpp
     src/codegen2/Codegen/cg_assign.cpp
     src/codegen2/Codegen/cg_discriminations.cpp
+    src/codegen2/Codegen/cg_division.cpp
     src/codegen2/Codegen/cg_access.cpp
     src/codegen2/Codegen/cg_copy.cpp
     src/codegen2/Codegen/cg_fixdown.cpp
@@ -84,6 +85,7 @@ add_executable(sushi
     src/codegen2/Codegen/codegen_initializer.cpp
     src/codegen2/Codegen/codegen_switch.cpp
     src/codegen2/Codegen/codegen_while.cpp
+    src/codegen2/Codegen/codegen_binop.cpp
     src/codegen2/Codegen/codegen_return.cpp
     src/codegen2/Codegen/codegen_function.cpp
     src/codegen2/Codegen/codegen_member_access.cpp

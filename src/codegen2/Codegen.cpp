@@ -3,9 +3,11 @@
 #include "Codegen/CGNotImpl.h"
 #include "Codegen/RValue.h"
 #include "Codegen/cg_discriminations.h"
+#include "Codegen/cg_division.h"
 #include "Codegen/codegen_addressof.h"
 #include "Codegen/codegen_array_access.h"
 #include "Codegen/codegen_assign.h"
+#include "Codegen/codegen_binop.h"
 #include "Codegen/codegen_call.h"
 #include "Codegen/codegen_deref.h"
 #include "Codegen/codegen_function.h"
@@ -165,7 +167,7 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 	case ir::IRExprType::ValueDecl:
 		return codegen_value_decl(expr->expr.decl);
 	case ir::IRExprType::BinOp:
-		return codegen_binop(fn, expr->expr.binop);
+		return codegen_binop(*this, fn, expr->expr.binop);
 	case ir::IRExprType::MemberAccess:
 		return codegen_member_access(*this, fn, expr->expr.member_access);
 	case ir::IRExprType::IndirectMemberAccess:
@@ -234,59 +236,6 @@ CG::codegen_value_decl(ir::IRValueDecl* decl)
 	assert(valuer.has_value());
 
 	return CGExpr::MakeAddress(valuer.value().address());
-}
-
-CGResult<CGExpr>
-CG::codegen_binop(cg::LLVMFnInfo& fn, ir::IRBinOp* binop)
-{
-	auto lhsr = codegen_expr(fn, binop->lhs);
-	if( !lhsr.ok() )
-		return lhsr;
-
-	auto rhsr = codegen_expr(fn, binop->rhs);
-	if( !rhsr.ok() )
-		return rhsr;
-
-	auto lexpr = lhsr.unwrap();
-	auto rexpr = rhsr.unwrap();
-
-	auto llvm_lhs = codegen_operand_expr(*this, lexpr);
-	auto llvm_rhs = codegen_operand_expr(*this, rexpr);
-
-	assert(llvm_lhs && llvm_rhs && "nullptr for assignment!");
-
-	assert(llvm_lhs->getType()->isIntegerTy() && llvm_rhs->getType()->isIntegerTy());
-
-	auto Op = binop->op;
-	switch( Op )
-	{
-	case BinOp::plus:
-		return CGExpr::MakeRValue(RValue(Builder->CreateAdd(llvm_lhs, llvm_rhs)));
-	case BinOp::minus:
-		return CGExpr::MakeRValue(RValue(Builder->CreateSub(llvm_lhs, llvm_rhs)));
-	case BinOp::star:
-		return CGExpr::MakeRValue(RValue(Builder->CreateMul(llvm_lhs, llvm_rhs)));
-	case BinOp::slash:
-		return CGExpr::MakeRValue(RValue(Builder->CreateSDiv(llvm_lhs, llvm_rhs)));
-	case BinOp::gt:
-		return CGExpr::MakeRValue(RValue(Builder->CreateICmpSGT(llvm_lhs, llvm_rhs)));
-	case BinOp::gte:
-		return CGExpr::MakeRValue(RValue(Builder->CreateICmpSGE(llvm_lhs, llvm_rhs)));
-	case BinOp::lt:
-		return CGExpr::MakeRValue(RValue(Builder->CreateICmpSLT(llvm_lhs, llvm_rhs)));
-	case BinOp::lte:
-		return CGExpr::MakeRValue(RValue(Builder->CreateICmpSLE(llvm_lhs, llvm_rhs)));
-	case BinOp::cmp:
-		return CGExpr::MakeRValue(RValue(Builder->CreateICmpEQ(llvm_lhs, llvm_rhs)));
-	case BinOp::ne:
-		return CGExpr::MakeRValue(RValue(Builder->CreateICmpNE(llvm_lhs, llvm_rhs)));
-	case BinOp::and_op:
-		return CGExpr::MakeRValue(RValue(Builder->CreateAnd(llvm_lhs, llvm_rhs)));
-	case BinOp::or_op:
-		return CGExpr::MakeRValue(RValue(Builder->CreateOr(llvm_lhs, llvm_rhs)));
-	default:
-		return NotImpl();
-	}
 }
 
 CGResult<CGExpr>

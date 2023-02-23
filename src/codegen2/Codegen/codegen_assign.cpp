@@ -1,6 +1,7 @@
 #include "codegen_assign.h"
 
 #include "../Codegen.h"
+#include "cg_division.h"
 #include "lookup.h"
 #include "operand.h"
 
@@ -33,34 +34,36 @@ cg::codegen_assign(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAssign* ir_assign)
 
 	switch( ir_assign->op )
 	{
-	// case ast::AssignOp::add:
-	// {
-	// 	auto LValuePromoted = promote_to_value(*this, LValue);
-	// 	auto TempRValue = Builder->CreateAdd(RValue, LValuePromoted);
-	// 	Builder->CreateStore(TempRValue, LValue);
-	// }
-	// break;
-	// case ast::AssignOp::sub:
-	// {
-	// 	auto LValuePromoted = promote_to_value(*this, LValue);
-	// 	auto TempRValue = Builder->CreateSub(LValuePromoted, RValue);
-	// 	Builder->CreateStore(TempRValue, LValue);
-	// }
-	// break;
-	// case ast::AssignOp::mul:
-	// {
-	// 	auto LValuePromoted = promote_to_value(*this, LValue);
-	// 	auto TempRValue = Builder->CreateMul(RValue, LValuePromoted);
-	// 	Builder->CreateStore(TempRValue, LValue);
-	// }
-	// break;
-	// case ast::AssignOp::div:
-	// {
-	// 	auto LValuePromoted = promote_to_value(*this, LValue);
-	// 	auto TempRValue = Builder->CreateSDiv(RValue, LValuePromoted);
-	// 	Builder->CreateStore(TempRValue, LValue);
-	// }
-	// break;
+	case ast::AssignOp::add:
+	{
+		auto lhs_value = codegen_operand_expr(codegen, lexpr);
+		auto llvm_rval = codegen.Builder->CreateAdd(rhs, lhs_value);
+		codegen.Builder->CreateStore(llvm_rval, lhs);
+	}
+	break;
+	case ast::AssignOp::sub:
+	{
+		auto lhs_value = codegen_operand_expr(codegen, lexpr);
+		auto llvm_rval = codegen.Builder->CreateSub(rhs, lhs_value);
+		codegen.Builder->CreateStore(llvm_rval, lhs);
+	}
+	break;
+	case ast::AssignOp::mul:
+	{
+		auto lhs_value = codegen_operand_expr(codegen, lexpr);
+		auto llvm_rval = codegen.Builder->CreateMul(rhs, lhs_value);
+		codegen.Builder->CreateStore(llvm_rval, lhs);
+	}
+	break;
+	case ast::AssignOp::div:
+	{
+		// Clang chooses SDiv vs UDiv based on the numerator
+		auto lhs_value = codegen_operand_expr(codegen, lexpr);
+		auto llvm_rval = cg_division(codegen, lhs_value, rhs, ir_assign->lhs->type_instance);
+
+		codegen.Builder->CreateStore(llvm_rval, lhs);
+	}
+	break;
 	case ast::AssignOp::assign:
 		codegen.Builder->CreateStore(rhs, lhs);
 		break;

@@ -11,9 +11,11 @@ static Type _infer_type = Type::Primitive(infer_type_name);
 static Type _i8_type = Type::Primitive("i8");
 static Type _i16_type = Type::Primitive("i16");
 static Type _i32_type = Type::Primitive("i32");
+static Type _i64_type = Type::Primitive("i64");
 static Type _u8_type = Type::Primitive("u8");
 static Type _u16_type = Type::Primitive("u16");
 static Type _u32_type = Type::Primitive("u32");
+static Type _u64_type = Type::Primitive("u64");
 static Type _bool_type = Type::Primitive("bool");
 
 Types::Types()
@@ -23,9 +25,11 @@ Types::Types()
 	this->i8_type_ = define_type(_i8_type);
 	this->i16_type_ = define_type(_i16_type);
 	this->i32_type_ = define_type(_i32_type);
+	this->i64_type_ = define_type(_i64_type);
 	this->u8_type_ = define_type(_u8_type);
 	this->u16_type_ = define_type(_u16_type);
 	this->u32_type_ = define_type(_u32_type);
+	this->u64_type_ = define_type(_u64_type);
 	this->bool_type_ = define_type(_bool_type);
 }
 
@@ -112,8 +116,27 @@ Types::is_integer_type(TypeInstance l)
 	if( l.is_array_type() || l.is_struct_type() || l.is_function_type() )
 		return false;
 
-	return l.type == i8_type_ || l.type == i16_type_ || l.type == i32_type_ || l.type == u8_type_ ||
-		   l.type == u16_type_ || l.type == u32_type_;
+	return l.type == i8_type_ || l.type == i16_type_ || l.type == i32_type_ ||
+		   l.type == i64_type_ || l.type == u8_type_ || l.type == u16_type_ ||
+		   l.type == u32_type_ || l.type == u64_type_;
+}
+
+bool
+Types::is_signed_integer_type(TypeInstance l)
+{
+	if( l.is_array_type() || l.is_struct_type() || l.is_function_type() )
+		return false;
+
+	return l.type == i8_type_ || l.type == i16_type_ || l.type == i32_type_ || l.type == i64_type_;
+}
+
+bool
+Types::is_unsigned_integer_type(TypeInstance l)
+{
+	if( l.is_array_type() || l.is_struct_type() || l.is_function_type() )
+		return false;
+
+	return l.type == u8_type_ || l.type == u16_type_ || l.type == u32_type_ || l.type == u64_type_;
 }
 
 TypeInstance
