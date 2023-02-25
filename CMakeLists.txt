@@ -58,19 +58,36 @@ add_executable(sushi
     src/ast2/AstTags.h
     src/ast2/Ast.cpp
     src/ir/IR.cpp
+    src/ir/IRBuilder.cpp
     src/ir/Types.cpp
     src/ir/Type.cpp
     src/ir/TypeInstance.cpp
+    src/ir/Name.cpp
     src/ir/MemberTypeInstance.cpp
     src/sema3/sema/idname.cpp
     src/sema3/ActionResult.cpp
+    src/sema3/sema/sema_module.cpp
     src/sema3/sema/sema_fn.cpp
     src/sema3/sema/sema_tls.cpp
     src/sema3/sema/sema_type_decl.cpp
-    src/sema3/Name.cpp
     src/sema3/SemaLookup.cpp
     src/sema3/Sema.cpp
     src/sema3/QualifiedName.cpp
+    src/codegen3/CGExpr.cpp
+    src/codegen3/Codegen.cpp
+    src/codegen3/Codegen/LLVMAddress.cpp
+    src/codegen3/Codegen/RValue.cpp
+    src/codegen3/Codegen/LValue.cpp
+    src/codegen3/Codegen/lookup.cpp
+    src/codegen3/Codegen/operand.cpp
+    src/codegen3/Codegen/codegen_return.cpp
+    src/codegen3/Codegen/codegen_function.cpp
+    src/codegen3/Codegen/codegen_inst.cpp
+    src/codegen3/Codegen/codegen_fn_sig_info.cpp
+    src/codegen3/Codegen/LLVMFnInfo.cpp
+    src/codegen3/Codegen/LLVMFnInfoBuilder.cpp
+    src/codegen3/Codegen/LLVMFnSigInfo.cpp
+    src/codegen3/Codegen/LLVMFnSigInfoBuilder.cpp
 )
 
 # add_executable(sushi 

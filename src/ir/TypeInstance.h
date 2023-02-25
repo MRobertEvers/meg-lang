@@ -2,7 +2,7 @@
 
 #include "EnumNominal.h"
 
-namespace sema
+namespace ir
 {
 class Type;
 class TypeInstance
@@ -24,9 +24,9 @@ private:
 
 public:
 	TypeInstance() = default;
-	int array_size;
-	int indirection_level;
-	Type const* type;
+	int array_size = 0;
+	int indirection_level = 0;
+	Type const* type = nullptr;
 	bool operator==(const TypeInstance& rhs)
 	{
 		return this->indirection_level == rhs.indirection_level && this->type == rhs.type;
@@ -37,6 +37,7 @@ public:
 	EnumNominal as_nominal() const;
 	TypeInstance storage_type() const;
 
+	bool is_valid() const { return type != nullptr; }
 	bool is_function_type() const;
 	bool is_struct_type() const;
 	bool is_enum_type() const;
@@ -54,4 +55,4 @@ public:
 	static TypeInstance ArrayOf(TypeInstance type, int array_size);
 };
 
-}; // namespace sema
+}; // namespace ir

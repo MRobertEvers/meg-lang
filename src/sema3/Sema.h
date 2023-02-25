@@ -1,8 +1,9 @@
 #pragma once
-#include "Name.h"
 #include "SemaLookup.h"
-#include "Types.h"
 #include "ir/IR.h"
+#include "ir/IRBuilder.h"
+#include "ir/Name.h"
+#include "ir/Types.h"
 
 #include <vector>
 
@@ -13,18 +14,20 @@ class Sema
 {
 	//
 	SemaLookup lookup_;
-	Types types_;
+	ir::Types types_;
 
-	std::vector<ir::LIRInst*> out_;
+	ir::IRBuilder builder_;
 
 public:
 	Sema();
 
 	SemaLookup& names() { return lookup_; }
 
-	NameRef create_type(Type type);
-	NameRef create_type(NameRef nspace, Type type);
+	ir::Types& types() { return types_; }
 
-	void emit(ir::LIRInst* inst) { out_.push_back(inst); }
+	ir::NameRef create_type(ir::Type type);
+	ir::NameRef create_type(ir::NameRef nspace, ir::Type type);
+
+	ir::IRBuilder builder() { return builder_; }
 };
 } // namespace sema

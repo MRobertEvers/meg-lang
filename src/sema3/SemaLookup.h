@@ -1,6 +1,6 @@
 #pragma once
-#include "Name.h"
 #include "QualifiedName.h"
+#include "ir/Name.h"
 
 #include <string>
 #include <vector>
@@ -18,7 +18,7 @@ class NameLookupResult
 
 	union
 	{
-		NameRef name_;
+		ir::NameRef name_;
 	};
 
 public:
@@ -26,14 +26,14 @@ public:
 		: kind(RNotFound)
 	{}
 
-	NameLookupResult(NameRef name)
+	NameLookupResult(ir::NameRef name)
 		: name_(name)
 		, kind(RName)
 	{}
 
 	bool is_found() const { return kind != RNotFound; }
 
-	NameRef result() const
+	ir::NameRef result() const
 	{
 		assert(is_found());
 		return name_;
@@ -42,17 +42,17 @@ public:
 
 class SemaLookup
 {
-	std::vector<Name> names;
+	std::vector<ir::Name> names;
 
-	NameRef root_namespace;
+	ir::NameRef root_namespace;
 
 public:
 	SemaLookup();
 
 	NameLookupResult lookup(QualifiedName const& name);
 
-	void add_name(NameRef nspace, Name name);
+	void add_name(ir::NameRef nspace, ir::Name name);
 
-	NameRef root() const { return root_namespace; }
+	ir::NameRef root() const { return root_namespace; }
 };
 } // namespace sema

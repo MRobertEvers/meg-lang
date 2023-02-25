@@ -2,7 +2,6 @@
 #include "IR.h"
 #include "Scope.h"
 #include "SemaResult.h"
-#include "SemaTag.h"
 #include "Types.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"

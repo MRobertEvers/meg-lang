@@ -1,6 +1,7 @@
 #include "SemaLookup.h"
 
 using namespace sema;
+using namespace ir;
 
 SemaLookup::SemaLookup()
 	: root_namespace(NameRef(&names, 0))

@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace sema
+namespace ir
 {
 struct MemberTypeInstance
 {
@@ -23,4 +23,4 @@ struct MemberTypeInstance
 		, name(name)
 		, idx(idx){};
 };
-}; // namespace sema
+}; // namespace ir

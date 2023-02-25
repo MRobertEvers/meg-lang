@@ -9,6 +9,7 @@
 #include "sema_type_decl.h"
 
 using namespace sema;
+using namespace ir;
 
 struct sema_fn_params_t
 {
@@ -39,7 +40,7 @@ sema_fn_params(Sema& sema, ast::AstNode* ast)
 		{
 		case ast::AstValueDecl::nt:
 		{
-			auto ast_value_decl = expected(ast, ast::as_value_decl);
+			auto ast_value_decl = expected(param_ast, ast::as_value_decl);
 			if( !ast_value_decl.ok() )
 				return ast_value_decl;
 			auto value_decl_node = ast_value_decl.unwrap();
@@ -48,7 +49,7 @@ sema_fn_params(Sema& sema, ast::AstNode* ast)
 			if( !type_decl_result.ok() )
 				return type_decl_result;
 
-			auto ast_id = expected(ast, ast::as_id);
+			auto ast_id = expected(value_decl_node.name, ast::as_id);
 			if( !ast_id.ok() )
 				return ast_id;
 			auto id_node = ast_id.unwrap();
@@ -72,8 +73,8 @@ sema_fn_params(Sema& sema, ast::AstNode* ast)
 	return result;
 }
 
-SemaResult<ir::ActionResult>
-sema::sema_fn_proto(Sema& sema, ast::AstNode* ast)
+static SemaResult<TypeInstance>
+sema_fn_decl(Sema& sema, ast::AstNode* ast)
 {
 	auto ast_fn_proto = expected(ast, ast::as_fn_proto);
 	if( !ast_fn_proto.ok() )
@@ -88,7 +89,7 @@ sema::sema_fn_proto(Sema& sema, ast::AstNode* ast)
 	// TODO: Assert simple name?
 	auto name = idname(id_node);
 
-	NameLookupResult lu_result = sema.names().lookup(idname(id_node));
+	NameLookupResult lu_result = sema.names().lookup(name);
 	if( lu_result.is_found() )
 		return SemaError("Redefinition of " + name.to_string());
 
@@ -111,28 +112,49 @@ sema::sema_fn_proto(Sema& sema, ast::AstNode* ast)
 	for( auto param : params.arg_types )
 		ir_fn_type.add_name(Name(param.name, param.type, Name::Member));
 
-	sema.emit(new ir::FnDecl(ir_fn_type, ir::FnDecl::Extern));
+	// sema.emit(new ir::FnDecl(ir_fn_type, ir::FnDecl::Extern));
 
-	return ir::ActionResult();
+	return ir_fn_type.type();
+}
+
+SemaResult<ir::FnDecl*>
+sema::sema_fn_proto(Sema& sema, ast::AstNode* ast)
+{
+	auto fn_type = sema_fn_decl(sema, ast);
+	if( !fn_type.ok() )
+		return fn_type;
+
+	return sema.builder().create_fn_decl(fn_type.unwrap());
 }
 
 SemaResult<ir::ActionResult>
 sema::sema_fn(Sema& sema, ast::AstNode* ast)
 {
-	//
-	// auto ast_fn = expected(ast, ast::as_fn);
-	// if( !ast_fn.ok() )
-	// 	return ast_fn;
-	// auto fn_node = ast_fn.unwrap();
+	auto ast_fn = expected(ast, ast::as_fn);
+	if( !ast_fn.ok() )
+		return ast_fn;
 
-	// auto ast_proto = sema_fn_proto(sema, fn_node.prototype);
-	// if( !ast_proto.ok() )
-	// 	return ast_proto;
-	// auto proto_node = ast_proto.unwrap();
+	auto fn_proto_result = sema_fn_proto(sema, ast_fn.unwrap().prototype);
+	if( !fn_proto_result.ok() )
+		return fn_proto_result;
+
+	ir::Function* ir_fn = sema.builder().create_fn(fn_proto_result.unwrap()->type);
+	ir::BasicBlock* entry = sema.builder().create_basic_block(ir_fn);
+
+	sema.builder().set_insert_point(entry);
+
+	sema.builder().create_return(nullptr);
+
+	return ir::ActionResult();
 }
 
 SemaResult<ir::ActionResult>
 sema::sema_extern_fn(Sema& sema, ast::AstNode* ast)
 {
-	return sema_fn(sema, ast);
+	auto ast_extern_fn = expected(ast, ast::as_extern_fn);
+	if( !ast_extern_fn.ok() )
+		return ast_extern_fn;
+	sema_fn_proto(sema, ast_extern_fn.unwrap().prototype);
+
+	return ir::ActionResult();
 }

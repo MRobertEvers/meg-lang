@@ -1,48 +1,82 @@
 #pragma once
 
-#include "../Name.h"
-#include "../TypeInstance.h"
-#include "ActionResult.h"
+#include "TypeInstance.h"
 
 #include <optional>
 #include <vector>
 
 namespace ir
 {
-struct LIRInst
+
+enum class InstKind
 {
-	virtual ~LIRInst(){};
+	Bad,
+	Alloca,
+	Return,
+	FnDecl,
+	Function,
+	ConstInt
+};
+
+struct Inst
+{
+	InstKind kind = InstKind::Bad;
+	Inst(InstKind kind)
+		: kind(kind)
+	{}
+	virtual ~Inst(){};
 };
 
 struct BasicBlock
 {
-	std::vector<LIRInst*> instructions;
+	std::vector<Inst*> instructions;
+
+	BasicBlock();
 };
 
-//
-struct FnDecl : LIRInst
+/**
+ * @brief Creates an auto variable in the current namespace. Of a given type.
+ */
+struct Alloca : Inst
 {
-	enum Linkage
-	{
-		Default,
-		Extern,
-	};
+	ir::TypeInstance type;
 
-	Linkage linkage = Default;
-
-	sema::NameRef name;
-
-	FnDecl(sema::NameRef name, Linkage linkage);
+	Alloca(TypeInstance type);
 };
 
-struct VarDecl : LIRInst
+struct Return : Inst
 {
-	sema::NameRef name;
-	sema::TypeInstance type;
+	Inst* operand;
+
+	Return(Inst* operand);
 };
 
-struct Return : LIRInst
+/**
+ * @brief Creates a declaration of a function and a name with no body. Linker expects to find.
+ */
+struct FnDecl : Inst
 {
-	std::optional<ActionResult> operand;
+	ir::TypeInstance type;
+
+	FnDecl(TypeInstance type);
 };
+
+struct Function : Inst
+{
+	ir::TypeInstance type;
+	std::vector<BasicBlock*> blocks;
+
+	Function(TypeInstance type);
+};
+
+/**
+ * @brief Emits a const int
+ */
+struct ConstInt : Inst
+{
+	unsigned long long value;
+
+	ConstInt(unsigned long long);
+};
+
 } // namespace ir

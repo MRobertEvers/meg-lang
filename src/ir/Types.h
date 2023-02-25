@@ -7,7 +7,7 @@
 #include <map>
 #include <string>
 
-namespace sema
+namespace ir
 {
 
 class Types
@@ -63,4 +63,4 @@ private:
 
 std::string to_string(TypeInstance ty);
 
-} // namespace sema
+} // namespace ir

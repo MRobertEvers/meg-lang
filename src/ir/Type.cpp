@@ -2,7 +2,7 @@
 
 #include "Type.h"
 
-using namespace sema;
+using namespace ir;
 
 Type::Type(std::string name)
 	: name(name)

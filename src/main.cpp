@@ -2,6 +2,8 @@
 #include "ast2/AstGen.h"
 #include "ast2/AstNode.h"
 #include "ast2/AstTags.h"
+#include "codegen3/Codegen.h"
+#include "codegen3/Codegen/codegen_inst.h"
 #include "common/OwnPtr.h"
 #include "lexer/Lexer.h"
 #include "lexer/TokenCursor.h"
@@ -13,16 +15,18 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
-#include "sema3/Name.h"
+#include "sema3/Sema.h"
+#include "sema3/sema/sema_module.h"
 
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
 
-using namespace sema;
 using namespace ast;
 using namespace llvm;
+using namespace sema;
+using namespace cg;
 
 int
 emit(llvm::Module* Module)
@@ -116,6 +120,19 @@ main(int argc, char* argv[])
 	if( !result.ok() )
 		result.unwrap_error()->print();
 
+	Sema sema;
+
+	auto bb = sema_module(sema, result.unwrap());
+	// if( !bb.ok() )
+	// 	bb.unwrap_error()->print();
+
+	CG cg(sema);
+
+	for( auto inst : bb.unwrap()->instructions )
+	{
+		codegen_inst(cg, inst);
+	}
+
 	// sema::Sema2 sema;
 
 	// auto sema_result = sema::sema_module(sema, result.unwrap());
@@ -132,14 +149,14 @@ main(int argc, char* argv[])
 	// 	// return 0;
 	// }
 
-	// std::string Str;
-	// raw_string_ostream OS(Str);
+	std::string Str;
+	raw_string_ostream OS(Str);
 
-	// cg.Module->print(OS, nullptr);
+	cg.Module->print(OS, nullptr);
 
-	// std::cout << Str;
+	std::cout << Str;
 
-	// return emit(cg.Module.get());
+	return emit(cg.Module.get());
 
 	return 0;
 }

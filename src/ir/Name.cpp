@@ -1,13 +1,16 @@
 #include "Name.h"
 
-using namespace sema;
+using namespace ir;
 
 std::optional<NameId>
 Name::lookup(std::string name)
 {
 	auto iter_lookup = lookup_.find(name);
 
-	return iter_lookup->second;
+	if( iter_lookup != lookup_.end() )
+		return iter_lookup->second;
+	else
+		return std::optional<NameId>();
 }
 
 void

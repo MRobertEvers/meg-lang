@@ -12,14 +12,9 @@ sema::sema_tls(Sema& sema, ast::AstNode* ast)
 	switch( ast->type )
 	{
 	case ast::NodeType::Fn:
-	{
-		// auto ex = sema_fn(sema, ast);
-		// if( !ex.ok() )
-		// return ex;
-
-		// return sema.TLS(ex.unwrap());
-		return SemaError("Not Impl.");
-	}
+		return sema_fn(sema, ast);
+	case ast::NodeType::ExternFn:
+		return sema_extern_fn(sema, ast);
 	default:
 		return SemaError("Unsupported NodeType as TLS.");
 	}

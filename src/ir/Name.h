@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace sema
+namespace ir
 {
 
 class NameId
@@ -83,5 +83,6 @@ public:
 
 	std::optional<NameRef> lookup(std::string) const;
 	NameRef add_name(Name);
+	TypeInstance type() const { return name().type(); }
 };
-} // namespace sema
+} // namespace ir

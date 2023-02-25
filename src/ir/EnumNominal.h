@@ -1,6 +1,6 @@
 #pragma once
 
-namespace sema
+namespace ir
 {
 /**
  * @brief Holds the 'nominal' value of the enum member.
@@ -14,4 +14,4 @@ struct EnumNominal
 		: value(value)
 	{}
 };
-} // namespace sema
+} // namespace ir

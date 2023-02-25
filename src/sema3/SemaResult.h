@@ -109,7 +109,7 @@ public:
 	T unwrap() { return result.value(); }
 	std::unique_ptr<SemaError> unwrap_error() { return std::move(error); }
 
-	bool ok() const { return error.get() != nullptr; }
+	bool ok() const { return error.get() == nullptr; }
 
 	static SemaResult<T> Ok(T el) { return SemaResult(el); }
 };

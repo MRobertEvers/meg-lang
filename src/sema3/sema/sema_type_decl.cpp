@@ -4,6 +4,7 @@
 #include "idname.h"
 
 using namespace sema;
+using namespace ir;
 
 SemaResult<TypeInstance>
 sema::sema_type_decl(Sema& sema, ast::AstNode* ast)

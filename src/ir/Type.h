@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace sema
+namespace ir
 {
 
 /**
@@ -101,4 +101,4 @@ public:
 	static Type Primitive(std::string name, EnumNominal);
 };
 
-} // namespace sema
+} // namespace ir

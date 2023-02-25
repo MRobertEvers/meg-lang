@@ -12,7 +12,7 @@ ActionResult::ActionResult(RValue rvalue)
 	, kind(Kind::RValue)
 {}
 
-ActionResult::ActionResult(sema::TypeInstance type)
+ActionResult::ActionResult(ir::TypeInstance type)
 	: type_(type)
 	, kind(Kind::RValue)
 {}

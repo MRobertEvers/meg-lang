@@ -2,7 +2,7 @@
 
 #include "Type.h"
 
-using namespace sema;
+using namespace ir;
 
 EnumNominal
 TypeInstance::as_nominal() const

@@ -2,7 +2,7 @@
 
 #include "Types.h"
 
-using namespace sema;
+using namespace ir;
 
 static char const infer_type_name[] = "@_infer";
 
@@ -170,7 +170,7 @@ Types::InferType()
 }
 
 std::string
-sema::to_string(TypeInstance ty)
+ir::to_string(TypeInstance ty)
 {
 	return ty.type->get_name() + std::string(ty.indirection_level, '*');
 }
