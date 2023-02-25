@@ -69,6 +69,9 @@ add_executable(sushi
     src/sema3/sema/sema_module.cpp
     src/sema3/sema/sema_fn.cpp
     src/sema3/sema/sema_tls.cpp
+    src/sema3/sema/sema_block.cpp
+    src/sema3/sema/sema_statement.cpp
+    src/sema3/sema/sema_return.cpp
     src/sema3/sema/sema_type_decl.cpp
     src/sema3/SemaLookup.cpp
     src/sema3/Sema.cpp

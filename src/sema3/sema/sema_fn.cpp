@@ -6,6 +6,7 @@
 #include "../sema_expected.h"
 #include "ast2/AstCasts.h"
 #include "idname.h"
+#include "sema_block.h"
 #include "sema_type_decl.h"
 
 using namespace sema;
@@ -133,17 +134,19 @@ sema::sema_fn(Sema& sema, ast::AstNode* ast)
 	auto ast_fn = expected(ast, ast::as_fn);
 	if( !ast_fn.ok() )
 		return ast_fn;
+	auto fn_node = ast_fn.unwrap();
 
-	auto fn_proto_result = sema_fn_proto(sema, ast_fn.unwrap().prototype);
+	auto fn_proto_result = sema_fn_proto(sema, fn_node.prototype);
 	if( !fn_proto_result.ok() )
 		return fn_proto_result;
 
 	ir::Function* ir_fn = sema.builder().create_fn(fn_proto_result.unwrap()->type);
 	ir::BasicBlock* entry = sema.builder().create_basic_block(ir_fn);
-
 	sema.builder().set_insert_point(entry);
 
-	sema.builder().create_return(nullptr);
+	auto fn_body_result = sema_block(sema, fn_node.body);
+	if( !fn_body_result.ok() )
+		return fn_body_result;
 
 	return ir::ActionResult();
 }
