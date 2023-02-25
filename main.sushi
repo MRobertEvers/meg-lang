@@ -1,6 +1,12 @@
 extern fn printf(str: i8*, ...): void;
 
 
+namespace std {
+fn perp(l: i8): i32 {
+    return 7;
+}
+}
+
 fn main(): i32 
 {
     let big: i32 = 88;
@@ -8,6 +14,8 @@ fn main(): i32
     let small: i8 = 8;
 
     small = big;
+
+    perp(big);
 
     return 1;
 }

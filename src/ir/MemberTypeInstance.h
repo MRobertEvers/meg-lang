@@ -18,7 +18,7 @@ struct MemberTypeInstance
 	int idx;
 
 	MemberTypeInstance() = default;
-	MemberTypeInstance(TypeInstance type, String name, int idx)
+	MemberTypeInstance(TypeInstance type, std::string name, int idx)
 		: type(type)
 		, name(name)
 		, idx(idx){};

@@ -29,6 +29,7 @@ KeywordIdentifierTuple keywords[] =
 	{"switch", TokenType::switch_keyword},
 	{"case", TokenType::case_keyword},
 	{"default", TokenType::default_keyword},
+	{"namespace", TokenType::namespace_keyword},
 	// clang-format off
 };
 // clang-format on
@@ -107,6 +108,7 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::switch_keyword, "switch"},
 	{TokenType::case_keyword, "case"},
 	{TokenType::default_keyword, "default"},
+	{TokenType::namespace_keyword, "namespace"},
 };
 
 char const*

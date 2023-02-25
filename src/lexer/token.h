@@ -60,6 +60,7 @@ enum class TokenType
 	switch_keyword,
 	case_keyword,
 	default_keyword,
+	namespace_keyword,
 	extern_keyword,
 	return_keyword,
 	let,
