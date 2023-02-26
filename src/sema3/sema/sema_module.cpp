@@ -1,6 +1,5 @@
 #include "sema_module.h"
 
-#include "../SemaLookup.h"
 #include "../sema_expected.h"
 #include "ast2/AstCasts.h"
 #include "sema_tls.h"

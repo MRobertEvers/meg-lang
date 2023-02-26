@@ -15,7 +15,7 @@ sema::sema_type_decl(Sema& sema, ast::AstNode* ast)
 	auto type_decl_node = ast_type_decl.unwrap();
 
 	auto qn_name = idname(*type_decl_node.name);
-	NameLookupResult lu_result = sema.names().lookup(qn_name);
+	NameLookupResult lu_result = sema.names().lookup_fqn(qn_name);
 	if( !lu_result.is_found() || !lu_result.result().name().is_type() )
 		return SemaError("Missing type!");
 

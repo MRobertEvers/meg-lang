@@ -9,18 +9,35 @@
 namespace ir
 {
 
+class Inst;
+struct BasicBlock
+{
+	std::vector<Inst*> instructions;
+
+	BasicBlock();
+};
+
+struct Module
+{
+	std::vector<BasicBlock*> blocks;
+
+	Module();
+};
+
 enum class InstKind
 {
 	Bad,
 	Alloca,
 	Return,
 	FnDecl,
-	Function,
+	FnDef,
 	ConstInt,
 	StringLiteral,
 	Store,
 	VarRef,
-	FnCall
+	FnCall,
+	Val,
+	BinOp,
 };
 
 struct Inst
@@ -37,16 +54,6 @@ struct Inst
 	{}
 	virtual ~Inst(){};
 };
-
-struct BasicBlock
-{
-	std::vector<Inst*> instructions;
-
-	BasicBlock();
-};
-
-struct Module
-{};
 
 /**
  * @brief Creates an auto variable in the current namespace. Of a given type.
@@ -75,11 +82,13 @@ struct FnDecl : Inst
 	FnDecl(NameId name_id, TypeInstance type);
 };
 
-struct Function : Inst
+struct FnDef : Inst
 {
 	std::vector<BasicBlock*> blocks;
 
-	Function(TypeInstance type);
+	std::vector<NameId> args;
+
+	FnDef(std::vector<NameId> args, TypeInstance type);
 };
 
 /**
@@ -123,6 +132,24 @@ struct FnCall : Inst
 	std::vector<Inst*> args;
 
 	FnCall(Inst* call_target, std::vector<Inst*> args, TypeInstance type);
+};
+
+/**
+ * @brief Causes a temporary to be looked up in the temporaries table.
+ */
+struct Val : Inst
+{
+	NameId name_id;
+
+	Val(NameId name_id, TypeInstance type);
+};
+
+struct BinOp : Inst
+{
+	Inst* lhs;
+	Inst* rhs;
+
+	BinOp(Inst* lhs, Inst* rhs, TypeInstance type);
 };
 
 } // namespace ir

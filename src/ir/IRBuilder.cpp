@@ -2,6 +2,8 @@
 
 #include "IRBuilder.h"
 
+#include "Type.h"
+
 using namespace ir;
 
 IRBuilder::IRBuilder()
@@ -42,12 +44,22 @@ IRBuilder::create_fn_decl(NameId name_id, TypeInstance type)
 	return fn_decl;
 }
 
-Function*
-IRBuilder::create_fn(TypeInstance type)
+FnDef*
+IRBuilder::create_fn(std::vector<NameId> args, TypeInstance type)
 {
 	//
-	auto fn = new Function(type);
+	auto fn = new FnDef(args, type);
 	create_inst(fn);
+
+	for( int i = 0; i < type.type->get_member_count(); i++ )
+	{
+		auto member = type.type->get_member(i);
+		auto name_id = args.at(i);
+		auto var_ref = new VarRef(name_id, member.type);
+		instructions.push_back(var_ref);
+
+		vars.emplace(name_id.index(), var_ref);
+	}
 
 	return fn;
 }
@@ -133,7 +145,7 @@ IRBuilder::create_basic_block()
 }
 
 BasicBlock*
-IRBuilder::create_basic_block(Function* fn)
+IRBuilder::create_basic_block(FnDef* fn)
 {
 	auto bb = create_basic_block();
 	fn->blocks.push_back(bb);
@@ -148,4 +160,20 @@ IRBuilder::create_call(Inst* call_target, std::vector<Inst*> args, TypeInstance 
 	create_inst(ir_call);
 
 	return ir_call;
+}
+
+Val*
+IRBuilder::create_binop(Inst* lhs, Inst* rhs, TypeInstance type)
+{
+	// TODO: Assert val or varref.
+	auto binop = new BinOp(lhs, rhs, type);
+	create_inst(binop);
+
+	auto val_ref = new Val(NameId(tmps.size()), type);
+	instructions.push_back(val_ref);
+
+	// TODO: Scope temporaries to current function?
+	tmps.emplace(tmps.size(), val_ref);
+
+	return val_ref;
 }

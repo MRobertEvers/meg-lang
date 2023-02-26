@@ -1,11 +1,12 @@
 #include "idname.h"
 
+#include "ir/QualifiedName.h"
 using namespace sema;
 
-QualifiedName
+ir::QualifiedName
 sema::idname(ast::AstList<std::string*>& name_parts)
 {
-	QualifiedName name;
+	ir::QualifiedName name;
 
 	for( auto name_part : &name_parts )
 	{
@@ -15,10 +16,10 @@ sema::idname(ast::AstList<std::string*>& name_parts)
 	return name;
 }
 
-QualifiedName
+ir::QualifiedName
 sema::idname(ast::AstId const& id)
 {
-	QualifiedName name;
+	ir::QualifiedName name;
 
 	for( auto name_part : id.name_parts )
 	{

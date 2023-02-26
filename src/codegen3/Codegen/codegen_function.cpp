@@ -165,6 +165,31 @@ cg::codegen_function_proto(CG& codegen, ir::FnDecl* ir_proto)
 	return CGExpr();
 }
 
+static CGExpr
+codegen_function_body(CG& codegen, cg::LLVMFnInfo& ctx, ir::FnDef* ir_fn)
+{
+	for( int i = 0; i < ir_fn->args.size(); i++ )
+	{
+		auto name_str = ctx.sig_info.get_arg_name(i).value();
+
+		auto iter_arg_info = ctx.named_args.find(name_str);
+		assert(iter_arg_info != ctx.named_args.end());
+
+		auto arg_info = iter_arg_info->second;
+
+		LLVMAddress addr = arg_info.lvalue.address();
+		codegen.vars.emplace(ir_fn->args.at(i).index(), addr);
+	}
+
+	for( auto bb : ir_fn->blocks )
+	{
+		for( auto inst : bb->instructions )
+			codegen_inst(codegen, inst);
+	}
+
+	return CGExpr();
+}
+
 /**
  * @brief
  *
@@ -174,44 +199,11 @@ cg::codegen_function_proto(CG& codegen, ir::FnDecl* ir_proto)
  * @return CGResult<CGExpr>
  */
 CGExpr
-cg::codegen_function(CG& codegen, ir::Function* ir_fn)
+cg::codegen_function(CG& codegen, ir::FnDef* ir_fn)
 {
 	auto fn_sig_info = codegen.get_function(ir_fn->type.type);
 
 	auto fn_info = codegen_function_entry(codegen, fn_sig_info);
 
-	for( auto bb : ir_fn->blocks )
-	{
-		for( auto inst : bb->instructions )
-			codegen_inst(codegen, inst);
-	}
-	// auto fn_sig_info = codegen_function_proto(cg, ir_fn->proto);
-	// if( !protor.ok() )
-	// 	return protor;
-
-	// auto fn_sig_info = protor.unwrap();
-
-	// auto bodyr = codegen_function_body(cg, fn_info, ir_fn->block);
-	// if( !bodyr.ok() )
-	// 	return bodyr;
-
-	return CGExpr();
+	return codegen_function_body(codegen, fn_info, ir_fn);
 }
-
-// static CGExpr
-// codegen_function_body(CG& cg, cg::LLVMFnInfo& ctx, ir::* block)
-// {
-// 	// auto previous_scope = cg.values;
-
-// 	// for( auto [name, arg] : ctx.named_args )
-// 	// {
-// 	// 	cg.values.insert_or_assign(name, arg.lvalue);
-// 	// }
-
-// 	// auto block_return = cg.codegen_block(ctx, block);
-
-// 	// cg.values = previous_scope;
-
-// 	// return block_return;
-// 	return CGExpr();
-// }

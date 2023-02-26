@@ -1,9 +1,8 @@
-#include "SemaLookup.h"
+#include "Lookup.h"
 
-using namespace sema;
 using namespace ir;
 
-SemaLookup::SemaLookup()
+Lookup::Lookup()
 	: root_namespace(NameRef(&names, 0))
 
 {
@@ -12,19 +11,19 @@ SemaLookup::SemaLookup()
 }
 
 NameLookupResult
-SemaLookup::lookup(QualifiedName const& name)
+Lookup::lookup_fqn(QualifiedName const& name)
 {
 	return lookup(name, root_namespace);
 }
 
 NameLookupResult
-SemaLookup::lookup_decl(QualifiedName const& name)
+Lookup::lookup(QualifiedName const& name)
 {
 	return lookup(name, current());
 }
 
 NameLookupResult
-SemaLookup::lookup(QualifiedName const& name, ir::NameRef nspace)
+Lookup::lookup(QualifiedName const& name, ir::NameRef nspace)
 {
 	if( name.length() == 0 )
 		return NameLookupResult();
@@ -44,26 +43,33 @@ SemaLookup::lookup(QualifiedName const& name, ir::NameRef nspace)
 }
 
 ir::NameRef
-SemaLookup::add_name(Name name)
+Lookup::get(ir::NameId name_id)
+{
+	assert(name_id.index() < this->names.size());
+	return NameRef(&this->names, name_id);
+}
+
+ir::NameRef
+Lookup::add_name(Name name)
 {
 	return add_name(current(), name);
 }
 
 ir::NameRef
-SemaLookup::add_name(ir::NameRef nspace, Name name)
+Lookup::add_name(ir::NameRef nspace, Name name)
 {
 	return nspace.add_name(name);
 }
 
 ir::NameRef
-SemaLookup::push_scope(ir::NameRef nspace)
+Lookup::push_scope(ir::NameRef nspace)
 {
 	namespace_stack.push_back(nspace);
 	return nspace;
 }
 
 void
-SemaLookup::pop_scope()
+Lookup::pop_scope()
 {
 	namespace_stack.pop_back();
 }

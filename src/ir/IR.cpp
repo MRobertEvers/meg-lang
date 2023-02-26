@@ -20,8 +20,9 @@ FnDecl::FnDecl(NameId name_id, TypeInstance type)
 	, Inst(InstKind::FnDecl, type)
 {}
 
-Function::Function(TypeInstance type)
-	: Inst(InstKind::Function, type)
+FnDef::FnDef(std::vector<NameId> args, TypeInstance type)
+	: args(args)
+	, Inst(InstKind::FnDef, type)
 {}
 
 ConstInt::ConstInt(unsigned long long val)
@@ -49,4 +50,15 @@ FnCall::FnCall(Inst* call_target, std::vector<Inst*> args, TypeInstance type)
 	: call_target(call_target)
 	, args(args)
 	, Inst(InstKind::FnCall, type)
+{}
+
+Val::Val(NameId name_id, TypeInstance type)
+	: name_id(name_id)
+	, Inst(InstKind::Val, type)
+{}
+
+BinOp::BinOp(Inst* lhs, Inst* rhs, TypeInstance type)
+	: lhs(lhs)
+	, rhs(rhs)
+	, Inst(InstKind::BinOp, type)
 {}

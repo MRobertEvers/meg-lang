@@ -1,7 +1,7 @@
 #pragma once
-#include "SemaLookup.h"
 #include "ir/IR.h"
 #include "ir/IRBuilder.h"
+#include "ir/Lookup.h"
 #include "ir/Name.h"
 #include "ir/Types.h"
 
@@ -13,7 +13,6 @@ namespace sema
 class Sema
 {
 	//
-	SemaLookup lookup_;
 	ir::Types types_;
 
 	ir::IRBuilder builder_;
@@ -21,7 +20,7 @@ class Sema
 public:
 	Sema();
 
-	SemaLookup& names() { return lookup_; }
+	ir::Lookup& names() { return builder_.lookup(); }
 
 	ir::Types& types() { return types_; }
 

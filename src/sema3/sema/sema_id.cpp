@@ -14,7 +14,7 @@ sema::sema_id(Sema& sema, ast::AstNode* ast)
 	auto id_node = ast_id.unwrap();
 
 	auto id_name = idname(id_node);
-	NameLookupResult lu_result = sema.names().lookup(id_name);
+	ir::NameLookupResult lu_result = sema.names().lookup(id_name);
 	if( !lu_result.is_found() )
 		return SemaError("Use of undeclared identifier '" + id_name.to_string() + "'.");
 

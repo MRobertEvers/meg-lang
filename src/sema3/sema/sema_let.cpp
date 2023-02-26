@@ -26,7 +26,7 @@ sema::sema_let(Sema& sema, ast::AstNode* ast)
 	// TODO: Assert simple name
 	auto var_name = idname(id_node);
 
-	NameLookupResult lu_result = sema.names().lookup(var_name);
+	ir::NameLookupResult lu_result = sema.names().lookup(var_name);
 	if( lu_result.is_found() )
 		return SemaError("Redefinition of " + var_name.to_string());
 

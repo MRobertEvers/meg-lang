@@ -65,6 +65,7 @@ add_executable(sushi
     src/ir/TypeInstance.cpp
     src/ir/Name.cpp
     src/ir/MemberTypeInstance.cpp
+    src/ir/Lookup.cpp
     src/sema3/sema/idname.cpp
     src/sema3/ActionResult.cpp
     src/sema3/sema/sema_module.cpp
@@ -80,7 +81,6 @@ add_executable(sushi
     src/sema3/sema/sema_return.cpp
     src/sema3/sema/sema_type_decl.cpp
     src/sema3/SemaResult.cpp
-    src/sema3/SemaLookup.cpp
     src/sema3/Sema.cpp
     src/sema3/QualifiedName.cpp
     src/codegen3/CGExpr.cpp

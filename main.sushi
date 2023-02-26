@@ -15,10 +15,17 @@ fn foo(): void {
     printf("Hallo\n");
     return;
 }
+
+fn bark(a: i32): i32 {
+    printf("%d\n", a);
+    return a;
+}
 }
 
 fn main(): i32 
 {
     B::foo();
+    B::bark(1);
+
     return 1;
 }

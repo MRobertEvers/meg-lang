@@ -45,8 +45,8 @@ cg::codegen_inst(CG& codegen, ir::Inst* inst)
 		return codegen_return(codegen, (ir::Return*)inst);
 	case ir::InstKind::FnDecl:
 		return codegen_function_proto(codegen, (ir::FnDecl*)inst);
-	case ir::InstKind::Function:
-		return codegen_function(codegen, (ir::Function*)inst);
+	case ir::InstKind::FnDef:
+		return codegen_function(codegen, (ir::FnDef*)inst);
 	case ir::InstKind::ConstInt:
 		return codegen_const_int(codegen, (ir::ConstInt*)inst);
 	case ir::InstKind::Alloca:

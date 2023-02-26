@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace sema
+namespace ir
 {
 
 class NameLookupResult
@@ -40,7 +40,7 @@ public:
 	}
 };
 
-class SemaLookup
+class Lookup
 {
 	std::vector<ir::Name> names;
 
@@ -49,12 +49,13 @@ class SemaLookup
 	std::vector<ir::NameRef> namespace_stack;
 
 public:
-	SemaLookup();
+	Lookup();
 
+	NameLookupResult lookup_fqn(QualifiedName const& name);
 	NameLookupResult lookup(QualifiedName const& name);
-	NameLookupResult lookup_decl(QualifiedName const& name);
 	NameLookupResult lookup(QualifiedName const& name, ir::NameRef nspace);
 
+	ir::NameRef get(ir::NameId name_id);
 	ir::NameRef add_name(ir::Name name);
 	ir::NameRef add_name(ir::NameRef nspace, ir::Name name);
 
@@ -66,4 +67,4 @@ public:
 
 	std::vector<ir::Name>& name_table() { return names; }
 };
-} // namespace sema
+} // namespace ir

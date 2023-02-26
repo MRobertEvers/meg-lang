@@ -2,7 +2,6 @@
 
 #include "sema_fn.h"
 
-#include "../SemaLookup.h"
 #include "../sema_expected.h"
 #include "ast2/AstCasts.h"
 #include "idname.h"
@@ -90,7 +89,7 @@ sema_fn_decl(Sema& sema, ast::AstNode* ast)
 	// TODO: Assert simple name?
 	auto name = idname(id_node);
 
-	NameLookupResult lu_result = sema.names().lookup_decl(name);
+	NameLookupResult lu_result = sema.names().lookup(name);
 	if( lu_result.is_found() )
 		return SemaError("Redefinition of " + name.to_string());
 
@@ -109,9 +108,10 @@ sema_fn_decl(Sema& sema, ast::AstNode* ast)
 	auto fn_type = Type::Function(name.part(0), params.arg_types, return_type, params.is_var_arg);
 	NameRef ir_fn_type = sema.create_type(fn_type);
 
+	// TODO: Confusing, names are defined during FnDef.
 	// This is how name resolution is done.
-	for( auto param : params.arg_types )
-		ir_fn_type.add_name(Name(param.name, param.type, Name::Member));
+	// for( auto param : params.arg_types )
+	// 	ir_fn_type.add_name(Name(param.name, param.type, Name::Member));
 
 	return ir_fn_type;
 }
@@ -119,11 +119,12 @@ sema_fn_decl(Sema& sema, ast::AstNode* ast)
 SemaResult<ir::FnDecl*>
 sema::sema_fn_proto(Sema& sema, ast::AstNode* ast)
 {
-	auto fn_type = sema_fn_decl(sema, ast);
-	if( !fn_type.ok() )
-		return fn_type;
+	auto fn_decl = sema_fn_decl(sema, ast);
+	if( !fn_decl.ok() )
+		return fn_decl;
 
-	auto fn_name = fn_type.unwrap();
+	auto fn_name = fn_decl.unwrap();
+	auto fn_type = fn_name.type();
 
 	return sema.builder().create_fn_decl(fn_name.id(), fn_name.type());
 }
@@ -139,14 +140,32 @@ sema::sema_fn(Sema& sema, ast::AstNode* ast)
 	auto fn_proto_result = sema_fn_proto(sema, fn_node.prototype);
 	if( !fn_proto_result.ok() )
 		return fn_proto_result;
+	auto fn_proto = fn_proto_result.unwrap();
+	auto fn_type = fn_proto->type;
 
-	ir::Function* ir_fn = sema.builder().create_fn(fn_proto_result.unwrap()->type);
+	// We add the arg names here in case of separate decl and def.
+	// The argument names need not match.
+	std::vector<NameId> arg_names;
+	auto scope = sema.names().get(fn_proto->name_id);
+	for( int i = 0; i < fn_type.type->get_member_count(); i++ )
+	{
+		auto member = fn_type.type->get_member(i);
+		auto name = sema.names().add_name(
+			scope, Name(member.name, scope.id(), member.type, ir::Name::NameKind::Var));
+		arg_names.push_back(name.id());
+	}
+
+	ir::FnDef* ir_fn = sema.builder().create_fn(arg_names, fn_type);
 	ir::BasicBlock* entry = sema.builder().create_basic_block(ir_fn);
 	sema.builder().set_insert_point(entry);
+
+	sema.names().push_scope(scope);
 
 	auto fn_body_result = sema_block(sema, fn_node.body);
 	if( !fn_body_result.ok() )
 		return fn_body_result;
+
+	sema.names().pop_scope();
 
 	return ir::ActionResult();
 }

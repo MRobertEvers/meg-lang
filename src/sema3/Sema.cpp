@@ -11,22 +11,22 @@ add_typename(ir::NameRef ns, ir::Type const* type)
 
 Sema::Sema()
 {
-	add_typename(lookup_.root(), types_.i8_type());
-	add_typename(lookup_.root(), types_.i16_type());
-	add_typename(lookup_.root(), types_.i32_type());
-	add_typename(lookup_.root(), types_.i64_type());
-	add_typename(lookup_.root(), types_.u8_type());
-	add_typename(lookup_.root(), types_.u16_type());
-	add_typename(lookup_.root(), types_.u32_type());
-	add_typename(lookup_.root(), types_.u64_type());
-	add_typename(lookup_.root(), types_.bool_type());
-	add_typename(lookup_.root(), types_.void_type());
+	add_typename(builder_.lookup().root(), types_.i8_type());
+	add_typename(builder_.lookup().root(), types_.i16_type());
+	add_typename(builder_.lookup().root(), types_.i32_type());
+	add_typename(builder_.lookup().root(), types_.i64_type());
+	add_typename(builder_.lookup().root(), types_.u8_type());
+	add_typename(builder_.lookup().root(), types_.u16_type());
+	add_typename(builder_.lookup().root(), types_.u32_type());
+	add_typename(builder_.lookup().root(), types_.u64_type());
+	add_typename(builder_.lookup().root(), types_.bool_type());
+	add_typename(builder_.lookup().root(), types_.void_type());
 }
 
 NameRef
 Sema::create_type(Type type_proto)
 {
-	return create_type(lookup_.current(), type_proto);
+	return create_type(builder_.lookup().current(), type_proto);
 }
 
 NameRef
