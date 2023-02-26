@@ -27,6 +27,7 @@ class Name
 public:
 	enum NameKind
 	{
+		Var,
 		Member,
 		Namespace,
 		Type
@@ -36,6 +37,7 @@ private:
 	//
 	std::string name_;
 	std::map<std::string, NameId> lookup_;
+	std::optional<NameId> parent_;
 	TypeInstance type_;
 
 	NameKind kind_;
@@ -43,6 +45,10 @@ private:
 public:
 	Name(std::string name)
 		: name_(name)
+		, kind_(NameKind::Namespace){};
+	Name(std::string name, NameId parent)
+		: name_(name)
+		, parent_(NameId(parent))
 		, kind_(NameKind::Namespace){};
 	Name(std::string name, TypeInstance type, NameKind kind)
 		: name_(name)
@@ -63,6 +69,7 @@ public:
 		return type_;
 	}
 
+	std::optional<NameId> parent();
 	std::optional<NameId> lookup(std::string name);
 	void add_name(std::string, NameId);
 };
@@ -84,5 +91,6 @@ public:
 	std::optional<NameRef> lookup(std::string) const;
 	NameRef add_name(Name);
 	TypeInstance type() const { return name().type(); }
+	NameId id() const { return id_; }
 };
 } // namespace ir

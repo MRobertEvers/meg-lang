@@ -46,13 +46,17 @@ class SemaLookup
 
 	ir::NameRef root_namespace;
 
+	std::vector<ir::NameRef> namespace_stack;
+
 public:
 	SemaLookup();
 
 	NameLookupResult lookup(QualifiedName const& name);
 
-	void add_name(ir::NameRef nspace, ir::Name name);
+	ir::NameRef add_name(ir::Name name);
+	ir::NameRef add_name(ir::NameRef nspace, ir::Name name);
 
 	ir::NameRef root() const { return root_namespace; }
+	ir::NameRef current() const { return namespace_stack[namespace_stack.size() - 1]; }
 };
 } // namespace sema

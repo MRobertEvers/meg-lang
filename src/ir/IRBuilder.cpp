@@ -8,6 +8,9 @@ IRBuilder::IRBuilder()
 	: current_block(new BasicBlock())
 {
 	this->blocks.push_back(current_block);
+
+	// TODO: Stable inst.
+	instructions.reserve(1000);
 }
 
 void
@@ -43,14 +46,28 @@ IRBuilder::create_fn(TypeInstance type)
 	return fn;
 }
 
-Alloca*
-IRBuilder::create_alloca(TypeInstance type)
+Store*
+IRBuilder::create_store(Inst* lhs, Inst* rhs)
+{
+	auto fn = new Store(lhs, rhs);
+	create_inst(fn);
+
+	return fn;
+}
+
+VarRef*
+IRBuilder::create_alloca(NameId name_id, TypeInstance type)
 {
 	//
-	auto alloca = new Alloca(type);
+	auto alloca = new Alloca(name_id, type);
 	create_inst(alloca);
 
-	return alloca;
+	vars.emplace(name_id.index(), alloca);
+
+	auto var_ref = new VarRef(name_id);
+	create_inst(var_ref);
+
+	return var_ref;
 }
 
 Return*

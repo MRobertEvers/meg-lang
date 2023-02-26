@@ -55,8 +55,8 @@ sema_fn_params(Sema& sema, ast::AstNode* ast)
 				return ast_id;
 			auto id_node = ast_id.unwrap();
 
-			auto param_name = idname(id_node);
 			// TODO: Assert simple name
+			auto param_name = idname(id_node);
 
 			result.arg_types.push_back(
 				MemberTypeInstance(type_decl_result.unwrap(), param_name.part(0), idx));
@@ -112,8 +112,6 @@ sema_fn_decl(Sema& sema, ast::AstNode* ast)
 	// This is how name resolution is done.
 	for( auto param : params.arg_types )
 		ir_fn_type.add_name(Name(param.name, param.type, Name::Member));
-
-	// sema.emit(new ir::FnDecl(ir_fn_type, ir::FnDecl::Extern));
 
 	return ir_fn_type.type();
 }

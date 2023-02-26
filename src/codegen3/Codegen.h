@@ -1,4 +1,5 @@
 #pragma once
+#include "Codegen/LLVMAddress.h"
 #include "Codegen/LLVMFnSigInfo.h"
 #include "ir/IR.h"
 #include "ir/Type.h"
@@ -23,6 +24,8 @@ public:
 
 	std::map<ir::Type const*, llvm::Type*> types;
 	std::map<std::string, LLVMFnSigInfo> functions;
+
+	std::map<int, LLVMAddress> vars;
 
 	CG(sema::Sema& sema);
 

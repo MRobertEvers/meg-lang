@@ -2,6 +2,7 @@
 
 #include "../sema_expected.h"
 #include "ast2/AstCasts.h"
+#include "sema_let.h"
 #include "sema_return.h"
 
 using namespace sema;
@@ -20,6 +21,10 @@ sema::sema_statement(Sema& sema, ast::AstNode* ast)
 	{
 	case ast::NodeType::Return:
 		return sema_return(sema, stmt_node);
+	case ast::NodeType::Let:
+		return sema_let(sema, stmt_node);
+	default:
+		assert(0 && "NodeType expr not supported.");
 	}
 
 	return ir::ActionResult();

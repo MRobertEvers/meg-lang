@@ -3,6 +3,12 @@
 using namespace ir;
 
 std::optional<NameId>
+Name::parent()
+{
+	return this->parent_;
+}
+
+std::optional<NameId>
 Name::lookup(std::string name)
 {
 	auto iter_lookup = lookup_.find(name);
@@ -22,13 +28,22 @@ Name::add_name(std::string name, NameId id)
 std::optional<NameRef>
 NameRef::lookup(std::string name_str) const
 {
-	Name& name = this->name();
-	auto maybe_id = name.lookup(name_str);
+	NameRef current = *this;
+	while( true )
+	{
+		Name& name = current.name();
+		auto maybe_id = name.lookup(name_str);
 
-	if( !maybe_id.has_value() )
-		return std::optional<NameRef>();
+		if( maybe_id.has_value() )
+			return NameRef(names_, maybe_id.value());
 
-	return NameRef(names_, maybe_id.value());
+		if( name.parent().has_value() )
+			current = NameRef(names_, name.parent().value());
+		else
+			break;
+	}
+
+	return std::optional<NameRef>();
 }
 
 NameRef

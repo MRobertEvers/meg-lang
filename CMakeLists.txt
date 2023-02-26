@@ -67,7 +67,9 @@ add_executable(sushi
     src/sema3/sema/idname.cpp
     src/sema3/ActionResult.cpp
     src/sema3/sema/sema_module.cpp
+    src/sema3/sema/sema_let.cpp
     src/sema3/sema/sema_fn.cpp
+    src/sema3/sema/sema_expr.cpp
     src/sema3/sema/sema_tls.cpp
     src/sema3/sema/sema_block.cpp
     src/sema3/sema/sema_statement.cpp
@@ -83,6 +85,9 @@ add_executable(sushi
     src/codegen3/Codegen/LValue.cpp
     src/codegen3/Codegen/lookup.cpp
     src/codegen3/Codegen/operand.cpp
+    src/codegen3/Codegen/codegen_store.cpp
+    src/codegen3/Codegen/codegen_var_ref.cpp
+    src/codegen3/Codegen/codegen_alloca.cpp
     src/codegen3/Codegen/codegen_return.cpp
     src/codegen3/Codegen/codegen_function.cpp
     src/codegen3/Codegen/codegen_inst.cpp

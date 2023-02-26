@@ -5,8 +5,9 @@ using namespace ir;
 BasicBlock::BasicBlock()
 {}
 
-Alloca::Alloca(TypeInstance type)
+Alloca::Alloca(NameId name_id, TypeInstance type)
 	: type(type)
+	, name_id(name_id)
 	, Inst(InstKind::Alloca)
 {}
 
@@ -28,4 +29,15 @@ Function::Function(TypeInstance type)
 ConstInt::ConstInt(unsigned long long val)
 	: value(val)
 	, Inst(InstKind::ConstInt)
+{}
+
+Store::Store(Inst* lhs, Inst* rhs)
+	: lhs(lhs)
+	, rhs(rhs)
+	, Inst(InstKind::Store)
+{}
+
+VarRef::VarRef(NameId name_id)
+	: name_id(name_id)
+	, Inst(InstKind::VarRef)
 {}

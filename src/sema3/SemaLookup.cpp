@@ -5,8 +5,10 @@ using namespace ir;
 
 SemaLookup::SemaLookup()
 	: root_namespace(NameRef(&names, 0))
+
 {
 	names.push_back(Name(""));
+	namespace_stack.push_back(root_namespace);
 }
 
 NameLookupResult
@@ -30,8 +32,14 @@ SemaLookup::lookup(QualifiedName const& name)
 	return NameLookupResult(it);
 }
 
-void
+ir::NameRef
+SemaLookup::add_name(Name name)
+{
+	return add_name(current(), name);
+}
+
+ir::NameRef
 SemaLookup::add_name(NameRef nspace, Name name)
 {
-	nspace.add_name(name);
+	return nspace.add_name(name);
 }
