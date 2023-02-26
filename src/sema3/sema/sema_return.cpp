@@ -14,14 +14,14 @@ sema::sema_return(Sema& sema, ast::AstNode* ast)
 		return ast_return;
 	auto return_node = ast_return.unwrap();
 
-	if( return_node.expr )
+	if( !return_node.expr )
 	{
 		sema.builder().create_return(nullptr);
 		return ir::ActionResult();
 	}
 	else
 	{
-		auto expr_result = sema_expr(sema, ast);
+		auto expr_result = sema_expr(sema, return_node.expr);
 		if( !expr_result.ok() )
 			return expr_result;
 

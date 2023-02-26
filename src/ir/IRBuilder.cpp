@@ -83,9 +83,14 @@ IRBuilder::create_return(Inst* operand)
 ConstInt*
 IRBuilder::create_const_int(unsigned long long val)
 {
-	//
+	// TODO: These should just be created freestanding.
+	// Ex. See LLVM, we have to create a ConstInt separate
+	// from the builder and pass that value around.
+	// We want to do the same here because the ConstInt
+	// instruction doesn't do anything by itself.
 	auto constint = new ConstInt(val);
-	create_inst(constint);
+	// create_inst(constint);
+	instructions.push_back(constint);
 
 	return constint;
 }
