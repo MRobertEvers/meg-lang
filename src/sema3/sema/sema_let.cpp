@@ -46,7 +46,7 @@ sema::sema_let(Sema& sema, ast::AstNode* ast)
 		if( !expr_result.ok() )
 			return expr_result;
 
-		sema.builder().create_store(ir_alloca, expr_result.unwrap().rvalue().inst);
+		sema.builder().create_store(ir_alloca, expr_result.unwrap().action().inst);
 	}
 
 	return ir::ActionResult();

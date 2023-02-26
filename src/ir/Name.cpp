@@ -56,3 +56,31 @@ NameRef::add_name(Name create_name)
 
 	return NameRef(names_, id_index);
 }
+
+std::string
+NameRef::to_fqn_string() const
+{
+	std::string s;
+
+	int ind = 0;
+
+	NameRef current = *this;
+	while( true )
+	{
+		Name& name = current.name();
+
+		// Break at the root namespace.
+		if( !name.parent().has_value() )
+			break;
+
+		if( ind != 0 )
+			s += "__";
+		s += name.name_str();
+
+		current = NameRef(names_, name.parent().value());
+
+		ind += 1;
+	}
+
+	return s;
+}

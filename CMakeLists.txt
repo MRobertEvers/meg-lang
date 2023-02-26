@@ -49,6 +49,7 @@ add_executable(sushi
     src/ast2/ParseResult.cpp
     src/ast2/ast/parse_is.cpp
     src/ast2/ast/parse_if_arrow.cpp
+    src/ast2/ast/parse_namespace.cpp
     src/ast2/ast/parse_common.cpp
     src/ast2/ast/parse_enum.cpp
     src/ast2/ast/parse_struct.cpp
@@ -71,10 +72,14 @@ add_executable(sushi
     src/sema3/sema/sema_fn.cpp
     src/sema3/sema/sema_expr.cpp
     src/sema3/sema/sema_tls.cpp
+    src/sema3/sema/sema_id.cpp
+    src/sema3/sema/sema_namespace.cpp
+    src/sema3/sema/sema_call.cpp
     src/sema3/sema/sema_block.cpp
     src/sema3/sema/sema_statement.cpp
     src/sema3/sema/sema_return.cpp
     src/sema3/sema/sema_type_decl.cpp
+    src/sema3/SemaResult.cpp
     src/sema3/SemaLookup.cpp
     src/sema3/Sema.cpp
     src/sema3/QualifiedName.cpp
@@ -85,7 +90,9 @@ add_executable(sushi
     src/codegen3/Codegen/LValue.cpp
     src/codegen3/Codegen/lookup.cpp
     src/codegen3/Codegen/operand.cpp
+    src/codegen3/Codegen/codegen_call.cpp
     src/codegen3/Codegen/codegen_store.cpp
+    src/codegen3/Codegen/codegen_string_literal.cpp
     src/codegen3/Codegen/codegen_var_ref.cpp
     src/codegen3/Codegen/codegen_alloca.cpp
     src/codegen3/Codegen/codegen_return.cpp

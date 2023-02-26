@@ -31,6 +31,7 @@ enum class NodeType
 	Let,
 	Return,
 	Struct,
+	Namespace,
 	Union,
 	Initializer,
 	InitializerDesignator,
@@ -411,6 +412,20 @@ struct AstStruct
 	{}
 };
 
+struct AstNamespace
+{
+	static constexpr NodeType nt = NodeType::Namespace;
+
+	AstNode* namespace_name;
+	AstList<AstNode*>* statements;
+
+	AstNamespace() = default;
+	AstNamespace(AstNode* namespace_name, AstList<AstNode*>* members)
+		: namespace_name(namespace_name)
+		, statements(members)
+	{}
+};
+
 struct AstUnion
 {
 	static constexpr NodeType nt = NodeType::Union;
@@ -665,6 +680,7 @@ struct AstNode
 	union
 	{
 		AstModule mod;
+		AstNamespace namespace_node;
 		AstFn fn;
 		AstExternFn extern_fn;
 		AstFnProto fn_proto;

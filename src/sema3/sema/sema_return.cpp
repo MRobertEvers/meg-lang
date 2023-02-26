@@ -14,20 +14,20 @@ sema::sema_return(Sema& sema, ast::AstNode* ast)
 		return ast_return;
 	auto return_node = ast_return.unwrap();
 
-	if( !return_node.expr )
+	auto expr_result = sema_expr(sema, return_node.expr);
+	if( !expr_result.ok() )
+		return expr_result;
+
+	auto expr = expr_result.unwrap();
+
+	if( expr.is_void() )
 	{
 		sema.builder().create_return(nullptr);
 		return ir::ActionResult();
 	}
 	else
 	{
-		auto expr_result = sema_expr(sema, return_node.expr);
-		if( !expr_result.ok() )
-			return expr_result;
-
-		auto expr = expr_result.unwrap();
-
-		sema.builder().create_return(expr.rvalue().inst);
+		sema.builder().create_return(expr.action().inst);
 
 		return ir::ActionResult();
 	}

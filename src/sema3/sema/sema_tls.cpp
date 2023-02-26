@@ -2,6 +2,7 @@
 
 #include "../sema_expected.h"
 #include "sema_fn.h"
+#include "sema_namespace.h"
 
 using namespace sema;
 
@@ -15,6 +16,8 @@ sema::sema_tls(Sema& sema, ast::AstNode* ast)
 		return sema_fn(sema, ast);
 	case ast::NodeType::ExternFn:
 		return sema_extern_fn(sema, ast);
+	case ast::NodeType::Namespace:
+		return sema_namespace(sema, ast);
 	default:
 		return SemaError("Unsupported NodeType as TLS.");
 	}

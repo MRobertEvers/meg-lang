@@ -23,13 +23,23 @@ public:
 	std::unique_ptr<llvm::Module> Module;
 
 	std::map<ir::Type const*, llvm::Type*> types;
-	std::map<std::string, LLVMFnSigInfo> functions;
+
+	// Names are needed here for external functions and mangling
+	std::vector<ir::Name> names;
+
+	// We may need to look up function by type since
+	// some function targets may not have a name (e.g. function pointer.)
+	std::map<ir::Type const*, int> functions_types;
+	std::map<int, LLVMFnSigInfo> functions;
 
 	std::map<int, LLVMAddress> vars;
 
 	CG(sema::Sema& sema);
 
 	std::optional<llvm::Type*> find_type(ir::Type const*);
+
+	void add_function(int, LLVMFnSigInfo);
+	LLVMFnSigInfo get_function(ir::Type const*);
 };
 
 } // namespace cg

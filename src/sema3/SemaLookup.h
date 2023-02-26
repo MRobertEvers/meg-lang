@@ -52,11 +52,18 @@ public:
 	SemaLookup();
 
 	NameLookupResult lookup(QualifiedName const& name);
+	NameLookupResult lookup_decl(QualifiedName const& name);
+	NameLookupResult lookup(QualifiedName const& name, ir::NameRef nspace);
 
 	ir::NameRef add_name(ir::Name name);
 	ir::NameRef add_name(ir::NameRef nspace, ir::Name name);
 
+	ir::NameRef push_scope(ir::NameRef nspace);
+	void pop_scope();
+
 	ir::NameRef root() const { return root_namespace; }
 	ir::NameRef current() const { return namespace_stack[namespace_stack.size() - 1]; }
+
+	std::vector<ir::Name>& name_table() { return names; }
 };
 } // namespace sema

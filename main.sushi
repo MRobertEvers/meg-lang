@@ -1,7 +1,24 @@
 extern fn printf(str: i8*, ...): void;
 
+
+namespace A 
+{
+fn foo(): void {
+    printf("Hello\n");
+    return;
+}
+}
+
+namespace B 
+{
+fn foo(): void {
+    printf("Hallo\n");
+    return;
+}
+}
+
 fn main(): i32 
 {
-    let a: i32 = 5;
+    B::foo();
     return 1;
 }

@@ -123,9 +123,9 @@ from_argtypes(std::vector<LLVMArgABIInfo>& args)
 }
 
 static LLVMFnSigInfo
-codegen_function_type(CG& codegen, ir::TypeInstance type)
+codegen_function_type(CG& codegen, ir::NameId id, ir::TypeInstance type)
 {
-	auto name = type.type->get_name();
+	auto name = ir::NameRef(&codegen.names, id).to_fqn_string();
 
 	auto params_info = get_named_params(codegen, type);
 
@@ -153,7 +153,7 @@ codegen_function_type(CG& codegen, ir::TypeInstance type)
 
 	auto sig_info = codegen_fn_sig_info(codegen, builder);
 
-	codegen.functions.emplace(name, sig_info);
+	codegen.add_function(id.index(), sig_info);
 
 	return sig_info;
 }
@@ -161,7 +161,7 @@ codegen_function_type(CG& codegen, ir::TypeInstance type)
 CGExpr
 cg::codegen_function_proto(CG& codegen, ir::FnDecl* ir_proto)
 {
-	codegen_function_type(codegen, ir_proto->type);
+	codegen_function_type(codegen, ir_proto->name_id, ir_proto->type);
 	return CGExpr();
 }
 
@@ -176,7 +176,7 @@ cg::codegen_function_proto(CG& codegen, ir::FnDecl* ir_proto)
 CGExpr
 cg::codegen_function(CG& codegen, ir::Function* ir_fn)
 {
-	auto fn_sig_info = codegen.functions.find(ir_fn->type.type->get_name())->second;
+	auto fn_sig_info = codegen.get_function(ir_fn->type.type);
 
 	auto fn_info = codegen_function_entry(codegen, fn_sig_info);
 

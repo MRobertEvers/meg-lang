@@ -1,7 +1,7 @@
 #include "SemaResult.h"
 using namespace sema;
 
-static String
+static std::string
 get_line(char const* line, int line_num)
 {
 	if( line_num != 0 )
@@ -14,7 +14,7 @@ get_line(char const* line, int line_num)
 	unsigned int size = offset - line;
 	if( size == 1 )
 		return "";
-	return String(line, size);
+	return std::string(line, size);
 }
 
 void

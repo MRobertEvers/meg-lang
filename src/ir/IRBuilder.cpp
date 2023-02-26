@@ -27,11 +27,17 @@ IRBuilder::set_insert_point(BasicBlock* bb)
 }
 
 FnDecl*
-IRBuilder::create_fn_decl(TypeInstance type)
+IRBuilder::create_fn_decl(NameId name_id, TypeInstance type)
 {
 	//
-	auto fn_decl = new FnDecl(type);
+	auto fn_decl = new FnDecl(name_id, type);
 	create_inst(fn_decl);
+
+	auto var_ref = new VarRef(name_id, type);
+	instructions.push_back(var_ref);
+
+	vars.emplace(name_id.index(), var_ref);
+	fns.emplace(name_id.index(), fn_decl);
 
 	return fn_decl;
 }
@@ -62,12 +68,22 @@ IRBuilder::create_alloca(NameId name_id, TypeInstance type)
 	auto alloca = new Alloca(name_id, type);
 	create_inst(alloca);
 
-	vars.emplace(name_id.index(), alloca);
+	auto var_ref = new VarRef(name_id, type);
+	instructions.push_back(var_ref);
 
-	auto var_ref = new VarRef(name_id);
-	create_inst(var_ref);
+	vars.emplace(name_id.index(), var_ref);
 
 	return var_ref;
+}
+
+VarRef*
+IRBuilder::create_var_ref(NameId name_id)
+{
+	auto iter = vars.find(name_id.index());
+
+	assert(iter != vars.end());
+
+	return iter->second;
 }
 
 Return*
@@ -95,6 +111,16 @@ IRBuilder::create_const_int(unsigned long long val)
 	return constint;
 }
 
+StringLiteral*
+IRBuilder::create_string_literal(std::string val)
+{
+	// TODO: See comment in const int.
+	auto stringlit = new StringLiteral(val);
+	instructions.push_back(stringlit);
+
+	return stringlit;
+}
+
 BasicBlock*
 IRBuilder::create_basic_block()
 {
@@ -113,4 +139,13 @@ IRBuilder::create_basic_block(Function* fn)
 	fn->blocks.push_back(bb);
 
 	return bb;
+}
+
+FnCall*
+IRBuilder::create_call(Inst* call_target, std::vector<Inst*> args, TypeInstance type)
+{
+	auto ir_call = new FnCall(call_target, args, type);
+	create_inst(ir_call);
+
+	return ir_call;
 }

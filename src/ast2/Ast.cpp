@@ -33,6 +33,14 @@ Ast::Module(Span span, AstList<AstNode*>* params)
 }
 
 AstNode*
+Ast::Namespace(Span span, AstNode* name, AstList<AstNode*>* params)
+{
+	auto node = make_empty<AstNamespace>(span);
+	node->data.namespace_node = AstNamespace{name, params};
+	return node;
+}
+
+AstNode*
 Ast::ExternFn(Span span, AstNode* prototype)
 {
 	auto node = make_empty<AstExternFn>(span);

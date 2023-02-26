@@ -86,7 +86,9 @@
         "variant": "cpp",
         "*.inc": "cpp",
         "__memory": "cpp",
-        "__availability": "cpp"
+        "__availability": "cpp",
+        "__functional_03": "cpp",
+        "memory_resource": "cpp"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

@@ -54,6 +54,11 @@ public:
 		: name_(name)
 		, type_(type)
 		, kind_(kind){};
+	Name(std::string name, NameId parent, TypeInstance type, NameKind kind)
+		: name_(name)
+		, parent_(NameId(parent))
+		, type_(type)
+		, kind_(kind){};
 
 	NameKind kind() { return kind_; }
 
@@ -92,5 +97,7 @@ public:
 	NameRef add_name(Name);
 	TypeInstance type() const { return name().type(); }
 	NameId id() const { return id_; }
+
+	std::string to_fqn_string() const;
 };
 } // namespace ir

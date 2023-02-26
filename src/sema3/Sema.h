@@ -28,6 +28,6 @@ public:
 	ir::NameRef create_type(ir::Type type);
 	ir::NameRef create_type(ir::NameRef nspace, ir::Type type);
 
-	ir::IRBuilder builder() { return builder_; }
+	ir::IRBuilder& builder() { return builder_; }
 };
 } // namespace sema

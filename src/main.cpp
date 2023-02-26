@@ -123,8 +123,8 @@ main(int argc, char* argv[])
 	Sema sema;
 
 	auto bb = sema_module(sema, result.unwrap());
-	// if( !bb.ok() )
-	// 	bb.unwrap_error()->print();
+	if( !bb.ok() )
+		bb.unwrap_error()->print();
 
 	CG cg(sema);
 

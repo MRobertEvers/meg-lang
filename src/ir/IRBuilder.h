@@ -15,7 +15,9 @@ class IRBuilder
 	std::vector<BasicBlock*> blocks;
 	BasicBlock* current_block;
 
-	std::map<int, Alloca*> vars;
+	// TODO: Should only be Alloca, or FnDecl
+	std::map<int, VarRef*> vars;
+	std::map<int, FnDecl*> fns;
 
 	void create_inst(Inst*);
 
@@ -26,13 +28,16 @@ public:
 
 	void set_insert_point(BasicBlock*);
 
-	FnDecl* create_fn_decl(TypeInstance type);
+	FnDecl* create_fn_decl(NameId name_id, TypeInstance type);
 	Function* create_fn(TypeInstance type);
 	Store* create_store(Inst* lhs, Inst* rhs);
 	VarRef* create_alloca(NameId name_id, TypeInstance type);
+	VarRef* create_var_ref(NameId name_id);
 	Return* create_return(Inst* operand);
 	ConstInt* create_const_int(unsigned long long);
+	StringLiteral* create_string_literal(std::string val);
 	BasicBlock* create_basic_block();
 	BasicBlock* create_basic_block(Function*);
+	FnCall* create_call(Inst* call_target, std::vector<Inst*> args, TypeInstance type);
 };
 }; // namespace ir

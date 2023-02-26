@@ -7,49 +7,43 @@
 
 namespace ir
 {
-class RValue
+class Action
 {
 public:
 	Inst* inst;
 	TypeInstance type;
 
-	RValue(Inst* inst, TypeInstance type)
+	Action(Inst* inst, TypeInstance type)
 		: inst(inst)
 		, type(type){};
 };
-
-class LValue
-{};
 
 class ActionResult
 {
 	enum class Kind
 	{
 		Void,
-		LValue,
-		RValue,
+		Action,
 		Type
 	};
 
 	union
 	{
-		LValue lvalue_;
-		RValue rvalue_;
+		Action action_;
 		ir::TypeInstance type_;
 	};
 
 	Kind kind = Kind::Void;
 
 public:
-	ActionResult(LValue lvalue);
-	ActionResult(RValue rvalue);
+	ActionResult(Action rvalue);
 	ActionResult(ir::TypeInstance type);
 	ActionResult();
 
 	bool is_type() const { return kind == Kind::Type; }
 	bool is_void() const { return kind == Kind::Void; }
 
-	RValue rvalue() const { return rvalue_; }
+	Action action() const { return action_; }
 	ir::TypeInstance type() const { return type_; }
 };
 } // namespace ir

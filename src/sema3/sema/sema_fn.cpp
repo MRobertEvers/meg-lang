@@ -74,7 +74,7 @@ sema_fn_params(Sema& sema, ast::AstNode* ast)
 	return result;
 }
 
-static SemaResult<TypeInstance>
+static SemaResult<ir::NameRef>
 sema_fn_decl(Sema& sema, ast::AstNode* ast)
 {
 	auto ast_fn_proto = expected(ast, ast::as_fn_proto);
@@ -90,7 +90,7 @@ sema_fn_decl(Sema& sema, ast::AstNode* ast)
 	// TODO: Assert simple name?
 	auto name = idname(id_node);
 
-	NameLookupResult lu_result = sema.names().lookup(name);
+	NameLookupResult lu_result = sema.names().lookup_decl(name);
 	if( lu_result.is_found() )
 		return SemaError("Redefinition of " + name.to_string());
 
@@ -107,13 +107,13 @@ sema_fn_decl(Sema& sema, ast::AstNode* ast)
 	// TODO: Confusing that the members are part of the type and the namespace.
 	// The type should really just contain the types and not the names.
 	auto fn_type = Type::Function(name.part(0), params.arg_types, return_type, params.is_var_arg);
-	auto ir_fn_type = sema.create_type(fn_type);
+	NameRef ir_fn_type = sema.create_type(fn_type);
 
 	// This is how name resolution is done.
 	for( auto param : params.arg_types )
 		ir_fn_type.add_name(Name(param.name, param.type, Name::Member));
 
-	return ir_fn_type.type();
+	return ir_fn_type;
 }
 
 SemaResult<ir::FnDecl*>
@@ -123,7 +123,9 @@ sema::sema_fn_proto(Sema& sema, ast::AstNode* ast)
 	if( !fn_type.ok() )
 		return fn_type;
 
-	return sema.builder().create_fn_decl(fn_type.unwrap());
+	auto fn_name = fn_type.unwrap();
+
+	return sema.builder().create_fn_decl(fn_name.id(), fn_name.type());
 }
 
 SemaResult<ir::ActionResult>

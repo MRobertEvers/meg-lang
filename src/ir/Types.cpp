@@ -55,6 +55,12 @@ Types::void_type()
 }
 
 Type const*
+Types::i64_type()
+{
+	return this->i64_type_;
+}
+
+Type const*
 Types::i32_type()
 {
 	return this->i32_type_;
@@ -70,6 +76,12 @@ Type const*
 Types::i8_type()
 {
 	return this->i8_type_;
+}
+
+Type const*
+Types::u64_type()
+{
+	return this->u64_type_;
 }
 
 Type const*

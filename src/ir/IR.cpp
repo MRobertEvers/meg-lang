@@ -6,9 +6,8 @@ BasicBlock::BasicBlock()
 {}
 
 Alloca::Alloca(NameId name_id, TypeInstance type)
-	: type(type)
-	, name_id(name_id)
-	, Inst(InstKind::Alloca)
+	: name_id(name_id)
+	, Inst(InstKind::Alloca, type)
 {}
 
 Return::Return(Inst* operand)
@@ -16,19 +15,23 @@ Return::Return(Inst* operand)
 	, Inst(InstKind::Return)
 {}
 
-FnDecl::FnDecl(TypeInstance type)
-	: type(type)
-	, Inst(InstKind::FnDecl)
+FnDecl::FnDecl(NameId name_id, TypeInstance type)
+	: name_id(name_id)
+	, Inst(InstKind::FnDecl, type)
 {}
 
 Function::Function(TypeInstance type)
-	: type(type)
-	, Inst(InstKind::Function)
+	: Inst(InstKind::Function, type)
 {}
 
 ConstInt::ConstInt(unsigned long long val)
 	: value(val)
 	, Inst(InstKind::ConstInt)
+{}
+
+StringLiteral::StringLiteral(std::string val)
+	: value(val)
+	, Inst(InstKind::StringLiteral)
 {}
 
 Store::Store(Inst* lhs, Inst* rhs)
@@ -37,7 +40,13 @@ Store::Store(Inst* lhs, Inst* rhs)
 	, Inst(InstKind::Store)
 {}
 
-VarRef::VarRef(NameId name_id)
+VarRef::VarRef(NameId name_id, TypeInstance type)
 	: name_id(name_id)
-	, Inst(InstKind::VarRef)
+	, Inst(InstKind::VarRef, type)
+{}
+
+FnCall::FnCall(Inst* call_target, std::vector<Inst*> args, TypeInstance type)
+	: call_target(call_target)
+	, args(args)
+	, Inst(InstKind::FnCall, type)
 {}

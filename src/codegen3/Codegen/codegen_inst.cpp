@@ -1,10 +1,12 @@
 #include "codegen_inst.h"
 
 #include "codegen_alloca.h"
+#include "codegen_call.h"
 #include "codegen_fn_sig_info.h"
 #include "codegen_function.h"
 #include "codegen_return.h"
 #include "codegen_store.h"
+#include "codegen_string_literal.h"
 #include "codegen_var_ref.h"
 #include "lookup.h"
 #include <llvm/IR/IRBuilder.h>
@@ -53,6 +55,10 @@ cg::codegen_inst(CG& codegen, ir::Inst* inst)
 		return codegen_store(codegen, (ir::Store*)inst);
 	case ir::InstKind::VarRef:
 		return codegen_var_ref(codegen, (ir::VarRef*)inst);
+	case ir::InstKind::FnCall:
+		return codegen_call(codegen, (ir::FnCall*)inst);
+	case ir::InstKind::StringLiteral:
+		return codegen_string_literal(codegen, (ir::StringLiteral*)inst);
 	default:
 		assert(0 && "Unimplemented Instruction.");
 	}

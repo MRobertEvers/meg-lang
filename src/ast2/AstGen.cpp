@@ -4,6 +4,7 @@
 #include "ast/parse_common.h"
 #include "ast/parse_enum.h"
 #include "ast/parse_if_arrow.h"
+#include "ast/parse_namespace.h"
 #include "ast/parse_struct.h"
 #include "bin_op.h"
 
@@ -94,6 +95,8 @@ AstGen::parse_module_top_level_item()
 		return parse_union();
 	case TokenType::enum_keyword:
 		return parse_enum(*this);
+	case TokenType::namespace_keyword:
+		return parse_namespace(*this);
 	default:
 		return ParseError("Expected top level 'fn' or 'struct' declaration.");
 	}
@@ -173,7 +176,10 @@ AstGen::parse_block()
 
 		curr_tok = cursor.peek();
 	}
-	cursor.consume_if_expected(TokenType::close_curly);
+
+	tok = cursor.consume(TokenType::close_curly);
+	if( !tok.ok() )
+		return ParseError("Expected '}'", tok.as());
 
 	return ast.Block(trail.mark(), stmts);
 }
