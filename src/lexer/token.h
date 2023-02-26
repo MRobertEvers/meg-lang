@@ -59,6 +59,8 @@ enum class TokenType
 	fn,
 	switch_keyword,
 	case_keyword,
+	continue_keyword,
+	break_keyword,
 	default_keyword,
 	namespace_keyword,
 	extern_keyword,

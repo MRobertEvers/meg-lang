@@ -2,6 +2,6 @@ extern fn printf(str: i8*, ...): void;
 
 fn main(): i32 
 {
-    // let a: i32 = 5;
+    let a: i32 = 5;
     return 1;
 }
