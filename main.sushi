@@ -1,6 +1,7 @@
 extern fn printf(str: i8*, ...): void;
 
 
+namespace Ast {
 enum Node {
     Void,
     String { ptr: i8*; size: i32 }
@@ -10,20 +11,45 @@ enum Node {
     }
 }
 
+struct PP {
+    x: i32
+}
+
+union MyUnion {
+    ptr: i8*;
+    x: i32;
+}
+}
 
 
-fn foo(a: i32): i32 {
-    return a;
+
+
+
+fn foo(a: Ast::Node): i32 {
+    switch (a) {
+        case Ast::Node::Void:
+            printf("Void\n");
+        case Ast::Node::String => (a_str: Ast::Node::String) {
+            printf("String\n");
+        }
+        default:
+            printf("??\n");
+    }
+
+    return 1;
 }
 
 fn main(): i32 
 {
-    let np: Node = Node::Point {
+    let np: Ast::Node = Ast::Node::Point {
         .x = 9,
         .y = 11
     };
+    let nv: Ast::Node = Ast::Node::Void;
 
-
+    let mu: Ast::MyUnion = Ast::MyUnion {
+        .ptr = "abcd"
+    };
 
     let big: i32 = 88;
 
@@ -33,7 +59,7 @@ fn main(): i32
 
     if (big > 8)
     {
-        return foo(big);
+        return foo(nv);
     }
 
     return 1;

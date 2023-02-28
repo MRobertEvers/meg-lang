@@ -6,6 +6,7 @@
 #include "lowering/lower_for.h"
 #include "sema/idname.h"
 #include "sema/sema_id.h"
+#include "sema/sema_namespace.h"
 #include "sema_expected.h"
 
 using namespace sema;
@@ -86,6 +87,14 @@ sema::sema_tls(Sema2& sema, AstNode* ast)
 	case NodeType::Enum:
 	{
 		auto ex = sema_enum(sema, ast);
+		if( !ex.ok() )
+			return ex;
+
+		return sema.TLS(ex.unwrap());
+	}
+	case NodeType::Namespace:
+	{
+		auto ex = sema_namespace(sema, ast);
 		if( !ex.ok() )
 			return ex;
 
@@ -1512,7 +1521,7 @@ sema::sema_union(Sema2& sema, ast::AstNode* ast)
 	// TODO: Simple name
 	QualifiedName qname = idname(union_stmt.type_name->data.id);
 
-	std::map<std::string, ir::IREnumMember*> members;
+	std::map<std::string, ir::IRValueDecl*> members;
 	for( auto stmt : union_stmt.members )
 	{
 		auto memberr = sema_struct_tls(sema, stmt);
@@ -1521,14 +1530,14 @@ sema::sema_union(Sema2& sema, ast::AstNode* ast)
 
 		auto member = memberr.unwrap();
 
-		// members.emplace(member->name.to_fqn_string(), member);
+		members.emplace(member->simple_name, member);
 	}
 
 	auto fn_type = sema.CreateType(Type::Union(qname.part(0), members_to_members(members)));
-	sema.add_type_identifier(fn_type);
+	sema::NameRef union_name_ref = sema.add_type_identifier(fn_type);
 
-	return NotImpl();
-	// return sema.Union(ast, fn_type, members);
+	// return NotImpl();
+	return sema.Union(ast, union_name_ref, fn_type, members);
 }
 
 SemaResult<ir::IREnum*>
@@ -1571,7 +1580,7 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 	// 		sema.add_type_identifier(member->struct_member.)
 	// }
 
-	return sema.Enum(ast, enum_type, members);
+	return sema.Enum(ast, enum_name_ref, enum_type, members);
 }
 
 SemaResult<ir::IREnumMember*>
@@ -1681,11 +1690,9 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 
 	if( !type_decl.empty )
 	{
-		// TODO: Leaks
 		QualifiedName qname = idname(*type_decl.name);
 		NameLookupResult lu_result = sema.lookup_fqn(qname);
 
-		// TODO: Leaks
 		if( !lu_result.is_found() || !lu_result.result().name().is_type() )
 			return SemaError("Could not find type '" + qname.to_string() + "'");
 		auto type = lu_result.result().name().type().type;

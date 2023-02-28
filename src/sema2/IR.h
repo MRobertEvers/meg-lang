@@ -31,6 +31,7 @@ struct IRStruct;
 struct IRUnion;
 struct IRParam;
 struct IRElse;
+struct IRNamespace;
 
 struct IRModule
 {
@@ -46,6 +47,7 @@ enum IRTopLevelType
 	Struct,
 	Union,
 	Enum,
+	Namespace,
 };
 
 struct IRTopLevelStmt
@@ -59,9 +61,16 @@ struct IRTopLevelStmt
 		IREnum* enum_decl;
 		IRFunction* fn;
 		IRExternFn* extern_fn;
+		IRNamespace* nspace;
 	} stmt;
 
 	IRTopLevelType type;
+};
+
+struct IRNamespace
+{
+	ast::AstNode* node;
+	std::vector<IRTopLevelStmt*> stmts;
 };
 
 struct IRFunction
@@ -194,18 +203,42 @@ struct IRStruct
 struct IRUnion
 {
 	ast::AstNode* node;
+	sema::NameRef name;
 	// TODO: Support non-member decls.
 	std::map<std::string, ir::IRValueDecl*> members;
 
 	sema::Type const* union_type;
+
+	IRUnion(
+		ast::AstNode* node,
+		sema::NameRef name,
+		std::map<std::string, ir::IRValueDecl*> members,
+		sema::Type const* union_type)
+		: node(node)
+		, name(name)
+		, members(members)
+		, union_type(union_type)
+	{}
 };
 
 struct IREnum
 {
 	ast::AstNode* node;
+	sema::NameRef name;
 	std::map<std::string, ir::IREnumMember*> members;
 
 	sema::Type const* enum_type;
+
+	IREnum(
+		ast::AstNode* node,
+		sema::NameRef name,
+		std::map<std::string, ir::IREnumMember*> members,
+		sema::Type const* enum_type)
+		: node(node)
+		, name(name)
+		, members(members)
+		, enum_type(enum_type)
+	{}
 };
 
 struct IRBlock

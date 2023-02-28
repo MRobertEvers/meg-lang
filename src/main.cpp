@@ -110,7 +110,7 @@ main(int argc, char* argv[])
 
 	auto lex_result = lex.lex();
 
-	Lexer::print_tokens(lex_result.tokens);
+	// Lexer::print_tokens(lex_result.tokens);
 
 	TokenCursor cursor{lex_result.tokens};
 	Ast ast;

@@ -63,6 +63,7 @@ add_executable(sushi
     src/sema2/Lookup.cpp
     src/sema2/Name.cpp
     src/sema2/QualifiedName.cpp
+    src/sema2/sema/sema_namespace.cpp
     src/sema2/sema/sema_id.cpp
     src/sema2/SemaGen.cpp
     src/sema2/Sema2.cpp

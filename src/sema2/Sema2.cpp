@@ -54,6 +54,12 @@ Sema2::add_type_identifier(Type const* type)
 		Name::Type(type->get_name(), lookup_.current().id(), TypeInstance::OfType(type)));
 }
 
+sema::NameRef
+Sema2::add_namespace(std::string name)
+{
+	return lookup_.add_name(Name(name, lookup_.current().id()));
+}
+
 NameLookupResult
 Sema2::lookup_fqn(QualifiedName const& qname)
 {
@@ -89,6 +95,18 @@ Sema2::Module(AstNode* node, std::vector<ir::IRTopLevelStmt*> stmts)
 {
 	//
 	auto mod = new ir::IRModule;
+
+	mod->node = node;
+	mod->stmts = stmts;
+
+	return mod;
+}
+
+ir::IRNamespace*
+Sema2::Namespace(AstNode* node, std::vector<ir::IRTopLevelStmt*> stmts)
+{
+	//
+	auto mod = new ir::IRNamespace;
 
 	mod->node = node;
 	mod->stmts = stmts;
@@ -152,6 +170,18 @@ Sema2::TLS(ir::IREnum* st)
 	nod->node = st->node;
 	nod->stmt.enum_decl = st;
 	nod->type = ir::IRTopLevelType::Enum;
+
+	return nod;
+}
+
+ir::IRTopLevelStmt*
+Sema2::TLS(ir::IRNamespace* st)
+{
+	auto nod = new ir::IRTopLevelStmt;
+
+	nod->node = st->node;
+	nod->stmt.nspace = st;
+	nod->type = ir::IRTopLevelType::Namespace;
 
 	return nod;
 }
@@ -773,26 +803,24 @@ Sema2::Struct(
 
 ir::IRUnion*
 Sema2::Union(
-	ast::AstNode* node, sema::Type const* type, std::map<std::string, ir::IRValueDecl*> members)
+	ast::AstNode* node,
+	sema::NameRef name,
+	sema::Type const* type,
+	std::map<std::string, ir::IRValueDecl*> members)
 {
-	auto nod = new ir::IRUnion;
-
-	nod->node = node;
-	nod->members = members;
-	nod->union_type = type;
+	auto nod = new ir::IRUnion(node, name, members, type);
 
 	return nod;
 }
 
 ir::IREnum*
 Sema2::Enum(
-	ast::AstNode* node, sema::Type const* type, std::map<std::string, ir::IREnumMember*> members)
+	ast::AstNode* node,
+	sema::NameRef name,
+	sema::Type const* type,
+	std::map<std::string, ir::IREnumMember*> members)
 {
-	auto nod = new ir::IREnum;
-
-	nod->node = node;
-	nod->members = members;
-	nod->enum_type = type;
+	auto nod = new ir::IREnum(node, name, members, type);
 
 	return nod;
 }

@@ -89,6 +89,8 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 		return codegen_union(tls->stmt.union_decl);
 	case ir::IRTopLevelType::Enum:
 		return codegen_enum(*this, tls->stmt.enum_decl);
+	case ir::IRTopLevelType::Namespace:
+		return codegen_namespace(tls->stmt.nspace);
 	}
 
 	return NotImpl();
@@ -433,10 +435,23 @@ CG::codegen_union(ir::IRUnion* st)
 	std::vector<llvm::Type*> members = {max_type_by_size};
 
 	auto union_type = st->union_type;
-	auto name = union_type->get_name();
-	llvm::StructType* llvm_union_type = llvm::StructType::create(*Context, members, name);
+	std::string name_str = st->name.to_fqn_string();
+	llvm::StructType* llvm_union_type = llvm::StructType::create(*Context, members, name_str);
 
 	this->types.emplace(union_type, llvm_union_type);
+
+	return CGExpr();
+}
+
+CGResult<CGExpr>
+CG::codegen_namespace(ir::IRNamespace* st)
+{
+	for( auto tls : st->stmts )
+	{
+		auto tlsr = codegen_tls(tls);
+		if( !tlsr.ok() )
+			return tlsr;
+	}
 
 	return CGExpr();
 }

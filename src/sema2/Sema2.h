@@ -47,6 +47,7 @@ public:
 	void pop_scope();
 	sema::NameRef add_value_identifier(std::string const& name, TypeInstance id);
 	sema::NameRef add_type_identifier(Type const* id);
+	sema::NameRef add_namespace(std::string name);
 
 	NameLookupResult lookup_fqn(QualifiedName const& name);
 	NameLookupResult lookup_local(QualifiedName const& name);
@@ -64,11 +65,13 @@ public:
 	// SemaResult<TypeInstance> expected(ast::AstNode* node, ast::NodeType type);
 
 	ir::IRModule* Module(ast::AstNode* node, std::vector<ir::IRTopLevelStmt*> stmts);
+	ir::IRNamespace* Namespace(ast::AstNode* node, std::vector<ir::IRTopLevelStmt*> stmts);
 	ir::IRTopLevelStmt* TLS(ir::IRExternFn*);
 	ir::IRTopLevelStmt* TLS(ir::IRFunction*);
 	ir::IRTopLevelStmt* TLS(ir::IRStruct*);
 	ir::IRTopLevelStmt* TLS(ir::IRUnion*);
 	ir::IRTopLevelStmt* TLS(ir::IREnum*);
+	ir::IRTopLevelStmt* TLS(ir::IRNamespace*);
 	ir::IRFunction* Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block);
 	ir::IRCall* FnCall(ast::AstNode* node, ir::IRExpr* call_target, ir::IRArgs* args);
 	ir::IRExternFn* ExternFn(ast::AstNode* node, ir::IRProto* stmts);
@@ -137,8 +140,16 @@ public:
 		sema::NameRef name,
 		sema::Type const*,
 		std::map<std::string, ir::IRValueDecl*>);
-	ir::IRUnion* Union(ast::AstNode*, sema::Type const*, std::map<std::string, ir::IRValueDecl*>);
-	ir::IREnum* Enum(ast::AstNode*, sema::Type const*, std::map<std::string, ir::IREnumMember*>);
+	ir::IRUnion* Union(
+		ast::AstNode*,
+		sema::NameRef name,
+		sema::Type const*,
+		std::map<std::string, ir::IRValueDecl*>);
+	ir::IREnum* Enum(
+		ast::AstNode*,
+		sema::NameRef name,
+		sema::Type const*,
+		std::map<std::string, ir::IREnumMember*>);
 	ir::IREnumMember* EnumMemberStruct(
 		ast::AstNode*, sema::Type const*, ir::IRStruct*, sema::NameRef name, EnumNominal idx);
 	ir::IREnumMember* EnumMemberId(ast::AstNode*, sema::NameRef name, EnumNominal idx);

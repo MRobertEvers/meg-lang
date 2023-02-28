@@ -62,8 +62,9 @@ cg::codegen_enum(CG& codegen, ir::IREnum* st)
 		members.push_back(llvm_max_type_by_size);
 
 	auto enum_type = st->enum_type;
-	auto name = enum_type->get_name();
-	llvm::StructType* llvm_struct_type = llvm::StructType::create(*codegen.Context, members, name);
+	std::string name_str = st->name.to_fqn_string();
+	llvm::StructType* llvm_struct_type =
+		llvm::StructType::create(*codegen.Context, members, name_str);
 
 	codegen.types.emplace(enum_type, llvm_struct_type);
 
