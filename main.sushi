@@ -1,12 +1,22 @@
 extern fn printf(str: i8*, ...): void;
 
 
+struct Point {
+    x: i32;
+    y: i32;
+}
+
 fn foo(a: i32): i32 {
     return a;
 }
 
 fn main(): i32 
 {
+    let p: Point = Point {
+        .x = 9,
+        .y = 11
+    };
+    
     let big: i32 = 88;
 
     let small: i8 = 8;

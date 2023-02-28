@@ -1290,8 +1290,7 @@ members_to_members(std::map<std::string, ir::IRValueDecl*>& params)
 	for( auto param : params )
 	{
 		// TODO: Should functions have named members too?
-		// map.emplace(param.first, MemberTypeInstance(param.second->type_decl->type_instance,
-		// idx++));
+		map.emplace(param.first, MemberTypeInstance(param.second->type_decl->type_instance, idx++));
 	}
 	return map;
 }
@@ -1448,8 +1447,7 @@ sema::sema_struct(Sema2& sema, ast::AstNode* ast)
 		Type::Struct(idname(unpacked.name).part(0), members_to_members(unpacked.members)));
 	sema.add_type_identifier(fn_type);
 
-	return NotImpl();
-	// return sema.Struct(ast, fn_type, unpacked.members);
+	return sema.Struct(ast, fn_type, unpacked.members);
 }
 
 SemaResult<ir::IRInitializer*>
@@ -1467,9 +1465,10 @@ sema::sema_initializer(Sema2& sema, ast::AstNode* ast)
 	if( !lu_result.is_found() || !lu_result.result().name().is_type() )
 		return SemaError("Initializer for unknown type.");
 
-	auto initializer_type = lu_result.result().type().type;
+	sema::NameRef name_ref = lu_result.result();
+	auto initializer_type = name_ref.type().type;
 
-	std::vector<ir::IRDesignator> designators;
+	std::vector<ir::IRDesignator*> designators;
 	for( auto designator_node : initializer.members )
 	{
 		auto designatorr = expected(designator_node, ast::as_initializer_designator);
@@ -1494,11 +1493,10 @@ sema::sema_initializer(Sema2& sema, ast::AstNode* ast)
 		if( !member.has_value() )
 			return SemaError("Unknown designator field: " + designator_name_str);
 
-		// designators.push_back(sema.Designator(designator_node, member.value(), expr));
+		designators.push_back(sema.Designator(designator_node, member.value(), expr));
 	}
 
-	return NotImpl();
-	// return sema.Initializer(ast, qname, designators, TypeInstance::OfType(initializer_type));
+	return sema.Initializer(ast, name_ref, designators, TypeInstance::OfType(initializer_type));
 }
 
 SemaResult<ir::IRUnion*>
