@@ -358,3 +358,12 @@ ast::as_case(ast::AstNode* node)
 
 	return &node->data.case_stmt;
 }
+
+Cast<AstNamespace>
+ast::as_namespace(ast::AstNode* node)
+{
+	if( node->type != AstNamespace::nt )
+		return Cast<AstNamespace>();
+
+	return &node->data.namespace_node;
+}
