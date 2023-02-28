@@ -582,7 +582,6 @@ enum class IRExprType
 	Is,
 	Initializer,
 	BinOp,
-	ValueDecl,
 	MemberAccess,
 	IndirectMemberAccess,
 	AddressOf,
@@ -596,8 +595,7 @@ struct IRExpr
 	// Variant type
 	union
 	{
-		IRId* id;		   // Usage of an id
-		IRValueDecl* decl; // Variable declaration
+		IRId* id; // Usage of an id
 		IRStringLiteral* str_literal;
 		IRNumberLiteral* num_literal;
 		IRCall* call;

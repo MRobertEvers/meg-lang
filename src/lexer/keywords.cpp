@@ -32,6 +32,9 @@ KeywordIdentifierTuple keywords[] =
 	{"namespace", TokenType::namespace_keyword},
 	{"continue", TokenType::continue_keyword},
 	{"break", TokenType::break_keyword},
+	{"yield", TokenType::yield_keyword},
+	{"from", TokenType::from_keyword},
+	{"impl", TokenType::impl_keyword},
 	// clang-format off
 };
 // clang-format on
@@ -113,6 +116,9 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::namespace_keyword, "namespace"},
 	{TokenType::continue_keyword, "continue"},
 	{TokenType::break_keyword, "break"},
+	{TokenType::impl_keyword, "impl"},
+	{TokenType::from_keyword, "from"},
+	{TokenType::yield_keyword, "yield"},
 };
 
 char const*

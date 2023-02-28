@@ -13,7 +13,10 @@ cg::codegen_fn_sig_info(CG& codegen, LLVMFnSigInfoBuilder const& builder)
 		builder.llvm_ret_ty, get_llvm_arg_types(builder.abi_arg_infos), builder.is_var_arg());
 
 	llvm::Function* llvm_fn = llvm::Function::Create(
-		llvm_fn_ty, llvm::Function::ExternalLinkage, builder.name, codegen.Module.get());
+		llvm_fn_ty,
+		llvm::Function::ExternalLinkage,
+		builder.name.to_fqn_string(),
+		codegen.Module.get());
 
 	int arg_ind = 0;
 	for( auto& abi_arg : builder.abi_arg_infos )

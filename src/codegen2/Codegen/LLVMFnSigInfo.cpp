@@ -3,7 +3,7 @@
 using namespace cg;
 
 LLVMFnSigInfo::LLVMFnSigInfo(
-	String name,
+	sema::NameRef name,
 	llvm::Function* llvm_fn,
 	llvm::Type* llvm_fn_ty,
 	Vec<LLVMArgABIInfo> abi_infos,

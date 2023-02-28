@@ -57,8 +57,8 @@ CG::add_function(sema::Type const* type, LLVMFnSigInfo context)
 	Functions.emplace(type, context);
 	types.emplace(context.sema_fn_ty, context.llvm_fn_ty);
 
-	// auto lvalue = LValue(context.llvm_fn, context.llvm_fn_ty);
-	// values.emplace(id.index(), lvalue);
+	auto lvalue = LValue(context.llvm_fn, context.llvm_fn_ty);
+	values.emplace(context.name.id().index(), lvalue);
 }
 
 CGResult<CGExpr>
@@ -149,8 +149,7 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 		return codegen_number_literal(expr->expr.num_literal);
 	case ir::IRExprType::StringLiteral:
 		return codegen_string_literal(*this, expr->expr.str_literal);
-	case ir::IRExprType::ValueDecl:
-		return codegen_value_decl(expr->expr.decl);
+
 	case ir::IRExprType::BinOp:
 		return codegen_binop(*this, fn, expr->expr.binop);
 	case ir::IRExprType::MemberAccess:

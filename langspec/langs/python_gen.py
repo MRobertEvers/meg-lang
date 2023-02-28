@@ -1,18 +1,30 @@
 
 
 
+def inner_looper():
+    i = 0
+    inc = 1
+    while True:
+        i += inc
+        print('before')
+        inc = yield i
+        print('after')
+        if i > 8:
+            return
+
 def looper():
     i = 0
-    while True:
-        i += 1
-        print(i)
-        yield i
+
+    yield from inner_looper()
+    
+    return
 
 
 def task():
     it = looper()
     # Does nothing until next(it) is called
-    next(it)
+    
+    it.send(1)
 
 
 

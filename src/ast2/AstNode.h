@@ -637,6 +637,7 @@ struct AstAddressOf
 	{}
 };
 
+// This is '*'
 struct AstDeref
 {
 	static constexpr NodeType nt = NodeType::Deref;

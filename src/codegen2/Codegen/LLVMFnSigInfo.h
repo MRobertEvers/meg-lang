@@ -65,7 +65,7 @@ private:
 	std::map<int, std::pair<sema::NameRef, int>> named_args_info_inds_;
 
 public:
-	String name;
+	sema::NameRef name;
 	sema::Type const* sema_fn_ty;
 
 	llvm::Function* llvm_fn;
@@ -74,7 +74,7 @@ public:
 	LLVMFnSigRetType ret_type = LLVMFnSigRetType::Default;
 
 	LLVMFnSigInfo(
-		String,
+		sema::NameRef,
 		llvm::Function*,
 		llvm::Type*,
 		Vec<LLVMArgABIInfo>,

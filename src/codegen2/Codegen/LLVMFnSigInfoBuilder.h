@@ -25,11 +25,11 @@ public:
 	std::map<int, std::pair<sema::NameRef, int>> named_args_info_inds;
 
 	sema::Type const* sema_fn_ty;
-	String name;
+	sema::NameRef name;
 	llvm::Type* llvm_ret_ty;
 	LLVMFnSigRetType ret_type = LLVMFnSigRetType::Default;
 
-	LLVMFnSigInfoBuilder(String name, sema::Type const* sema_ty);
+	LLVMFnSigInfoBuilder(sema::NameRef name, sema::Type const* sema_ty);
 
 	void add_arg_type(LLVMArgABIInfo);
 	void add_arg_type(sema::NameRef name, LLVMArgABIInfo);

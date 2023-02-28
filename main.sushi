@@ -1,66 +1,14 @@
 extern fn printf(str: i8*, ...): void;
 
 
-namespace Ast {
-enum Node {
-    Void,
-    String { ptr: i8*; size: i32 }
-    Point {
-        x: i32;
-        y: i32;
-    }
-}
-
-struct PP {
-    x: i32
-}
-
-union MyUnion {
-    ptr: i8*;
-    x: i32;
-}
-}
-
-
-
-
-
-fn foo(a: Ast::Node): i32 {
-    switch (a) {
-        case Ast::Node::Void:
-            printf("Void\n");
-        case Ast::Node::String => (a_str: Ast::Node::String) {
-            printf("String\n");
-        }
-        default:
-            printf("??\n");
-    }
-
+fn foo(a: i32): i32 {
+    printf("Hello\n");
     return 1;
 }
 
 fn main(): i32 
 {
-    let np: Ast::Node = Ast::Node::Point {
-        .x = 9,
-        .y = 11
-    };
-    let nv: Ast::Node = Ast::Node::Void;
+    let try = &foo;
 
-    let mu: Ast::MyUnion = Ast::MyUnion {
-        .ptr = "abcd"
-    };
-
-    let big: i32 = 88;
-
-    let small: i8 = 8;
-
-    small = big;
-
-    if (big > 8)
-    {
-        return foo(nv);
-    }
-
-    return 1;
+    return try(1);
 }

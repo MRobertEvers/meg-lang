@@ -3,7 +3,7 @@
 
 using namespace cg;
 
-LLVMFnSigInfoBuilder::LLVMFnSigInfoBuilder(String name, sema::Type const* sema_fn_ty)
+LLVMFnSigInfoBuilder::LLVMFnSigInfoBuilder(sema::NameRef name, sema::Type const* sema_fn_ty)
 	: name(name)
 	, sema_fn_ty(sema_fn_ty)
 {}

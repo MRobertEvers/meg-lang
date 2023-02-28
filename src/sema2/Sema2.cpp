@@ -331,19 +331,6 @@ Sema2::Expr(ir::IRId* nl)
 }
 
 ir::IRExpr*
-Sema2::Expr(ir::IRValueDecl* nl)
-{
-	auto nod = new ir::IRExpr;
-
-	nod->node = nl->node;
-	nod->expr.decl = nl;
-	nod->type = ir::IRExprType::ValueDecl;
-	nod->type_instance = nl->type_decl->type_instance;
-
-	return nod;
-}
-
-ir::IRExpr*
 Sema2::Expr(ir::IRBinOp* nl)
 {
 	auto nod = new ir::IRExpr;

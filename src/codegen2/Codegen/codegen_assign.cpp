@@ -45,8 +45,10 @@ sizefor(CG& codegen, int size)
 }
 
 static llvm::Value*
-trunc(CG& codegen, sema::TypeInstance dest, llvm::Value* rhs)
+trunc_ints(CG& codegen, sema::TypeInstance dest, llvm::Value* rhs)
 {
+	if( dest.is_pointer_type() )
+		return rhs;
 	auto size = dest.type->int_width();
 	auto other_size = rhs->getType()->getIntegerBitWidth();
 	if( size == other_size )
@@ -97,12 +99,12 @@ cg::codegen_assign(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAssign* ir_assign)
 			SemaTypedInt(ir_assign->rhs->type_instance, rhs),
 			to_binop(ir_assign->op));
 
-		rhs = trunc(codegen, ir_assign->lhs->type_instance, rhs);
+		rhs = trunc_ints(codegen, ir_assign->lhs->type_instance, rhs);
 		codegen.Builder->CreateStore(rhs, lhs);
 	}
 	break;
 	case ast::AssignOp::assign:
-		rhs = trunc(codegen, ir_assign->lhs->type_instance, rhs);
+		rhs = trunc_ints(codegen, ir_assign->lhs->type_instance, rhs);
 		codegen.Builder->CreateStore(rhs, lhs);
 		break;
 	}

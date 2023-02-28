@@ -674,7 +674,8 @@ sema::sema_fn_call(Sema2& sema, ast::AstNode* ast)
 	auto call_target = call_targetr.unwrap();
 
 	auto call_target_type = call_target->type_instance;
-	if( !call_target_type.is_function_type() )
+	if( !call_target_type.is_function_type() &&
+		!(call_target_type.indirection_level == 1 && call_target_type.type->is_function_type()) )
 		return SemaError("...is not a function!");
 
 	auto argsr = sema_fn_args(sema, fn_call.args, *call_target_type.type);

@@ -168,7 +168,7 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* ir_proto)
 	auto sema_rt_ty = ir_rt_decl->type_instance;
 	auto llvm_rt_ty = retr.unwrap();
 
-	LLVMFnSigInfoBuilder builder(name.to_fqn_string(), ir_proto->fn_type);
+	LLVMFnSigInfoBuilder builder(name, ir_proto->fn_type);
 
 	if( sema_rt_ty.is_struct_type() )
 	{

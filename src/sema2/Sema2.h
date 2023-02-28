@@ -90,7 +90,6 @@ public:
 	ir::IRExpr* Expr(ir::IRNumberLiteral*);
 	ir::IRExpr* Expr(ir::IRStringLiteral*);
 	ir::IRExpr* Expr(ir::IRId*);
-	ir::IRExpr* Expr(ir::IRValueDecl*);
 	ir::IRExpr* Expr(ir::IRBinOp*);
 	ir::IRExpr* Expr(ir::IRMemberAccess*);
 	ir::IRExpr* Expr(ir::IRIndirectMemberAccess*);
