@@ -1,12 +1,14 @@
 #pragma once
 #include "MemberTypeInstance.h"
+#include "Name.h"
+#include "QualifiedName.h"
 #include "TypeInstance.h"
 #include "ast2/AstNode.h"
-#include "common/String.h"
-#include "common/Vec.h"
 #include "type/Type.h"
 
 #include <map>
+#include <string>
+#include <vector>
 
 namespace ir
 {
@@ -34,7 +36,7 @@ struct IRModule
 {
 	//
 	ast::AstNode* node;
-	Vec<IRTopLevelStmt*>* stmts;
+	std::vector<IRTopLevelStmt*> stmts;
 };
 
 enum IRTopLevelType
@@ -80,12 +82,25 @@ struct IRProto
 {
 	//
 	ast::AstNode* node;
-	String* name;
-	Vec<ir::IRParam*>* args;
+	sema::NameRef name;
+	std::vector<ir::IRParam*> args;
 	ir::IRTypeDeclaraor* rt;
 
 	// Function
 	sema::Type const* fn_type;
+
+	IRProto(
+		ast::AstNode* node,
+		sema::NameRef name,
+		std::vector<ir::IRParam*> args,
+		ir::IRTypeDeclaraor* rt,
+		sema::Type const* fn_type)
+		: node(node)
+		, name(name)
+		, args(args)
+		, rt(rt)
+		, fn_type(fn_type)
+	{}
 };
 
 struct IRValueDecl
@@ -93,7 +108,13 @@ struct IRValueDecl
 	//
 	ast::AstNode* node;
 	IRTypeDeclaraor* type_decl;
-	String* name;
+	sema::NameRef name;
+
+	IRValueDecl(ast::AstNode* node, IRTypeDeclaraor* type_decl, sema::NameRef name)
+		: node(node)
+		, type_decl(type_decl)
+		, name(name)
+	{}
 };
 
 struct IRVarArg
@@ -128,7 +149,7 @@ struct IRStruct
 {
 	ast::AstNode* node;
 	// TODO: Support non-member decls.
-	std::map<String, ir::IRValueDecl*>* members;
+	std::map<std::string, ir::IRValueDecl*> members;
 
 	sema::Type const* struct_type;
 };
@@ -137,7 +158,7 @@ struct IRUnion
 {
 	ast::AstNode* node;
 	// TODO: Support non-member decls.
-	std::map<String, ir::IRValueDecl*>* members;
+	std::map<std::string, ir::IRValueDecl*> members;
 
 	sema::Type const* union_type;
 };
@@ -145,7 +166,7 @@ struct IRUnion
 struct IREnum
 {
 	ast::AstNode* node;
-	std::map<String, ir::IREnumMember*>* members;
+	std::map<std::string, ir::IREnumMember*> members;
 
 	sema::Type const* enum_type;
 };
@@ -154,14 +175,14 @@ struct IRBlock
 {
 	//
 	ast::AstNode* node;
-	Vec<IRStmt*>* stmts;
+	std::vector<IRStmt*> stmts;
 };
 
 struct IRArgs
 {
 	//
 	ast::AstNode* node;
-	Vec<ir::IRExpr*>* args;
+	std::vector<ir::IRExpr*> args;
 };
 
 struct IRCall
@@ -186,11 +207,18 @@ struct IRArrayAccess
 struct IRId
 {
 	//
-	Vec<String*>* name;
+	sema::NameRef name;
 	sema::TypeInstance type_instance;
 	ast::AstNode* node;
 
 	bool is_type_id;
+
+	IRId(ast::AstNode* node, sema::NameRef name, sema::TypeInstance type_instance, bool is_type_id)
+		: node(node)
+		, name(name)
+		, type_instance(type_instance)
+		, is_type_id(is_type_id)
+	{}
 };
 
 struct IRReturn
@@ -204,11 +232,19 @@ struct IRLet
 {
 	//
 	ast::AstNode* node;
-	String* name;
+	sema::NameRef name;
 	IRAssign* assign;
 	sema::TypeInstance type_instance;
 
 	bool is_empty() const { return assign == nullptr; }
+
+	IRLet(
+		ast::AstNode* node, sema::NameRef name, IRAssign* assign, sema::TypeInstance type_instance)
+		: node(node)
+		, name(name)
+		, assign(assign)
+		, type_instance(type_instance)
+	{}
 };
 
 struct IRAssign
@@ -252,7 +288,7 @@ struct IRStringLiteral
 {
 	//
 	ast::AstNode* node;
-	String* value;
+	std::string value;
 	sema::TypeInstance type_instance;
 };
 
@@ -267,27 +303,52 @@ struct IRInitializer
 {
 	//
 	ast::AstNode* node;
-	String* name;
-	Vec<IRDesignator*>* initializers;
+	sema::NameRef name;
+	std::vector<IRDesignator*> initializers;
 	sema::TypeInstance type_instance;
+
+	IRInitializer(
+		ast::AstNode* node,
+		sema::NameRef name,
+		std::vector<IRDesignator*> initializers,
+		sema::TypeInstance type_instance)
+		: node(node)
+		, name(name)
+		, initializers(initializers)
+		, type_instance(type_instance)
+	{}
 };
 
 struct IRMemberAccess
 {
 	//
 	ast::AstNode* node;
-	String* member_name;
+	sema::NameRef name;
 	sema::MemberTypeInstance member;
 	IRExpr* expr;
+
+	IRMemberAccess(
+		ast::AstNode* node, sema::NameRef name, sema::MemberTypeInstance member, IRExpr* expr)
+		: node(node)
+		, name(name)
+		, expr(expr)
+	{}
 };
 
 struct IRIndirectMemberAccess
 {
 	//
 	ast::AstNode* node;
-	String* member_name;
+	sema::NameRef name;
 	sema::MemberTypeInstance member;
 	IRExpr* expr;
+
+	IRIndirectMemberAccess(
+		ast::AstNode* node, sema::NameRef name, sema::MemberTypeInstance member, IRExpr* expr)
+		: node(node)
+		, name(name)
+		, expr(expr)
+	{}
 };
 
 struct IRSwitch
@@ -308,7 +369,7 @@ struct IRCase
 	IRStmt* block;
 	bool is_default;
 
-	Vec<ir::IRParam*>* discriminations;
+	std::vector<ir::IRParam*> discriminations;
 };
 
 struct IREnumMember
@@ -326,8 +387,24 @@ struct IREnumMember
 		IRStruct* struct_member;
 	};
 
-	String* name;
-	sema::Type const* type;
+	sema::NameRef name;
+	// sema::Type const* type;
+
+	IREnumMember(ast::AstNode* node, sema::EnumNominal number, sema::NameRef name)
+		: node(node)
+		, number(number)
+		, name(name)
+		, contained_type(Type::Id)
+	{}
+
+	IREnumMember(
+		ast::AstNode* node, sema::EnumNominal number, sema::NameRef name, IRStruct* struct_member)
+		: node(node)
+		, number(number)
+		, name(name)
+		, struct_member(struct_member)
+		, contained_type(Type::Struct)
+	{}
 };
 
 struct IRIf
@@ -339,7 +416,7 @@ struct IRIf
 	IRElse* else_stmt;
 
 	// For if arrow
-	Vec<ir::IRParam*>* discriminations;
+	std::vector<ir::IRParam*> discriminations;
 };
 
 struct IRFor
@@ -466,7 +543,7 @@ struct IRExpr
 	} expr;
 	IRExprType type;
 
-	Vec<IRIs*>* discriminations;
+	std::vector<IRIs*> discriminations;
 
 	sema::TypeInstance type_instance;
 };

@@ -4,6 +4,7 @@
 
 #include "ast2/AstCasts.h"
 #include "lowering/lower_for.h"
+#include "sema/idname.h"
 #include "sema/sema_id.h"
 #include "sema_expected.h"
 
@@ -15,53 +16,6 @@ static SemaError
 NotImpl()
 {
 	return SemaError("Not Implemented.");
-}
-
-static String*
-to_single_name(Sema2& sema, AstList<String*>* list)
-{
-	auto name = sema.create_name("", 0);
-
-	bool first = true;
-	for( auto part : list )
-	{
-		if( !first )
-			*name += "#";
-		*name += *part;
-
-		first = false;
-	}
-
-	return name;
-}
-
-static String
-idname(AstId id)
-{
-	auto name = String();
-
-	bool first = true;
-	for( auto part : id.name_parts )
-	{
-		if( !first )
-			name += "#";
-		name += *part;
-
-		first = false;
-	}
-
-	return name;
-}
-
-static SemaResult<String*>
-as_name(Sema2& sema, ast::AstNode* ast)
-{
-	auto idr = expected(ast, ast::as_id);
-	if( !idr.ok() )
-		return idr;
-	auto id = idr.unwrap();
-
-	return to_single_name(sema, id.name_parts);
 }
 
 static bool
@@ -79,15 +33,14 @@ sema::sema_module(Sema2& sema, AstNode* node)
 
 	auto mod = node->data.mod;
 
-	auto stmts = sema.create_tlslist();
-
+	std::vector<ir::IRTopLevelStmt*> stmts;
 	for( auto statement : mod.statements )
 	{
 		auto statement_result = sema_tls(sema, statement);
 		if( !statement_result.ok() )
 			return statement_result;
 
-		stmts->push_back(statement_result.unwrap());
+		stmts.push_back(statement_result.unwrap());
 	}
 
 	return sema.Module(node, stmts);
@@ -259,10 +212,10 @@ sema::sema_stmt(Sema2& sema, ast::AstNode* ast)
 struct sema_if_arrow_t
 {
 	ir::IRStmt* stmt;
-	Vec<ir::IRParam*>* args;
+	std::vector<ir::IRParam*> args;
 };
 static SemaResult<sema_if_arrow_t>
-sema_if_arrow(Sema2& sema, Vec<ir::IRIs*>* discriminations, ast::AstNode* ast)
+sema_if_arrow(Sema2& sema, std::vector<ir::IRIs*> discriminations, ast::AstNode* ast)
 {
 	auto ifarrowr = expected(ast, ast::as_if_arrow);
 	if( !ifarrowr.ok() )
@@ -274,10 +227,10 @@ sema_if_arrow(Sema2& sema, Vec<ir::IRIs*>* discriminations, ast::AstNode* ast)
 		return SemaError("Expected args.");
 	auto params = paramsr.unwrap();
 
-	if( !discriminations && params.params->list.size() != 0 )
+	if( params.params->list.size() != 0 )
 		return SemaError("???");
 
-	auto args = sema.create_argslist();
+	std::vector<ir::IRParam*> args;
 	int ind = 0;
 	for( auto param : params.params )
 	{
@@ -291,19 +244,19 @@ sema_if_arrow(Sema2& sema, Vec<ir::IRIs*>* discriminations, ast::AstNode* ast)
 
 		auto decl_param = parsed_param->data.value_decl;
 
-		if( ind >= discriminations->size() )
+		if( ind >= discriminations.size() )
 			return SemaError("Not enough disc. to unpack.");
 
 		;
-		auto disc = discriminations->at(ind);
+		auto disc = discriminations.at(ind);
 		if( !sema.types.equal_types(
 				disc->type_decl->type_instance, decl_param->type_decl->type_instance) )
 			return SemaError(
 				"Mismatched types: " + sema::to_string(disc->type_instance) +
 				" != " + sema::to_string(decl_param->type_decl->type_instance));
 
-		args->push_back(parsed_param);
-		sema.add_value_identifier(*decl_param->name, decl_param->type_decl->type_instance);
+		args.push_back(parsed_param);
+		// sema.add_value_identifier(*decl_param->name, decl_param->type_decl->type_instance);
 		ind++;
 	}
 
@@ -624,14 +577,14 @@ sema::sema_expr(Sema2& sema, ast::AstNode* ast)
 }
 
 static void
-inject_function_args(sema::Sema2& sema, Vec<ir::IRParam*>& args)
+inject_function_args(sema::Sema2& sema, std::vector<ir::IRParam*>& args)
 {
 	for( auto arg : args )
 	{
 		if( arg->type == ir::IRParamType::ValueDecl )
 		{
 			auto value_decl = arg->data.value_decl;
-			sema.add_value_identifier(*value_decl->name, value_decl->type_decl->type_instance);
+			// sema.add_value_identifier(*value_decl->name, value_decl->type_decl->type_instance);
 		}
 	}
 }
@@ -654,14 +607,14 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 		maybe_return_type.has_value() &&
 		"Function prototype did not provide return type. (Missing infer?)");
 
-	sema.push_scope();
-	inject_function_args(sema, *proto->args);
+	// sema.push_scope();
+	inject_function_args(sema, proto->args);
 	sema.set_expected_return(maybe_return_type.value());
 	auto bodyr = sema_block(sema, fn.body, false);
 	if( !bodyr.ok() )
 		return bodyr;
 	sema.clear_expected_return();
-	sema.pop_scope();
+	// sema.pop_scope();
 
 	return sema.Fn(ast, proto, bodyr.unwrap());
 }
@@ -674,7 +627,7 @@ sema::sema_fn_args(Sema2& sema, ast::AstNode* ast, sema::Type const& fn_type)
 		return argsr;
 	auto args = argsr.unwrap();
 
-	auto argslist = sema.create_elist();
+	std::vector<ir::IRExpr*> argslist;
 	int arg_count = 0;
 	for( auto argexpr : args.exprs )
 	{
@@ -693,7 +646,7 @@ sema::sema_fn_args(Sema2& sema, ast::AstNode* ast, sema::Type const& fn_type)
 				return SemaError("Mismatched argument type.");
 		}
 
-		argslist->push_back(exprr.unwrap());
+		argslist.push_back(exprr.unwrap());
 
 		arg_count += 1;
 	}
@@ -776,10 +729,9 @@ sema::sema_member_access(Sema2& sema, ast::AstNode* ast)
 		return mar;
 	auto ma = mar.unwrap();
 
-	auto namer = as_name(sema, ma.member_name);
-	if( !namer.ok() )
-		return namer;
-	auto name = namer.unwrap();
+	// TODO: Simple name
+	QualifiedName qname = idname(ma.member_name->data.id);
+	std::string name_str = qname.part(0);
 
 	auto val_exprr = sema_expr(sema, ma.expr);
 	if( !val_exprr.ok() )
@@ -789,15 +741,17 @@ sema::sema_member_access(Sema2& sema, ast::AstNode* ast)
 	auto expr_type = val_expr->type_instance;
 	if( (!expr_type.type->is_struct_type() && !expr_type.type->is_union_type()) ||
 		expr_type.indirection_level != 0 )
-		return SemaError("Cannot access member '" + *name + "' of '" + to_string(expr_type) + "'");
+		return SemaError(
+			"Cannot access member '" + name_str + "' of '" + to_string(expr_type) + "'");
 
-	auto maybe_member = expr_type.type->get_member(*name);
+	auto maybe_member = expr_type.type->get_member(name_str);
 	if( !maybe_member.has_value() )
 		return SemaError(
-			"Cannot access member '" + *name + "' of '" + to_string(expr_type) + "' because '" +
-			*name + "' does not exist");
+			"Cannot access member '" + name_str + "' of '" + to_string(expr_type) + "' because '" +
+			name_str + "' does not exist");
 	auto member = maybe_member.value();
-	return sema.MemberAccess(ast, val_expr, member, name);
+	return NotImpl();
+	// return sema.MemberAccess(ast, val_expr, member, name);
 }
 
 SemaResult<ir::IRIndirectMemberAccess*>
@@ -808,10 +762,14 @@ sema::sema_indirect_member_access(Sema2& sema, ast::AstNode* ast)
 		return mar;
 	auto ma = mar.unwrap();
 
-	auto namer = as_name(sema, ma.member_name);
-	if( !namer.ok() )
-		return namer;
-	auto name = namer.unwrap();
+	// TODO: Simple name
+	QualifiedName qname = idname(ma.member_name->data.id);
+	std::string name_str = qname.part(0);
+
+	// auto namer = as_name(sema, ma.member_name);
+	// if( !namer.ok() )
+	// 	return namer;
+	// auto name = namer.unwrap();
 
 	auto val_exprr = sema_expr(sema, ma.expr);
 	if( !val_exprr.ok() )
@@ -822,16 +780,17 @@ sema::sema_indirect_member_access(Sema2& sema, ast::AstNode* ast)
 	if( (!expr_type.type->is_struct_type() && !expr_type.type->is_union_type()) ||
 		expr_type.indirection_level != 1 )
 		return SemaError(
-			"Cannot access member '" + *name + "' of '" + to_string(expr_type) +
+			"Cannot access member '" + name_str + "' of '" + to_string(expr_type) +
 			"' through pointer.");
 
-	auto maybe_member = expr_type.type->get_member(*name);
+	auto maybe_member = expr_type.type->get_member(name_str);
 	if( !maybe_member.has_value() )
 		return SemaError(
-			"Cannot access member '" + *name + "' of '" + to_string(expr_type) + "' because '" +
-			*name + "' does not exist");
+			"Cannot access member '" + name_str + "' of '" + to_string(expr_type) + "' because '" +
+			name_str + "' does not exist");
 	auto member = maybe_member.value();
-	return sema.IndirectMemberAccess(ast, val_expr, member, name);
+	return NotImpl();
+	// return sema.IndirectMemberAccess(ast, val_expr, member, name);
 }
 
 SemaResult<ir::IRAddressOf*>
@@ -901,10 +860,9 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 		return letr;
 	auto let = letr.unwrap();
 
-	auto namer = as_name(sema, let.identifier);
-	if( !namer.ok() )
-		return namer;
-	auto name = namer.unwrap();
+	// TODO: Simple name
+	QualifiedName qname = idname(let.identifier->data.id);
+	std::string name_str = qname.part(0);
 
 	auto type_declrr = sema_type_decl(sema, let.type_declarator);
 	if( !type_declrr.ok() )
@@ -947,9 +905,9 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 		type_declr->type_instance =
 			sema.types.non_inferred(type_declr->type_instance, rhs->type_instance);
 
-		sema.add_value_identifier(*name, type_declr->type_instance);
-		auto lhs_expr = sema.Expr(sema.ValueDecl(let.identifier, name, type_declr));
-		return sema.Let(ast, name, sema.Assign(ast, ast::AssignOp::assign, lhs_expr, rhs));
+		NameRef name_ref = sema.add_value_identifier(name_str, type_declr->type_instance);
+		auto lhs_expr = sema.Expr(sema.ValueDecl(let.identifier, name_ref, type_declr));
+		return sema.Let(ast, name_ref, sema.Assign(ast, ast::AssignOp::assign, lhs_expr, rhs));
 	}
 	else
 	{
@@ -957,8 +915,8 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 			return SemaError("Cannot declare untyped variable without initialization "
 							 "expression.");
 
-		sema.add_value_identifier(*name, type_declr->type_instance);
-		return sema.LetEmpty(ast, name, type_declr->type_instance);
+		NameRef name_ref = sema.add_value_identifier(name_str, type_declr->type_instance);
+		return sema.LetEmpty(ast, name_ref, type_declr->type_instance);
 	}
 }
 
@@ -1012,10 +970,12 @@ sema_enum_case(Sema2& sema, ast::AstNode* ast, ast::AstCase& case_node)
 		return SemaError("Case labels can only contain enum member ids.");
 
 	auto id_node = case_node.const_expr->data.id;
-	auto const_name = sema.lookup_type(idname(id_node));
-	if( !const_name )
+	QualifiedName qname = idname(id_node);
+	auto lu_result = sema.lookup_fqn(qname);
+	if( !lu_result.is_found() || !lu_result.result().name().is_type() )
 		return SemaError("Unrecognized case label.");
 
+	auto const_name = lu_result.result().type().type;
 	// TODO: Shouldn't need to to this once we have the notion of a constant expr.
 	// TODO: Allocate new list instead of referencing name parts list
 	// auto const_expr = sema.Expr(sema.Id(
@@ -1036,7 +996,7 @@ sema_enum_case(Sema2& sema, ast::AstNode* ast, ast::AstCase& case_node)
 		if( params.params->list.size() != 1 )
 			return SemaError("Arrow params can only be 1.");
 
-		auto args = sema.create_argslist();
+		std::vector<ir::IRParam*> args;
 		for( auto param : params.params )
 		{
 			auto paramr = sema_fn_param(sema, param);
@@ -1055,8 +1015,8 @@ sema_enum_case(Sema2& sema, ast::AstNode* ast, ast::AstCase& case_node)
 					"Mismatched types: " + sema::to_string(case_name_type) +
 					" != " + sema::to_string(decl_param->type_decl->type_instance));
 
-			args->push_back(parsed_param);
-			sema.add_value_identifier(*decl_param->name, decl_param->type_decl->type_instance);
+			args.push_back(parsed_param);
+			// sema.add_value_identifier(*decl_param->name, decl_param->type_decl->type_instance);
 		}
 
 		auto stmt = sema_block(sema, ifarrow.block, false);
@@ -1258,26 +1218,26 @@ sema::sema_binop(Sema2& sema, ast::AstNode* ast)
 SemaResult<ir::IRBlock*>
 sema::sema_block(Sema2& sema, ast::AstNode* ast, bool new_scope)
 {
-	if( new_scope )
-		sema.push_scope();
+	// if( new_scope )
+	// 	sema.push_scope();
 
 	auto blockr = expected(ast, ast::as_block);
 	if( !blockr.ok() )
 		return blockr;
 	auto block = blockr.unwrap();
 
-	auto stmtlist = sema.create_slist();
+	std::vector<ir::IRStmt*> stmtlist;
 	for( auto stmt : block.statements )
 	{
 		auto stmtr = sema_stmt(sema, stmt);
 		if( !stmtr.ok() )
 			return stmtr;
 
-		stmtlist->push_back(stmtr.unwrap());
+		stmtlist.push_back(stmtr.unwrap());
 	}
 
-	if( new_scope )
-		sema.pop_scope();
+	// if( new_scope )
+	// 	sema.pop_scope();
 
 	return sema.Block(ast, stmtlist);
 }
@@ -1304,12 +1264,12 @@ struct params_to_members_t
 };
 
 static sema::SemaResult<params_to_members_t>
-params_to_members(Vec<ir::IRParam*>* params)
+params_to_members(std::vector<ir::IRParam*> params)
 {
 	params_to_members_t result;
 
 	int idx = 0;
-	for( auto param : *params )
+	for( auto param : params )
 	{
 		switch( param->type )
 		{
@@ -1317,7 +1277,7 @@ params_to_members(Vec<ir::IRParam*>* params)
 		{
 			auto value_decl = param->data.value_decl;
 			// TODO: Should functions have named members too?
-			result.vec.emplace_back(value_decl->type_decl->type_instance, *value_decl->name, idx++);
+			result.vec.emplace_back(value_decl->type_decl->type_instance, idx++);
 			break;
 		}
 		case ir::IRParamType::VarArg:
@@ -1328,39 +1288,37 @@ params_to_members(Vec<ir::IRParam*>* params)
 	}
 
 done:
-	if( idx != params->size() )
+	if( idx != params.size() )
 		return SemaError("Cannot have varargs before named args.");
 
 	return result;
 }
 
-static std::map<String, MemberTypeInstance>
-members_to_members(std::map<String, ir::IRValueDecl*>& params)
+static std::map<std::string, MemberTypeInstance>
+members_to_members(std::map<std::string, ir::IRValueDecl*>& params)
 {
-	std::map<String, MemberTypeInstance> map;
+	std::map<std::string, MemberTypeInstance> map;
 
 	int idx = 0;
 	for( auto param : params )
 	{
 		// TODO: Should functions have named members too?
-		map.emplace(
-			param.first,
-			MemberTypeInstance(param.second->type_decl->type_instance, param.first, idx++));
+		// map.emplace(param.first, MemberTypeInstance(param.second->type_decl->type_instance,
+		// idx++));
 	}
 	return map;
 }
 
-static std::map<String, MemberTypeInstance>
-members_to_members(std::map<String, ir::IREnumMember*>& params)
+static std::map<std::string, MemberTypeInstance>
+members_to_members(std::map<std::string, ir::IREnumMember*>& params)
 {
-	std::map<String, MemberTypeInstance> map;
+	std::map<std::string, MemberTypeInstance> map;
 
 	int idx = 0;
 	for( auto param : params )
 	{
-		map.emplace(
-			param.first,
-			MemberTypeInstance(TypeInstance::OfType(param.second->type), param.first, idx++));
+		// map.emplace(
+		// 	param.first, MemberTypeInstance(TypeInstance::OfType(param.second->type), idx++));
 	}
 	return map;
 }
@@ -1398,14 +1356,16 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 		return idr;
 	auto id = idr.unwrap();
 
-	auto name = to_single_name(sema, id.name_parts);
+	// TODO: Simplified name
+	QualifiedName name = idname(id);
+	std::string name_str = name.part(0);
 
 	auto argsr = expected(fn_proto.params, ast::as_fn_param_list);
 	if( !argsr.ok() )
 		return argsr;
 	auto args = argsr.unwrap();
 
-	auto argslist = sema.create_argslist();
+	std::vector<ir::IRParam*> argslist;
 	bool is_var_arg = false;
 	for( auto arg : args.params )
 	{
@@ -1415,7 +1375,7 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 
 		auto param = paramr.unwrap();
 		is_var_arg = param->type == IRParamType::VarArg;
-		argslist->push_back(param);
+		argslist.push_back(param);
 	}
 
 	auto rt_type_declr = sema_type_decl(sema, fn_proto.return_type);
@@ -1429,17 +1389,16 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 		return membersr;
 	auto members = membersr.unwrap();
 	auto fn_type =
-		sema.CreateType(Type::Function(*name, members.vec, rt->type_instance, is_var_arg));
-	sema.add_type_identifier(fn_type);
-	sema.add_value_identifier(*name, TypeInstance::OfType(fn_type));
+		sema.CreateType(Type::Function(name_str, members.vec, rt->type_instance, is_var_arg));
+	sema::NameRef name_ref = sema.add_value_identifier(name_str, TypeInstance::OfType(fn_type));
 
-	return sema.Proto(ast, name, argslist, rt, fn_type);
+	return sema.Proto(ast, name_ref, argslist, rt, fn_type);
 }
 
 struct unpack_struct_node_t
 {
 	AstId name;
-	std::map<String, ir::IRValueDecl*>* members;
+	std::map<std::string, ir::IRValueDecl*> members;
 };
 static SemaResult<unpack_struct_node_t>
 unpack_struct_node(Sema2& sema, ast::AstNode* ast)
@@ -1454,7 +1413,7 @@ unpack_struct_node(Sema2& sema, ast::AstNode* ast)
 		return idr;
 	auto id = idr.unwrap();
 
-	auto members = sema.create_member_map();
+	std::map<std::string, ir::IRValueDecl*> members;
 	for( auto stmt : struct_node.members )
 	{
 		auto memberr = sema_struct_tls(sema, stmt);
@@ -1463,7 +1422,7 @@ unpack_struct_node(Sema2& sema, ast::AstNode* ast)
 
 		auto member = memberr.unwrap();
 
-		members->emplace(*member->name, member);
+		members.emplace(member->name.name().name_str(), member);
 	}
 
 	return (unpack_struct_node_t){
@@ -1480,11 +1439,12 @@ sema::sema_struct(Sema2& sema, ast::AstNode* ast)
 		return structr;
 	auto unpacked = structr.unwrap();
 
-	auto fn_type =
-		sema.CreateType(Type::Struct(idname(unpacked.name), members_to_members(*unpacked.members)));
+	auto fn_type = sema.CreateType(
+		Type::Struct(idname(unpacked.name).part(0), members_to_members(unpacked.members)));
 	sema.add_type_identifier(fn_type);
 
-	return sema.Struct(ast, fn_type, unpacked.members);
+	return NotImpl();
+	// return sema.Struct(ast, fn_type, unpacked.members);
 }
 
 SemaResult<ir::IRInitializer*>
@@ -1496,17 +1456,15 @@ sema::sema_initializer(Sema2& sema, ast::AstNode* ast)
 		return initializerr;
 	auto initializer = initializerr.unwrap();
 	// TODO: Somehow expect id??
-	auto type_namer = as_name(sema, initializer.type_name->data.expr.expr);
-	if( !type_namer.ok() )
-		return type_namer;
-	auto type_name = type_namer.unwrap();
+	QualifiedName qname = idname(initializer.type_name->data.expr.expr->data.id);
 
-	auto initializer_type = sema.lookup_type(*type_name);
-	if( !initializer_type )
+	NameLookupResult lu_result = sema.lookup_fqn(qname);
+	if( !lu_result.is_found() || !lu_result.result().name().is_type() )
 		return SemaError("Initializer for unknown type.");
 
-	auto designators = sema.create_designator_list();
+	auto initializer_type = lu_result.result().type().type;
 
+	std::vector<ir::IRDesignator> designators;
 	for( auto designator_node : initializer.members )
 	{
 		auto designatorr = expected(designator_node, ast::as_initializer_designator);
@@ -1523,16 +1481,19 @@ sema::sema_initializer(Sema2& sema, ast::AstNode* ast)
 		if( !idr.ok() )
 			return idr;
 		auto id = idr.unwrap();
-		auto name = idname(id);
+		// TODO: Simple name
+		QualifiedName designator_qname = idname(id);
+		std::string designator_name_str = designator_qname.part(0);
 
-		auto member = initializer_type->get_member(name);
+		auto member = initializer_type->get_member(designator_name_str);
 		if( !member.has_value() )
-			return SemaError("Unknown designator field: " + name);
+			return SemaError("Unknown designator field: " + designator_name_str);
 
-		designators->push_back(sema.Designator(designator_node, member.value(), expr));
+		// designators.push_back(sema.Designator(designator_node, member.value(), expr));
 	}
 
-	return sema.Initializer(ast, type_name, designators, TypeInstance::OfType(initializer_type));
+	return NotImpl();
+	// return sema.Initializer(ast, qname, designators, TypeInstance::OfType(initializer_type));
 }
 
 SemaResult<ir::IRUnion*>
@@ -1543,13 +1504,10 @@ sema::sema_union(Sema2& sema, ast::AstNode* ast)
 		return unionr;
 	auto union_stmt = unionr.unwrap();
 
-	auto namer = as_name(sema, union_stmt.type_name);
-	if( !namer.ok() )
-		return namer;
+	// TODO: Simple name
+	QualifiedName qname = idname(union_stmt.type_name->data.id);
 
-	auto name = namer.unwrap();
-
-	auto members = sema.create_member_map();
+	std::map<std::string, ir::IREnumMember*> members;
 	for( auto stmt : union_stmt.members )
 	{
 		auto memberr = sema_struct_tls(sema, stmt);
@@ -1558,13 +1516,14 @@ sema::sema_union(Sema2& sema, ast::AstNode* ast)
 
 		auto member = memberr.unwrap();
 
-		members->emplace(*member->name, member);
+		// members.emplace(member->name.to_fqn_string(), member);
 	}
 
-	auto fn_type = sema.CreateType(Type::Union(*name, members_to_members(*members)));
+	auto fn_type = sema.CreateType(Type::Union(qname.part(0), members_to_members(members)));
 	sema.add_type_identifier(fn_type);
 
-	return sema.Union(ast, fn_type, members);
+	return NotImpl();
+	// return sema.Union(ast, fn_type, members);
 }
 
 SemaResult<ir::IREnum*>
@@ -1576,38 +1535,38 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 		return enumr;
 	auto enum_stmt = enumr.unwrap();
 
-	auto namer = as_name(sema, enum_stmt.type_name);
-	if( !namer.ok() )
-		return namer;
-	auto name = namer.unwrap();
+	// TODO: Simple name
+	QualifiedName qname = idname(enum_stmt.type_name->data.id);
+	std::string name_str = qname.part(0);
 
-	auto enum_type = sema.CreateType(Type::EnumPartial(*name));
+	auto enum_type = sema.CreateType(Type::EnumPartial(name_str));
 
-	auto members = sema.create_enum_member_map();
+	std::map<std::string, ir::IREnumMember*> members;
 	long long number = 0;
 	for( auto stmt : enum_stmt.members )
 	{
-		auto memberr = sema_enum_member(sema, *name, stmt, enum_type, EnumNominal(number));
+		auto memberr = sema_enum_member(sema, name_str, stmt, enum_type, EnumNominal(number));
 		if( !memberr.ok() )
 			return memberr;
 
 		auto member = memberr.unwrap();
 
-		members->emplace(*member->name, member);
+		// members.emplace(member->name.to_fqn_string(), member);
 		number++;
 	}
 
-	enum_type->set_enum_members(members_to_members(*members));
+	enum_type->set_enum_members(members_to_members(members));
 
 	sema.add_type_identifier(enum_type);
 
-	return sema.Enum(ast, enum_type, members);
+	return NotImpl();
+	// return sema.Enum(ast, enum_type, members);
 }
 
 SemaResult<ir::IREnumMember*>
 sema::sema_enum_member(
 	Sema2& sema,
-	String const& enum_name,
+	std::string const& enum_name,
 	ast::AstNode* ast,
 	Type const* enum_type,
 	EnumNominal nominal)
@@ -1623,8 +1582,8 @@ sema::sema_enum_member(
 	{
 		auto type = sema.CreateType(Type::Primitive(enum_name + "#" + *member.identifier, nominal));
 		type->set_dependent_type(enum_type);
-		sema.add_type_identifier(type);
-		auto ir_member = sema.EnumMemberId(ast, type, member.identifier, nominal);
+		NameRef name_ref = sema.add_type_identifier(type);
+		auto ir_member = sema.EnumMemberId(ast, type, name_ref, nominal);
 		return ir_member;
 		break;
 	}
@@ -1635,24 +1594,23 @@ sema::sema_enum_member(
 			return unpackr;
 		auto unpacked = unpackr.unwrap();
 
-		auto namer = as_name(sema, member.struct_stmt->data.structstmt.type_name);
-		if( !namer.ok() )
-			return namer;
-
-		auto name = namer.unwrap();
+		QualifiedName qname = idname(member.struct_stmt->data.structstmt.type_name->data.id);
+		std::string name_str = qname.part(0);
 
 		auto type = Type::Struct(
-			enum_name + "#" + idname(unpacked.name),
-			members_to_members(*unpacked.members),
+			enum_name + "#" + idname(unpacked.name).part(0),
+			members_to_members(unpacked.members),
 			nominal);
 		type.set_dependent_type(enum_type);
 
 		auto dep_type = sema.CreateType(type);
-		sema.add_type_identifier(dep_type);
+		NameRef name = sema.add_type_identifier(dep_type);
 
-		auto ir_member = sema.EnumMemberStruct(
-			ast, dep_type, sema.Struct(ast, dep_type, unpacked.members), name, nominal);
-		return ir_member;
+		return NotImpl();
+
+		// auto ir_member = sema.EnumMemberStruct(
+		// 	ast, dep_type, sema.Struct(ast, dep_type, unpacked.members), name, nominal);
+		// return ir_member;
 		break;
 	}
 	}
@@ -1668,16 +1626,15 @@ sema::sema_value_decl(Sema2& sema, ast::AstNode* ast)
 		return value_declr;
 	auto value_decl = value_declr.unwrap();
 
-	auto namer = as_name(sema, value_decl.name);
-	if( !namer.ok() )
-		return namer;
-	auto name = namer.unwrap();
+	QualifiedName qname = idname(value_decl.name->data.id);
+	std::string name_str = qname.part(0);
 
 	auto type_declr = sema_type_decl(sema, value_decl.type_name);
 	if( !type_declr.ok() )
 		return type_declr;
 
-	return sema.ValueDecl(ast, name, type_declr.unwrap());
+	return SemaError("???");
+	// return sema.ValueDecl(ast, name, type_declr.unwrap());
 }
 
 SemaResult<ir::IRNumberLiteral*>
@@ -1699,7 +1656,7 @@ sema::sema_string_literal(Sema2& sema, ast::AstNode* ast)
 		return numr;
 	auto num = numr.unwrap();
 
-	auto name = sema.create_name(num.literal->c_str(), num.literal->size());
+	std::string name = std::string(num.literal->c_str(), num.literal->size());
 
 	return sema.StringLiteral(ast, TypeInstance::PointerTo(sema.types.i8_type(), 1), name);
 }
@@ -1715,18 +1672,18 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 	if( !type_decl.empty )
 	{
 		// TODO: Leaks
-		auto type = sema.lookup_type(*to_single_name(sema, type_decl.name));
+		QualifiedName qname = idname(*type_decl.name);
+		NameLookupResult lu_result = sema.lookup_fqn(qname);
 
 		// TODO: Leaks
-		if( !type )
-			return SemaError("Could not find type '" + *to_single_name(sema, type_decl.name) + "'");
+		if( !lu_result.is_found() || !lu_result.result().name().is_type() )
+			return SemaError("Could not find type '" + qname.to_string() + "'");
+		auto type = lu_result.result().name().type().type;
 
 		auto type_instance = TypeInstance::PointerTo(type, type_decl.indirection_level);
 
 		if( type_decl.array_size > 0 )
-		{
 			type_instance = TypeInstance::ArrayOf(type_instance, type_decl.array_size);
-		}
 
 		return sema.TypeDecl(ast, type_instance);
 	}

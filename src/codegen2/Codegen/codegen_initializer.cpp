@@ -77,7 +77,7 @@ enum_initializer(
 
 	auto member_lvalue = LValue(llvm_enum_union_casted_value, llvm_enum_member_type);
 	return struct_initializer(
-		codegen, fn, ir_initializer->type_instance, *ir_initializer->initializers, member_lvalue);
+		codegen, fn, ir_initializer->type_instance, ir_initializer->initializers, member_lvalue);
 }
 
 static CGResult<CGExpr>
@@ -98,11 +98,7 @@ union_initializer(
 
 	auto bitcasted_lvalue = LValue(llvm_union_value, llvm_union_type);
 	return struct_initializer(
-		codegen,
-		fn,
-		ir_initializer->type_instance,
-		*ir_initializer->initializers,
-		bitcasted_lvalue);
+		codegen, fn, ir_initializer->type_instance, ir_initializer->initializers, bitcasted_lvalue);
 }
 
 CGResult<CGExpr>
@@ -120,7 +116,7 @@ cg::codegen_initializer(
 		return enum_initializer(codegen, fn, ir_initializer, ir_initializer->type_instance, lvalue);
 	else if( storage_type.is_struct_type() )
 		return struct_initializer(
-			codegen, fn, ir_initializer->type_instance, *ir_initializer->initializers, lvalue);
+			codegen, fn, ir_initializer->type_instance, ir_initializer->initializers, lvalue);
 	else if( storage_type.is_union_type() )
 		return union_initializer(
 			codegen, fn, ir_initializer, ir_initializer->type_instance, lvalue);

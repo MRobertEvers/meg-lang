@@ -84,11 +84,11 @@ cg::codegen_case(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCase* ir_case)
 
 	codegen.Builder->SetInsertPoint(llvm_case_bb);
 
-	if( ir_case->discriminations )
+	if( ir_case->discriminations.size() != 0 )
 	{
 		auto temp_address = CGExpr();
 		temp_address.add_discrimination(CGExpr::MakeAddress(switch_info.switch_cond()));
-		cg_discriminations(codegen, temp_address, *ir_case->discriminations);
+		cg_discriminations(codegen, temp_address, ir_case->discriminations);
 	}
 
 	auto codegen_result = codegen.codegen_stmt(fn, ir_case->block);

@@ -23,7 +23,7 @@ get_named_params(CG& cg, ir::IRProto* proto)
 	get_params_types_t args;
 	args.is_var_arg = false;
 
-	for( auto& arg : *proto->args )
+	for( auto& arg : proto->args )
 	{
 		if( arg->type == ir::IRParamType::ValueDecl )
 		{
@@ -32,18 +32,19 @@ get_named_params(CG& cg, ir::IRProto* proto)
 			if( !argsr.ok() )
 				return argsr;
 			auto llvm_arg_ty = argsr.unwrap();
-			auto name = *ir_value_decl->name;
+			auto name = ir_value_decl->name;
 			auto sema_ty = ir_value_decl->type_decl->type_instance;
 			if( sema_ty.is_struct_type() || sema_ty.is_enum_type() || sema_ty.is_union_type() )
 			{
 				args.args.emplace_back(
-					String(name),
+					String(name.to_fqn_string()),
 					LLVMArgABIInfo(LLVMArgABIInfo::Value, llvm_arg_ty->getPointerTo()));
 			}
 			else
 			{
 				args.args.emplace_back(
-					String(name), LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_arg_ty));
+					String(name.to_fqn_string()),
+					LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_arg_ty));
 			}
 		}
 		else
@@ -171,7 +172,7 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* ir_proto)
 	auto sema_rt_ty = ir_rt_decl->type_instance;
 	auto llvm_rt_ty = retr.unwrap();
 
-	LLVMFnSigInfoBuilder builder(*name, ir_proto->fn_type);
+	LLVMFnSigInfoBuilder builder(name.to_fqn_string(), ir_proto->fn_type);
 
 	if( sema_rt_ty.is_struct_type() )
 	{
@@ -192,7 +193,7 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* ir_proto)
 
 	auto sig_info = codegen_fn_sig_info(codegen, builder);
 
-	codegen.add_function(*name, sig_info);
+	codegen.add_function(name.to_fqn_string(), name.id(), sig_info);
 
 	return sig_info;
 }
@@ -204,7 +205,7 @@ cg::codegen_function_body(CG& cg, cg::LLVMFnInfo& ctx, ir::IRBlock* block)
 
 	for( auto [name, arg] : ctx.named_args )
 	{
-		cg.values.insert_or_assign(name, arg.lvalue);
+		// cg.values.insert_or_assign(name, arg.lvalue);
 	}
 
 	auto block_return = cg.codegen_block(ctx, block);

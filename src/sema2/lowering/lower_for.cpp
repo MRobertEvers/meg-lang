@@ -7,7 +7,7 @@ using namespace sema;
 SemaResult<ir::IRBlock*>
 sema::lower_for(Sema2& sema, ir::IRFor* ir_for)
 {
-	Vec<ir::IRStmt*>* vec = sema.create_slist();
-	vec->push_back(sema.Stmt(ir_for));
+	Vec<ir::IRStmt*> vec;
+	vec.push_back(sema.Stmt(ir_for));
 	return sema.Block(ir_for->node, vec);
 }

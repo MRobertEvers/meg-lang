@@ -49,9 +49,9 @@ cg::get_type(CG& cg, ir::IRValueDecl* decl)
 
 // Get LValue?
 std::optional<LValue>
-cg::get_value(CG& cg, String const& name)
+cg::get_value(CG& cg, sema::NameId id)
 {
-	auto iter_value = cg.values.find(name);
+	auto iter_value = cg.values.find(id.index());
 	if( iter_value != cg.values.end() )
 		return iter_value->second;
 	else

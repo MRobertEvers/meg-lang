@@ -1,13 +1,13 @@
 #pragma once
 #include "TypeInstance.h"
-#include "common/String.h"
+
+#include <string>
 
 namespace sema
 {
 struct MemberTypeInstance
 {
 	TypeInstance type;
-	String name;
 
 	/**
 	 * @brief Order index of member in struct.
@@ -17,9 +17,8 @@ struct MemberTypeInstance
 	int idx;
 
 	MemberTypeInstance() = default;
-	MemberTypeInstance(TypeInstance type, String name, int idx)
+	MemberTypeInstance(TypeInstance type, int idx)
 		: type(type)
-		, name(name)
 		, idx(idx){};
 };
 }; // namespace sema

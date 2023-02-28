@@ -1,6 +1,6 @@
 #pragma once
+#include "Name.h"
 #include "QualifiedName.h"
-#include "ir/Name.h"
 
 #include <string>
 #include <vector>
@@ -18,7 +18,7 @@ class NameLookupResult
 
 	union
 	{
-		ir::NameRef name_;
+		sema::NameRef name_;
 	};
 
 public:
@@ -26,14 +26,14 @@ public:
 		: kind(RNotFound)
 	{}
 
-	NameLookupResult(ir::NameRef name)
+	NameLookupResult(sema::NameRef name)
 		: name_(name)
 		, kind(RName)
 	{}
 
 	bool is_found() const { return kind != RNotFound; }
 
-	ir::NameRef result() const
+	sema::NameRef result() const
 	{
 		assert(is_found());
 		return name_;
@@ -42,29 +42,32 @@ public:
 
 class Lookup
 {
-	std::vector<ir::Name> names;
+	std::vector<sema::Name> names;
 
-	ir::NameRef root_namespace;
+	sema::NameRef root_namespace;
 
-	std::vector<ir::NameRef> namespace_stack;
+	std::vector<sema::NameRef> namespace_stack;
 
 public:
 	Lookup();
 
+	// Lookup starting from root.
 	NameLookupResult lookup_fqn(QualifiedName const& name);
+	// Lookup in the current namespace
 	NameLookupResult lookup(QualifiedName const& name);
-	NameLookupResult lookup(QualifiedName const& name, ir::NameRef nspace);
+	// Lookup starting in nspace.
+	NameLookupResult lookup(QualifiedName const& name, sema::NameRef nspace);
 
-	ir::NameRef get(ir::NameId name_id);
-	ir::NameRef add_name(ir::Name name);
-	ir::NameRef add_name(ir::NameRef nspace, ir::Name name);
+	sema::NameRef get(sema::NameId name_id);
+	sema::NameRef add_name(sema::Name name);
+	sema::NameRef add_name(sema::NameRef nspace, sema::Name name);
 
-	ir::NameRef push_scope(ir::NameRef nspace);
+	sema::NameRef push_scope(sema::NameRef nspace);
 	void pop_scope();
 
-	ir::NameRef root() const { return root_namespace; }
-	ir::NameRef current() const { return namespace_stack[namespace_stack.size() - 1]; }
+	sema::NameRef root() const { return root_namespace; }
+	sema::NameRef current() const { return namespace_stack[namespace_stack.size() - 1]; }
 
-	std::vector<ir::Name>& name_table() { return names; }
+	std::vector<sema::Name>& name_table() { return names; }
 };
 } // namespace sema

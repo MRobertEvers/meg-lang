@@ -8,32 +8,11 @@ using namespace sema;
 
 Sema2::Sema2()
 {
-	scopes.reserve(100);
-	scopes.emplace_back(&types);
-	current_scope = &scopes.back();
-
 	for( auto& ty : types.types )
 	{
 		auto second = &ty.second;
 		add_type_identifier(second);
 	}
-}
-
-Scope*
-Sema2::push_scope()
-{
-	auto s = Scope(current_scope);
-	scopes.push_back(s);
-	current_scope = &scopes.back();
-
-	return current_scope;
-}
-
-void
-Sema2::pop_scope()
-{
-	current_scope->is_in_scope = false;
-	current_scope = current_scope->get_parent();
 }
 
 Type*
@@ -43,15 +22,39 @@ Sema2::CreateType(Type ty)
 }
 
 void
-Sema2::add_value_identifier(String const& name, TypeInstance id)
+Sema2::push_scope(sema::NameRef nspace)
 {
-	return current_scope->add_value_identifier(name, id);
+	lookup_.push_scope(nspace);
 }
 
 void
-Sema2::add_type_identifier(Type const* id)
+Sema2::pop_scope()
 {
-	return current_scope->add_type_identifier(id);
+	lookup_.pop_scope();
+}
+
+sema::NameRef
+Sema2::add_value_identifier(std::string const& name, TypeInstance type)
+{
+	return lookup_.add_name(Name::Var(name, type));
+}
+
+sema::NameRef
+Sema2::add_type_identifier(Type const* type)
+{
+	return lookup_.add_name(Name::Type(type->get_name(), TypeInstance::OfType(type)));
+}
+
+NameLookupResult
+Sema2::lookup_fqn(QualifiedName const& qname)
+{
+	return lookup_.lookup_fqn(qname);
+}
+
+NameLookupResult
+Sema2::lookup_local(QualifiedName const& qname)
+{
+	return lookup_.lookup(qname);
 }
 
 std::optional<TypeInstance>
@@ -72,80 +75,8 @@ Sema2::clear_expected_return()
 	current_scope->clear_expected_return();
 }
 
-std::optional<TypeInstance>
-Sema2::lookup_name(String const& name)
-{
-	auto ti = current_scope->lookup_value_type(name);
-	if( ti == nullptr )
-		return std::optional<TypeInstance>();
-
-	return *ti;
-}
-
-Type const*
-Sema2::lookup_type(String const& name)
-{
-	return current_scope->lookup_type(name);
-}
-
-Vec<ir::IRDesignator*>*
-Sema2::create_designator_list()
-{
-	return new Vec<ir::IRDesignator*>();
-}
-
-Vec<ir::IRTopLevelStmt*>*
-Sema2::create_tlslist()
-{
-	//
-	return new Vec<ir::IRTopLevelStmt*>();
-}
-
-std::map<String, ir::IREnumMember*>*
-Sema2::create_enum_member_map()
-{
-	return new std::map<String, ir::IREnumMember*>();
-}
-
-std::map<String, ir::IRValueDecl*>*
-Sema2::create_member_map()
-{
-	return new std::map<String, ir::IRValueDecl*>();
-}
-
-std::map<String, ir::IRExpr*>*
-Sema2::create_expr_map()
-{
-	return new std::map<String, ir::IRExpr*>();
-}
-
-Vec<ir::IRStmt*>*
-Sema2::create_slist()
-{
-	//
-	return new Vec<ir::IRStmt*>();
-}
-
-Vec<ir::IRExpr*>*
-Sema2::create_elist()
-{
-	return new Vec<ir::IRExpr*>();
-}
-
-Vec<ir::IRParam*>*
-Sema2::create_argslist()
-{
-	return new Vec<ir::IRParam*>();
-}
-
-String*
-Sema2::create_name(char const* s, int size)
-{
-	return new String(s, size);
-}
-
 ir::IRModule*
-Sema2::Module(AstNode* node, Vec<ir::IRTopLevelStmt*>* stmts)
+Sema2::Module(AstNode* node, std::vector<ir::IRTopLevelStmt*> stmts)
 {
 	//
 	auto mod = new ir::IRModule;
@@ -254,24 +185,18 @@ Sema2::ExternFn(ast::AstNode* node, ir::IRProto* proto)
 ir::IRProto*
 Sema2::Proto(
 	ast::AstNode* node,
-	String* name,
-	Vec<ir::IRParam*>* args,
+	sema::NameRef name,
+	std::vector<ir::IRParam*> args,
 	ir::IRTypeDeclaraor* rt,
 	Type const* fn_type)
 {
-	auto nod = new ir::IRProto;
-
-	nod->node = node;
-	nod->name = name;
-	nod->args = args;
-	nod->rt = rt;
-	nod->fn_type = fn_type;
+	auto nod = new ir::IRProto(node, name, args, rt, fn_type);
 
 	return nod;
 }
 
 ir::IRBlock*
-Sema2::Block(ast::AstNode* node, Vec<ir::IRStmt*>* stmts)
+Sema2::Block(ast::AstNode* node, std::vector<ir::IRStmt*> stmts)
 {
 	auto nod = new ir::IRBlock;
 
@@ -293,13 +218,9 @@ Sema2::Return(ast::AstNode* node, ir::IRExpr* expr)
 }
 
 ir::IRValueDecl*
-Sema2::ValueDecl(ast::AstNode* node, String* name, ir::IRTypeDeclaraor* rt)
+Sema2::ValueDecl(ast::AstNode* node, sema::NameRef name, ir::IRTypeDeclaraor* rt)
 {
-	auto nod = new ir::IRValueDecl;
-
-	nod->node = node;
-	nod->name = name;
-	nod->type_decl = rt;
+	auto nod = new ir::IRValueDecl(node, rt, name);
 
 	return nod;
 }
@@ -327,7 +248,6 @@ Sema2::Expr(ir::IRCall* call)
 	auto t = call->call_target->type_instance.type->get_return_type();
 	assert(t.has_value());
 	nod->type_instance = t.value();
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -341,7 +261,6 @@ Sema2::Expr(ir::IRNumberLiteral* nl)
 	nod->expr.num_literal = nl;
 	nod->type = ir::IRExprType::NumberLiteral;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -355,7 +274,6 @@ Sema2::Expr(ir::IRStringLiteral* nl)
 	nod->expr.str_literal = nl;
 	nod->type = ir::IRExprType::StringLiteral;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -369,7 +287,6 @@ Sema2::Expr(ir::IRId* nl)
 	nod->expr.id = nl;
 	nod->type = ir::IRExprType::Id;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -383,7 +300,6 @@ Sema2::Expr(ir::IRValueDecl* nl)
 	nod->expr.decl = nl;
 	nod->type = ir::IRExprType::ValueDecl;
 	nod->type_instance = nl->type_decl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -397,7 +313,6 @@ Sema2::Expr(ir::IRBinOp* nl)
 	nod->expr.binop = nl;
 	nod->type = ir::IRExprType::BinOp;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -411,7 +326,6 @@ Sema2::Expr(ir::IRMemberAccess* nl)
 	nod->expr.member_access = nl;
 	nod->type = ir::IRExprType::MemberAccess;
 	nod->type_instance = nl->member.type;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -425,7 +339,6 @@ Sema2::Expr(ir::IRIndirectMemberAccess* nl)
 	nod->expr.indirect_member_access = nl;
 	nod->type = ir::IRExprType::IndirectMemberAccess;
 	nod->type_instance = nl->member.type;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -439,7 +352,6 @@ Sema2::Expr(ir::IRAddressOf* nl)
 	nod->expr.addr_of = nl;
 	nod->type = ir::IRExprType::AddressOf;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -453,7 +365,6 @@ Sema2::Expr(ir::IRDeref* nl)
 	nod->expr.deref = nl;
 	nod->type = ir::IRExprType::Deref;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -466,7 +377,6 @@ Sema2::Expr(ir::IRArrayAccess* nl)
 	nod->expr.array_access = nl;
 	nod->type = ir::IRExprType::ArrayAccess;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -480,7 +390,6 @@ Sema2::Expr(ir::IREmpty* nl)
 	nod->expr.empty = nl;
 	nod->type = ir::IRExprType::Empty;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -494,13 +403,12 @@ Sema2::Expr(ir::IRIs* nl)
 	nod->expr.is = nl;
 	nod->type = ir::IRExprType::Is;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = new Vec<ir::IRIs*>();
 
 	// TODO: Rewrite this so I don't have to manually pass up descriminations
 	// through all possible expr nodes.
 	// TODO: Also no business logic here
 	if( nl->type_decl->type_instance.is_struct_type() )
-		nod->discriminations->push_back(nl);
+		nod->discriminations.push_back(nl);
 
 	return nod;
 }
@@ -514,7 +422,6 @@ Sema2::Expr(ir::IRInitializer* nl)
 	nod->expr.initializer = nl;
 	nod->type = ir::IRExprType::Initializer;
 	nod->type_instance = nl->type_instance;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -642,7 +549,7 @@ Sema2::Stmt(ir::IRCase* c)
 }
 
 ir::IRArgs*
-Sema2::Args(ast::AstNode* node, Vec<ir::IRExpr*>* args)
+Sema2::Args(ast::AstNode* node, std::vector<ir::IRExpr*> args)
 {
 	auto nod = new ir::IRArgs;
 
@@ -665,26 +572,21 @@ Sema2::NumberLiteral(ast::AstNode* node, sema::TypeInstance type_instance, long 
 }
 
 ir::IRStringLiteral*
-Sema2::StringLiteral(ast::AstNode* node, sema::TypeInstance type_instance, String* name)
+Sema2::StringLiteral(ast::AstNode* node, sema::TypeInstance type_instance, std::string s)
 {
 	auto nod = new ir::IRStringLiteral;
 
 	nod->node = node;
-	nod->value = name;
+	nod->value = s;
 	nod->type_instance = type_instance;
 
 	return nod;
 }
 
 ir::IRId*
-Sema2::Id(ast::AstNode* node, Vec<String*>* name_parts, sema::TypeInstance type, bool is_type_id)
+Sema2::Id(ast::AstNode* node, sema::NameRef name, sema::TypeInstance type, bool is_type_id)
 {
-	auto nod = new ir::IRId;
-
-	nod->node = node;
-	nod->name = name_parts;
-	nod->type_instance = type;
-	nod->is_type_id = is_type_id;
+	auto nod = new ir::IRId(node, name, type, is_type_id);
 
 	return nod;
 }
@@ -710,7 +612,6 @@ Sema2::CaseDefault(ast::AstNode* node, ir::IRStmt* stmt)
 	nod->node = node;
 	nod->value = 0;
 	nod->block = stmt;
-	nod->discriminations = nullptr;
 	nod->is_default = true;
 
 	return nod;
@@ -725,14 +626,13 @@ Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt)
 	nod->node = node;
 	nod->value = expr;
 	nod->block = stmt;
-	nod->discriminations = nullptr;
 	nod->is_default = false;
 
 	return nod;
 }
 
 ir::IRCase*
-Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt, Vec<ir::IRParam*>* args)
+Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt, std::vector<ir::IRParam*> args)
 {
 	//
 	auto nod = new ir::IRCase;
@@ -747,14 +647,9 @@ Sema2::Case(ast::AstNode* node, long long expr, ir::IRStmt* stmt, Vec<ir::IRPara
 }
 
 ir::IRLet*
-Sema2::Let(ast::AstNode* node, String* name, ir::IRAssign* assign)
+Sema2::Let(ast::AstNode* node, sema::NameRef name, ir::IRAssign* assign)
 {
-	auto nod = new ir::IRLet;
-
-	nod->node = node;
-	nod->name = name;
-	nod->assign = assign;
-	nod->type_instance = assign->lhs->type_instance;
+	auto nod = new ir::IRLet(node, name, assign, assign->lhs->type_instance);
 
 	return nod;
 }
@@ -777,14 +672,9 @@ Sema2::Is(
 }
 
 ir::IRLet*
-Sema2::LetEmpty(ast::AstNode* node, String* name, sema::TypeInstance type)
+Sema2::LetEmpty(ast::AstNode* node, sema::NameRef name, sema::TypeInstance type)
 {
-	auto nod = new ir::IRLet;
-
-	nod->node = node;
-	nod->name = name;
-	nod->assign = nullptr;
-	nod->type_instance = type;
+	auto nod = new ir::IRLet(node, name, nullptr, type);
 
 	return nod;
 }
@@ -798,7 +688,6 @@ Sema2::If(ast::AstNode* node, ir::IRExpr* bool_expr, ir::IRStmt* body, ir::IREls
 	nod->expr = bool_expr;
 	nod->stmt = body;
 	nod->else_stmt = else_stmt;
-	nod->discriminations = nullptr;
 
 	return nod;
 }
@@ -809,7 +698,7 @@ Sema2::IfArrow(
 	ir::IRExpr* cond,
 	ir::IRStmt* block,
 	ir::IRElse* else_stmt,
-	Vec<ir::IRParam*>* args)
+	std::vector<ir::IRParam*> args)
 {
 	auto nod = new ir::IRIf;
 
@@ -863,7 +752,7 @@ Sema2::BinOp(
 
 ir::IRStruct*
 Sema2::Struct(
-	ast::AstNode* node, sema::Type const* type, std::map<String, ir::IRValueDecl*>* members)
+	ast::AstNode* node, sema::Type const* type, std::map<std::string, ir::IRValueDecl*> members)
 {
 	auto nod = new ir::IRStruct;
 
@@ -876,7 +765,7 @@ Sema2::Struct(
 
 ir::IRUnion*
 Sema2::Union(
-	ast::AstNode* node, sema::Type const* type, std::map<String, ir::IRValueDecl*>* members)
+	ast::AstNode* node, sema::Type const* type, std::map<std::string, ir::IRValueDecl*> members)
 {
 	auto nod = new ir::IRUnion;
 
@@ -889,12 +778,12 @@ Sema2::Union(
 
 ir::IREnum*
 Sema2::Enum(
-	ast::AstNode* node, sema::Type const* type, std::map<String, ir::IREnumMember*>* members)
+	ast::AstNode* node, sema::Type const* type, std::map<std::string, ir::IREnumMember*> members)
 {
 	auto nod = new ir::IREnum;
 
 	nod->node = node;
-	nod->members = members;
+	// nod->members = members;
 	nod->enum_type = type;
 
 	return nod;
@@ -903,63 +792,40 @@ Sema2::Enum(
 ir::IREnumMember*
 Sema2::EnumMemberStruct(
 	ast::AstNode* node,
-	sema::Type const* type,
+	sema::Type const*,
 	ir::IRStruct* struct_stmt,
-	String* name,
+	sema::NameRef name,
 	EnumNominal idx)
 {
 	//
-	auto nod = new ir::IREnumMember;
-
-	nod->contained_type = ir::IREnumMember::Type::Struct;
-	nod->node = node;
-	nod->struct_member = struct_stmt;
-	nod->type = type;
-	nod->name = name;
-	nod->number = idx;
+	auto nod = new ir::IREnumMember(node, idx, name, struct_stmt);
 
 	return nod;
 }
 
 ir::IREnumMember*
-Sema2::EnumMemberId(ast::AstNode* node, sema::Type const* type, String* name, EnumNominal idx)
+Sema2::EnumMemberId(ast::AstNode* node, sema::Type const*, sema::NameRef name, EnumNominal idx)
 {
 	//
-	auto nod = new ir::IREnumMember;
-
-	nod->contained_type = ir::IREnumMember::Type::Id;
-	nod->node = node;
-	nod->type = type;
-	nod->name = name;
-	nod->number = idx;
+	auto nod = new ir::IREnumMember(node, idx, name);
 
 	return nod;
 }
 
 ir::IRMemberAccess*
 Sema2::MemberAccess(
-	ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member, String* member_name)
+	ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member, sema::NameRef name)
 {
-	auto nod = new ir::IRMemberAccess;
-
-	nod->node = node;
-	nod->member_name = member_name;
-	nod->member = member;
-	nod->expr = expr;
+	auto nod = new ir::IRMemberAccess(node, name, member, expr);
 
 	return nod;
 }
 
 ir::IRIndirectMemberAccess*
 Sema2::IndirectMemberAccess(
-	ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member, String* member_name)
+	ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member, sema::NameRef name)
 {
-	auto nod = new ir::IRIndirectMemberAccess;
-
-	nod->node = node;
-	nod->member_name = member_name;
-	nod->member = member;
-	nod->expr = expr;
+	auto nod = new ir::IRIndirectMemberAccess(node, name, member, expr);
 
 	return nod;
 }
@@ -1076,17 +942,12 @@ Sema2::While(ast::AstNode* node, ir::IRExpr* condition, ir::IRStmt* body)
 ir::IRInitializer*
 Sema2::Initializer(
 	ast::AstNode* node,
-	String* name,
-	Vec<ir::IRDesignator*>* initializers,
+	sema::NameRef name,
+	std::vector<ir::IRDesignator*> initializers,
 	sema::TypeInstance type_instance)
 {
 	//
-	auto nod = new ir::IRInitializer;
-
-	nod->node = node;
-	nod->initializers = initializers;
-	nod->name = name;
-	nod->type_instance = type_instance;
+	auto nod = new ir::IRInitializer(node, name, initializers, type_instance);
 
 	return nod;
 }

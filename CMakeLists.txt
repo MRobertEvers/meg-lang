@@ -47,6 +47,7 @@ add_executable(sushi
     src/ast2/bin_op.cpp
     src/ast2/ParseTrail.cpp
     src/ast2/ParseResult.cpp
+    src/ast2/ast/parse_namespace.cpp
     src/ast2/ast/parse_is.cpp
     src/ast2/ast/parse_if_arrow.cpp
     src/ast2/ast/parse_common.cpp
@@ -58,6 +59,10 @@ add_executable(sushi
     src/ast2/AstTags.h
     src/ast2/Ast.cpp
     src/sema2/Scope.cpp
+    src/sema2/sema/idname.cpp
+    src/sema2/Lookup.cpp
+    src/sema2/Name.cpp
+    src/sema2/QualifiedName.cpp
     src/sema2/sema/sema_id.cpp
     src/sema2/SemaGen.cpp
     src/sema2/Sema2.cpp
@@ -69,7 +74,6 @@ add_executable(sushi
     src/sema2/Types.cpp
     src/sema2/TypeInstance.cpp
     src/sema2/MemberTypeInstance.cpp
-    src/sema2/SemaTag.cpp
     src/codegen2/Codegen.cpp
     src/codegen2/CGResult.cpp
     src/codegen2/CGExpr.cpp

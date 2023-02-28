@@ -6,7 +6,6 @@
 #include "Scope.h"
 #include "ast2/Ast.h"
 #include "ast2/AstNode.h"
-#include "common/String.h"
 #include "sema2/IR.h"
 #include "sema2/Scope.h"
 #include "sema2/Sema2.h"
@@ -33,9 +32,9 @@ public:
 	std::unique_ptr<llvm::Module> Module;
 	// TODO: Need scoping on these types.
 	std::map<sema::Type const*, llvm::Type*> types;
-	std::map<String, LValue> values;
+	std::map<int, LValue> values;
 
-	// Vec<cg::Scope> scopes;
+	// std::vector<cg::Scope> scopes;
 	// Scope* current_scope;
 
 	sema::Sema2& sema;
@@ -44,7 +43,7 @@ public:
 	// Scope* push_scope();
 	// void pop_scope();
 
-	void add_function(String const& name, LLVMFnSigInfo);
+	void add_function(std::string const& name, sema::NameId id, LLVMFnSigInfo);
 
 	CGResult<CGExpr> codegen_module(ir::IRModule*);
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);

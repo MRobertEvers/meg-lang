@@ -79,7 +79,7 @@ cg::codegen_string_literal(CG& codegen, ir::IRStringLiteral* lit)
 	//
 
 	auto llvm_literal = llvm::ConstantDataArray::getString(
-		*codegen.Context, escape_string(*lit->value).c_str(), true);
+		*codegen.Context, escape_string(lit->value).c_str(), true);
 
 	llvm::GlobalVariable* llvm_global = new llvm::GlobalVariable(
 		*codegen.Module,

@@ -1,26 +1,9 @@
 #include "sema_id.h"
 
 #include "../sema_expected.h"
+#include "idname.h"
 
 using namespace sema;
-
-static String*
-to_single_name(Sema2& sema, ast::AstList<String*>* list)
-{
-	auto name = sema.create_name("", 0);
-
-	bool first = true;
-	for( auto part : list )
-	{
-		if( !first )
-			*name += "#";
-		*name += *part;
-
-		first = false;
-	}
-
-	return name;
-}
 
 SemaResult<sema_id_t>
 sema::sema_id(Sema2& sema, ast::AstNode* ast)
@@ -30,40 +13,36 @@ sema::sema_id(Sema2& sema, ast::AstNode* ast)
 		return idr;
 	auto id = idr.unwrap();
 
-	// TODO: Leaks
-	auto maybe_value = sema.lookup_name(*to_single_name(sema, id.name_parts));
-	if( maybe_value.has_value() )
-		// TODO: Allocate new name instead of reference
-		return sema_id_t(sema.Id(ast, &id.name_parts->list, maybe_value.value(), false));
+	QualifiedName qname = idname(id);
 
-	// Struct name?
-	// TODO: Leaks
-	auto maybe_struct = sema.lookup_type(*to_single_name(sema, id.name_parts));
-	if( maybe_struct )
+	auto maybe_value = sema.lookup_fqn(qname);
+	if( !maybe_value.is_found() )
+		return SemaError("Use of undeclared identifier " + qname.to_string());
+
+	sema::NameRef value = maybe_value.result();
+	if( value.name().is_var() )
+		return sema_id_t(sema.Id(ast, value, value.type(), false));
+
+	if( value.name().is_type() )
 	{
-		if( maybe_struct->is_struct_type() )
+		auto type = value.type().type;
+		if( type->is_struct_type() )
 		{
 			// Lookup constructor.
 			// Note that we need to generate a constructor?
-			auto str_name = maybe_struct->get_name();
-			auto name = sema.create_name(str_name.c_str(), str_name.size());
-			auto parts = new Vec<String*>();
-			parts->push_back(name);
-			return sema_id_t(sema.Id(ast, parts, TypeInstance::OfType(maybe_struct), true));
+			return sema_id_t(sema.Id(ast, value, value.type(), true));
 		}
-		else if( maybe_struct->get_dependent_type()->is_enum_type() )
+		else if( type->get_dependent_type()->is_enum_type() )
 		{
-			return sema_id_t(sema.Initializer(
-				ast, to_single_name(sema, id.name_parts), {}, TypeInstance::OfType(maybe_struct)));
+			return sema_id_t(sema.Initializer(ast, value, {}, TypeInstance::OfType(type)));
 		}
 		else
 		{
 			// TODO: Yikes
-			return sema_id_t(
-				sema.Id(ast, &id.name_parts->list, TypeInstance::OfType(maybe_struct), true));
+			return sema_id_t(sema.Id(ast, value, value.type(), true));
 		}
 	}
 
 	// TODO: Leaks
-	return SemaError("Unrecognized variable '" + *to_single_name(sema, id.name_parts) + "'");
+	return SemaError("Unrecognized variable '" + qname.to_string() + "'");
 }

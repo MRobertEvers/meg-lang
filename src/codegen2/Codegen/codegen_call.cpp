@@ -50,7 +50,7 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 		arg_ind += 1;
 	}
 
-	for( auto arg_expr_node : *ir_call->args->args )
+	for( auto arg_expr_node : ir_call->args->args )
 	{
 		auto arg_exprr = codegen.codegen_expr(fn, arg_expr_node);
 		if( !arg_exprr.ok() )

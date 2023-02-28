@@ -25,24 +25,6 @@
 using namespace cg;
 using namespace ast;
 
-static String
-to_single_name(Vec<String*>* list)
-{
-	auto name = String();
-
-	bool first = true;
-	for( auto part : *list )
-	{
-		if( !first )
-			name += "#";
-		name += *part;
-
-		first = false;
-	}
-
-	return name;
-}
-
 static void
 establish_llvm_builtin_types(
 	CG& cg, sema::Types& types, std::map<sema::Type const*, llvm::Type*>& lut)
@@ -69,19 +51,19 @@ CG::CG(sema::Sema2& sema)
 }
 
 void
-CG::add_function(String const& name, LLVMFnSigInfo context)
+CG::add_function(std::string const& name, sema::NameId id, LLVMFnSigInfo context)
 {
 	Functions.emplace(name, context);
 	types.emplace(context.sema_fn_ty, context.llvm_fn_ty);
 
 	auto lvalue = LValue(context.llvm_fn, context.llvm_fn_ty);
-	values.emplace(name, lvalue);
+	values.emplace(id.index(), lvalue);
 }
 
 CGResult<CGExpr>
 CG::codegen_module(ir::IRModule* mod)
 {
-	for( auto tls : *mod->stmts )
+	for( auto tls : mod->stmts )
 	{
 		auto tlsr = codegen_tls(tls);
 		if( !tlsr.ok() )
@@ -206,9 +188,9 @@ CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* ir_let)
 		return typer;
 	auto llvm_allocated_type = typer.unwrap();
 
-	llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_allocated_type, nullptr, *name);
+	llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_allocated_type, nullptr);
 	auto lvalue = LValue(llvm_alloca, llvm_allocated_type);
-	values.insert_or_assign(*name, lvalue);
+	values.insert_or_assign(name.id().index(), lvalue);
 
 	if( !ir_let->is_empty() )
 	{
@@ -232,7 +214,7 @@ CG::codegen_number_literal(ir::IRNumberLiteral* lit)
 CGResult<CGExpr>
 CG::codegen_value_decl(ir::IRValueDecl* decl)
 {
-	auto valuer = get_value(*this, *decl->name);
+	auto valuer = get_value(*this, decl->name.id());
 	assert(valuer.has_value());
 
 	return CGExpr::MakeAddress(valuer.value().address());
@@ -242,7 +224,7 @@ CGResult<CGExpr>
 CG::codegen_id(ir::IRId* id)
 {
 	// auto iter_type = types.find(id->type_instance.type);
-	auto value = get_value(*this, to_single_name(id->name));
+	auto value = get_value(*this, id->name.id());
 	if( value.has_value() )
 		return CGExpr::MakeAddress(value.value().address());
 
@@ -255,7 +237,7 @@ CG::codegen_id(ir::IRId* id)
 	// if( maybe_type.ok() )
 	// 	return CGExpr();
 
-	return CGError("Undeclared identifier! " + to_single_name(id->name));
+	return CGError("Undeclared identifier! ");
 }
 
 CGResult<CGExpr>
@@ -291,8 +273,7 @@ CG::codegen_if(cg::LLVMFnInfo& fn, ir::IRIf* ir_if)
 	Builder->SetInsertPoint(llvm_then_bb);
 
 	// Inject any discriminations
-	if( ir_if->discriminations )
-		cg_discriminations(*this, cond_expr, *ir_if->discriminations);
+	cg_discriminations(*this, cond_expr, ir_if->discriminations);
 
 	auto then_stmtr = codegen_stmt(fn, ir_if->stmt);
 	if( !then_stmtr.ok() )
@@ -383,7 +364,7 @@ CG::codegen_block(cg::LLVMFnInfo& fn, ir::IRBlock* ir_block)
 	fn.clear_merge_block();
 
 	auto previous_scope = this->values;
-	for( auto stmt : *ir_block->stmts )
+	for( auto stmt : ir_block->stmts )
 	{
 		//
 		auto stmtr = codegen_stmt(fn, stmt);
@@ -399,7 +380,7 @@ CG::codegen_block(cg::LLVMFnInfo& fn, ir::IRBlock* ir_block)
 CGResult<CGExpr>
 CG::codegen_struct(ir::IRStruct* st)
 {
-	Vec<llvm::Type*> members;
+	std::vector<llvm::Type*> members;
 	for( int i = 0; i < st->struct_type->get_member_count(); i++ )
 	{
 		// Order in llvm type must match the order in the sema type
@@ -428,7 +409,7 @@ CG::codegen_union(ir::IRUnion* st)
 {
 	llvm::Type* max_type_by_size = nullptr;
 	int max_size = 0;
-	for( auto& member : *st->members )
+	for( auto& member : st->members )
 	{
 		auto value_decl = member.second;
 		auto typerr = get_type(*this, value_decl->type_decl);
@@ -445,7 +426,7 @@ CG::codegen_union(ir::IRUnion* st)
 		}
 	}
 
-	Vec<llvm::Type*> members = {max_type_by_size};
+	std::vector<llvm::Type*> members = {max_type_by_size};
 
 	auto union_type = st->union_type;
 	auto name = union_type->get_name();
@@ -480,7 +461,7 @@ CG::codegen_enum(ir::IREnum* st)
 
 	llvm::Type* llvm_current_type = nullptr;
 	int current_type_size = 0;
-	for( auto& member : *st->members )
+	for( auto& member : st->members )
 	{
 		auto enum_member = member.second;
 
@@ -509,7 +490,7 @@ CG::codegen_enum(ir::IREnum* st)
 			max_size = current_type_size;
 		}
 	}
-	Vec<llvm::Type*> members = {llvm::Type::getInt32Ty(*Context)};
+	std::vector<llvm::Type*> members = {llvm::Type::getInt32Ty(*Context)};
 	if( llvm_max_type_by_size != nullptr )
 	{
 		members.push_back(llvm_max_type_by_size);

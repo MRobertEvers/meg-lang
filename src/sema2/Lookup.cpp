@@ -23,7 +23,7 @@ Lookup::lookup(QualifiedName const& name)
 }
 
 NameLookupResult
-Lookup::lookup(QualifiedName const& name, ir::NameRef nspace)
+Lookup::lookup(QualifiedName const& name, sema::NameRef nspace)
 {
 	if( name.length() == 0 )
 		return NameLookupResult();
@@ -42,27 +42,27 @@ Lookup::lookup(QualifiedName const& name, ir::NameRef nspace)
 	return NameLookupResult(it);
 }
 
-ir::NameRef
-Lookup::get(ir::NameId name_id)
+sema::NameRef
+Lookup::get(sema::NameId name_id)
 {
 	assert(name_id.index() < this->names.size());
 	return NameRef(&this->names, name_id);
 }
 
-ir::NameRef
+sema::NameRef
 Lookup::add_name(Name name)
 {
 	return add_name(current(), name);
 }
 
-ir::NameRef
-Lookup::add_name(ir::NameRef nspace, Name name)
+sema::NameRef
+Lookup::add_name(sema::NameRef nspace, Name name)
 {
 	return nspace.add_name(name);
 }
 
-ir::NameRef
-Lookup::push_scope(ir::NameRef nspace)
+sema::NameRef
+Lookup::push_scope(sema::NameRef nspace)
 {
 	namespace_stack.push_back(nspace);
 	return nspace;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "MemberTypeInstance.h"
 #include "TypeInstance.h"
 
 #include <map>
@@ -25,7 +26,7 @@ public:
 class Name
 {
 public:
-	enum NameKind
+	enum class NameKind
 	{
 		Var,
 		Member,
@@ -38,7 +39,12 @@ private:
 	std::string name_;
 	std::map<std::string, NameId> lookup_;
 	std::optional<NameId> parent_;
-	TypeInstance type_;
+
+	union
+	{
+		TypeInstance type_;
+		MemberTypeInstance member_type_;
+	};
 
 	NameKind kind_;
 
@@ -66,6 +72,7 @@ public:
 
 	bool is_type() const { return kind_ == NameKind::Type; }
 	bool is_member() const { return kind_ == NameKind::Member; }
+	bool is_var() const { return kind_ == NameKind::Var; }
 	bool is_namespace() const { return kind_ == NameKind::Namespace; }
 
 	TypeInstance type() const
@@ -77,6 +84,12 @@ public:
 	std::optional<NameId> parent();
 	std::optional<NameId> lookup(std::string name);
 	void add_name(std::string, NameId);
+
+	static Name Var(std::string name, TypeInstance type) { return Name(name, type, NameKind::Var); }
+	static Name Type(std::string name, TypeInstance type)
+	{
+		return Name(name, type, NameKind::Type);
+	}
 };
 
 class NameRef

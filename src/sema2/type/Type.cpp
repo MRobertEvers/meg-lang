@@ -4,12 +4,13 @@
 
 using namespace sema;
 
-Type::Type(String name)
+Type::Type(std::string name)
 	: name(name)
 	, is_var_arg_(false)
 	, cls(TypeClassification::primitive){};
 
-Type::Type(String name, std::map<String, MemberTypeInstance> members, TypeClassification cls)
+Type::Type(
+	std::string name, std::map<std::string, MemberTypeInstance> members, TypeClassification cls)
 	: name(name)
 	, members(members)
 	, is_var_arg_(false)
@@ -22,7 +23,11 @@ Type::Type(String name, std::map<String, MemberTypeInstance> members, TypeClassi
 	}
 };
 
-Type::Type(String name, Vec<MemberTypeInstance> args, TypeInstance return_type, bool is_var_arg)
+Type::Type(
+	std::string name,
+	std::vector<MemberTypeInstance> args,
+	TypeInstance return_type,
+	bool is_var_arg)
 	: name(name)
 	, members_order(args)
 	, return_type(return_type)
@@ -31,7 +36,7 @@ Type::Type(String name, Vec<MemberTypeInstance> args, TypeInstance return_type, 
 {
 	for( auto arg : args )
 	{
-		members.emplace(arg.name, arg);
+		// members.emplace(arg.name, arg);
 	}
 };
 
@@ -50,7 +55,7 @@ Type::~Type()
 	// }
 }
 
-String
+std::string
 Type::get_name() const
 {
 	return name;
@@ -64,7 +69,7 @@ Type::as_nominal() const
 }
 
 std::optional<MemberTypeInstance>
-Type::get_member(String const& name) const
+Type::get_member(std::string const& name) const
 {
 	auto iter_member = members.find(name);
 	if( iter_member != members.end() )
@@ -91,7 +96,7 @@ Type::get_member_count() const
 }
 
 void
-Type::set_enum_members(std::map<String, MemberTypeInstance> members)
+Type::set_enum_members(std::map<std::string, MemberTypeInstance> members)
 {
 	this->members = members;
 	for( auto member : members )
@@ -119,25 +124,30 @@ Type::get_dependent_type() const
 
 Type
 Type::Function(
-	String const& name, Vec<MemberTypeInstance> args, TypeInstance return_type, bool is_var_arg)
+	std::string const& name,
+	std::vector<MemberTypeInstance> args,
+	TypeInstance return_type,
+	bool is_var_arg)
 {
 	return Type{name, args, return_type, is_var_arg};
 }
 
 Type
-Type::Function(String const& name, Vec<MemberTypeInstance> args, TypeInstance return_type)
+Type::Function(
+	std::string const& name, std::vector<MemberTypeInstance> args, TypeInstance return_type)
 {
 	return Type{name, args, return_type, false};
 }
 
 Type
-Type::Struct(String const& name, std::map<String, MemberTypeInstance> members)
+Type::Struct(std::string const& name, std::map<std::string, MemberTypeInstance> members)
 {
 	return Type{name, members, TypeClassification::struct_cls};
 }
 
 Type
-Type::Struct(String const& name, std::map<String, MemberTypeInstance> members, EnumNominal nominal)
+Type::Struct(
+	std::string const& name, std::map<std::string, MemberTypeInstance> members, EnumNominal nominal)
 {
 	auto type = Type{name, members, TypeClassification::struct_cls};
 	type.nominal_ = nominal;
@@ -145,25 +155,25 @@ Type::Struct(String const& name, std::map<String, MemberTypeInstance> members, E
 }
 
 Type
-Type::Union(String const& name, std::map<String, MemberTypeInstance> members)
+Type::Union(std::string const& name, std::map<std::string, MemberTypeInstance> members)
 {
 	return Type{name, members, TypeClassification::union_cls};
 }
 
 Type
-Type::EnumPartial(String const& name)
+Type::EnumPartial(std::string const& name)
 {
 	return Type{name, {}, TypeClassification::enum_cls};
 }
 
 Type
-Type::Primitive(String name)
+Type::Primitive(std::string name)
 {
 	return Type{name};
 }
 
 Type
-Type::Primitive(String name, int bit_width)
+Type::Primitive(std::string name, int bit_width)
 {
 	auto type = Type{name};
 	type.int_width_ = bit_width;
@@ -171,7 +181,7 @@ Type::Primitive(String name, int bit_width)
 }
 
 Type
-Type::Primitive(String name, EnumNominal nominal)
+Type::Primitive(std::string name, EnumNominal nominal)
 {
 	auto type = Type{name};
 	type.nominal_ = nominal;
