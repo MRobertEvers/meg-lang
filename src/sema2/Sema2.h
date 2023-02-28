@@ -79,7 +79,8 @@ public:
 		Type const* fn_type);
 	ir::IRBlock* Block(ast::AstNode* node, std::vector<ir::IRStmt*> stmts);
 	ir::IRReturn* Return(ast::AstNode* node, ir::IRExpr* expr);
-	ir::IRValueDecl* ValueDecl(ast::AstNode* node, sema::NameRef name, ir::IRTypeDeclaraor* rt);
+	ir::IRValueDecl*
+	ValueDecl(ast::AstNode* node, sema::QualifiedName name, ir::IRTypeDeclaraor* rt);
 	ir::IRTypeDeclaraor* TypeDecl(ast::AstNode* node, sema::TypeInstance type);
 	ir::IRExpr* Expr(ir::IRCall*);
 	ir::IRExpr* Expr(ir::IRNumberLiteral*);

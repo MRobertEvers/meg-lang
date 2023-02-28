@@ -108,9 +108,9 @@ struct IRValueDecl
 	//
 	ast::AstNode* node;
 	IRTypeDeclaraor* type_decl;
-	sema::NameRef name;
+	sema::QualifiedName name;
 
-	IRValueDecl(ast::AstNode* node, IRTypeDeclaraor* type_decl, sema::NameRef name)
+	IRValueDecl(ast::AstNode* node, sema::QualifiedName name, IRTypeDeclaraor* type_decl)
 		: node(node)
 		, type_decl(type_decl)
 		, name(name)

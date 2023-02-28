@@ -85,10 +85,14 @@ public:
 	std::optional<NameId> lookup(std::string name);
 	void add_name(std::string, NameId);
 
-	static Name Var(std::string name, TypeInstance type) { return Name(name, type, NameKind::Var); }
-	static Name Type(std::string name, TypeInstance type)
+	static Name Var(std::string name, NameId parent, TypeInstance type)
 	{
-		return Name(name, type, NameKind::Type);
+		return Name(name, parent, type, NameKind::Var);
+	}
+
+	static Name Type(std::string name, NameId parent, TypeInstance type)
+	{
+		return Name(name, parent, type, NameKind::Type);
 	}
 };
 

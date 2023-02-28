@@ -27,7 +27,7 @@ cg::cg_discriminations(CG& codegen, CGExpr& discriminating_expr, Vec<ir::IRParam
 			codegen.Builder->CreateBitCast(llvm_member_value_ptr, llvm_type->getPointerTo());
 
 		auto lval = LValue(llvm_member_value, llvm_type);
-		codegen.values.insert_or_assign(name.id().index(), lval);
+		// codegen.values.insert_or_assign(name.id().index(), lval);
 
 		ind++;
 	}

@@ -51,13 +51,13 @@ CG::CG(sema::Sema2& sema)
 }
 
 void
-CG::add_function(std::string const& name, sema::NameId id, LLVMFnSigInfo context)
+CG::add_function(sema::Type const* type, LLVMFnSigInfo context)
 {
-	Functions.emplace(name, context);
+	Functions.emplace(type, context);
 	types.emplace(context.sema_fn_ty, context.llvm_fn_ty);
 
-	auto lvalue = LValue(context.llvm_fn, context.llvm_fn_ty);
-	values.emplace(id.index(), lvalue);
+	// auto lvalue = LValue(context.llvm_fn, context.llvm_fn_ty);
+	// values.emplace(id.index(), lvalue);
 }
 
 CGResult<CGExpr>
@@ -214,10 +214,13 @@ CG::codegen_number_literal(ir::IRNumberLiteral* lit)
 CGResult<CGExpr>
 CG::codegen_value_decl(ir::IRValueDecl* decl)
 {
-	auto valuer = get_value(*this, decl->name.id());
-	assert(valuer.has_value());
+	// TODO: Remove this IR. This isn't an IR.
+	assert(0);
+	return CGExpr();
+	// auto valuer = get_value(*this, decl->name.id());
+	// assert(valuer.has_value());
 
-	return CGExpr::MakeAddress(valuer.value().address());
+	// return CGExpr::MakeAddress(valuer.value().address());
 }
 
 CGResult<CGExpr>

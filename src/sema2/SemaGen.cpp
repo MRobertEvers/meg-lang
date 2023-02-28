@@ -609,11 +609,11 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 
 	// sema.push_scope();
 	inject_function_args(sema, proto->args);
-	sema.set_expected_return(maybe_return_type.value());
+	// sema.set_expected_return(maybe_return_type.value());
 	auto bodyr = sema_block(sema, fn.body, false);
 	if( !bodyr.ok() )
 		return bodyr;
-	sema.clear_expected_return();
+	// sema.clear_expected_return();
 	// sema.pop_scope();
 
 	return sema.Fn(ast, proto, bodyr.unwrap());
@@ -840,13 +840,13 @@ sema::sema_return(Sema2& sema, ast::AstNode* ast)
 		return retr;
 	auto ret = retr.unwrap();
 
-	auto maybe_expected_type = sema.get_expected_return();
-	if( !maybe_expected_type.has_value() )
-		return SemaError("Return statement outside function?");
+	// auto maybe_expected_type = sema.get_expected_return();
+	// if( !maybe_expected_type.has_value() )
+	// 	return SemaError("Return statement outside function?");
 
-	auto expected_type = maybe_expected_type.value();
-	if( !sema.types.equal_types(expected_type, ret->type_instance) )
-		return SemaError("Incorrect return type.");
+	// auto expected_type = maybe_expected_type.value();
+	// if( !sema.types.equal_types(expected_type, ret->type_instance) )
+	// 	return SemaError("Incorrect return type.");
 
 	return sema.Return(ast, retr.unwrap());
 }
@@ -906,7 +906,8 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 			sema.types.non_inferred(type_declr->type_instance, rhs->type_instance);
 
 		NameRef name_ref = sema.add_value_identifier(name_str, type_declr->type_instance);
-		auto lhs_expr = sema.Expr(sema.ValueDecl(let.identifier, name_ref, type_declr));
+		auto lhs_expr =
+			sema.Expr(sema.Id(let.identifier, name_ref, type_declr->type_instance, false));
 		return sema.Let(ast, name_ref, sema.Assign(ast, ast::AssignOp::assign, lhs_expr, rhs));
 	}
 	else
@@ -1422,7 +1423,7 @@ unpack_struct_node(Sema2& sema, ast::AstNode* ast)
 
 		auto member = memberr.unwrap();
 
-		members.emplace(member->name.name().name_str(), member);
+		members.emplace(member->name.to_string(), member);
 	}
 
 	return (unpack_struct_node_t){
@@ -1626,6 +1627,7 @@ sema::sema_value_decl(Sema2& sema, ast::AstNode* ast)
 		return value_declr;
 	auto value_decl = value_declr.unwrap();
 
+	// Lookup value by
 	QualifiedName qname = idname(value_decl.name->data.id);
 	std::string name_str = qname.part(0);
 
@@ -1633,8 +1635,7 @@ sema::sema_value_decl(Sema2& sema, ast::AstNode* ast)
 	if( !type_declr.ok() )
 		return type_declr;
 
-	return SemaError("???");
-	// return sema.ValueDecl(ast, name, type_declr.unwrap());
+	return sema.ValueDecl(ast, qname, type_declr.unwrap());
 }
 
 SemaResult<ir::IRNumberLiteral*>

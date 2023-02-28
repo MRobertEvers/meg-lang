@@ -25,7 +25,7 @@ namespace cg
 class CG
 {
 public:
-	std::map<std::string, LLVMFnSigInfo> Functions;
+	std::map<sema::Type const*, LLVMFnSigInfo> Functions;
 	std::unique_ptr<llvm::LLVMContext> Context;
 	std::unique_ptr<llvm::IRBuilder<>> Builder;
 
@@ -43,7 +43,7 @@ public:
 	// Scope* push_scope();
 	// void pop_scope();
 
-	void add_function(std::string const& name, sema::NameId id, LLVMFnSigInfo);
+	void add_function(sema::Type const*, LLVMFnSigInfo);
 
 	CGResult<CGExpr> codegen_module(ir::IRModule*);
 	CGResult<CGExpr> codegen_tls(ir::IRTopLevelStmt*);

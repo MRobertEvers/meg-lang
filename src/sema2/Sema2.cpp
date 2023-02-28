@@ -36,13 +36,14 @@ Sema2::pop_scope()
 sema::NameRef
 Sema2::add_value_identifier(std::string const& name, TypeInstance type)
 {
-	return lookup_.add_name(Name::Var(name, type));
+	return lookup_.add_name(Name::Var(name, lookup_.current().id(), type));
 }
 
 sema::NameRef
 Sema2::add_type_identifier(Type const* type)
 {
-	return lookup_.add_name(Name::Type(type->get_name(), TypeInstance::OfType(type)));
+	return lookup_.add_name(
+		Name::Type(type->get_name(), lookup_.current().id(), TypeInstance::OfType(type)));
 }
 
 NameLookupResult
@@ -218,9 +219,9 @@ Sema2::Return(ast::AstNode* node, ir::IRExpr* expr)
 }
 
 ir::IRValueDecl*
-Sema2::ValueDecl(ast::AstNode* node, sema::NameRef name, ir::IRTypeDeclaraor* rt)
+Sema2::ValueDecl(ast::AstNode* node, sema::QualifiedName name, ir::IRTypeDeclaraor* rt)
 {
-	auto nod = new ir::IRValueDecl(node, rt, name);
+	auto nod = new ir::IRValueDecl(node, name, rt);
 
 	return nod;
 }

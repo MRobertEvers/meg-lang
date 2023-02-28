@@ -37,14 +37,13 @@ get_named_params(CG& cg, ir::IRProto* proto)
 			if( sema_ty.is_struct_type() || sema_ty.is_enum_type() || sema_ty.is_union_type() )
 			{
 				args.args.emplace_back(
-					String(name.to_fqn_string()),
+					String(name.to_string()),
 					LLVMArgABIInfo(LLVMArgABIInfo::Value, llvm_arg_ty->getPointerTo()));
 			}
 			else
 			{
 				args.args.emplace_back(
-					String(name.to_fqn_string()),
-					LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_arg_ty));
+					String(name.to_string()), LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_arg_ty));
 			}
 		}
 		else
@@ -193,7 +192,7 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* ir_proto)
 
 	auto sig_info = codegen_fn_sig_info(codegen, builder);
 
-	codegen.add_function(name.to_fqn_string(), name.id(), sig_info);
+	codegen.add_function(name.type().type, sig_info);
 
 	return sig_info;
 }

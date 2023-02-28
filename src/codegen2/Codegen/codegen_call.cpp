@@ -19,16 +19,17 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 	assert(call_target_type.type->is_function_type() && call_target_type.indirection_level <= 1);
 
 	// TODO: EmitCallee like clang.
-	auto exprr = codegen.codegen_expr(fn, ir_call->call_target);
-	if( !exprr.ok() )
-		return exprr;
+	// auto exprr = codegen.codegen_expr(fn, ir_call->call_target);
+	// if( !exprr.ok() )
+	// 	return exprr;
 
-	auto expr = exprr.unwrap();
-	auto llvm_function = static_cast<llvm::Function*>(expr.address().llvm_pointer());
+	// auto expr = exprr.unwrap();
+	// auto llvm_function = static_cast<llvm::Function*>(expr.address().llvm_pointer());
 
-	auto iter_callee = codegen.Functions.find(llvm_function->getName().str());
+	auto iter_callee = codegen.Functions.find(ir_call->call_target->type_instance.type);
 	assert(iter_callee != codegen.Functions.end());
 	auto callee_sig_info = iter_callee->second;
+	auto llvm_function = callee_sig_info.llvm_fn;
 
 	std::vector<llvm::Value*> llvm_arg_values;
 	int arg_ind = 0;

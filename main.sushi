@@ -1,10 +1,8 @@
 extern fn printf(str: i8*, ...): void;
 
 
-namespace A {
-    fn foo(): i32 {
-        return 34;
-    }
+fn foo(): i32 {
+    return 34;
 }
 
 fn main(): i32 
@@ -15,5 +13,10 @@ fn main(): i32
 
     small = big;
 
-    return A::foo();
+    if (big > 8)
+    {
+        return foo();
+    }
+
+    return 1;
 }
