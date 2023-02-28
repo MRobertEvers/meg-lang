@@ -1298,13 +1298,15 @@ members_to_members(std::map<std::string, ir::IRValueDecl*>& params)
 static std::map<std::string, MemberTypeInstance>
 members_to_members(std::map<std::string, ir::IREnumMember*>& params)
 {
+	// TODO: Stricter ordering.
 	std::map<std::string, MemberTypeInstance> map;
 
 	int idx = 0;
 	for( auto param : params )
 	{
-		// map.emplace(
-		// 	param.first, MemberTypeInstance(TypeInstance::OfType(param.second->type), idx++));
+		sema::NameRef name_ref = param.second->name;
+		sema::TypeInstance type = name_ref.type();
+		map.emplace(param.first, MemberTypeInstance(type, idx++));
 	}
 	return map;
 }
@@ -1445,9 +1447,9 @@ sema::sema_struct(Sema2& sema, ast::AstNode* ast)
 
 	auto fn_type = sema.CreateType(
 		Type::Struct(idname(unpacked.name).part(0), members_to_members(unpacked.members)));
-	sema.add_type_identifier(fn_type);
+	sema::NameRef name_ref = sema.add_type_identifier(fn_type);
 
-	return sema.Struct(ast, fn_type, unpacked.members);
+	return sema.Struct(ast, name_ref, fn_type, unpacked.members);
 }
 
 SemaResult<ir::IRInitializer*>
@@ -1545,6 +1547,8 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 	auto enum_type = sema.CreateType(Type::EnumPartial(name_str));
 
 	std::map<std::string, ir::IREnumMember*> members;
+	sema::NameRef enum_name_ref = sema.add_type_identifier(enum_type);
+	sema.push_scope(enum_name_ref);
 	long long number = 0;
 	for( auto stmt : enum_stmt.members )
 	{
@@ -1554,16 +1558,20 @@ sema::sema_enum(Sema2& sema, ast::AstNode* ast)
 
 		auto member = memberr.unwrap();
 
-		// members.emplace(member->name.to_fqn_string(), member);
+		members.emplace(member->name.to_fqn_string(), member);
 		number++;
 	}
+	sema.pop_scope();
 
 	enum_type->set_enum_members(members_to_members(members));
 
-	sema.add_type_identifier(enum_type);
+	// for( auto& [name, member] : members )
+	// {
+	// 	if( member->kind == IREnumMember::Kind::Struct )
+	// 		sema.add_type_identifier(member->struct_member.)
+	// }
 
-	return NotImpl();
-	// return sema.Enum(ast, enum_type, members);
+	return sema.Enum(ast, enum_type, members);
 }
 
 SemaResult<ir::IREnumMember*>
@@ -1583,10 +1591,10 @@ sema::sema_enum_member(
 	{
 	case AstEnumMember::Type::Id:
 	{
-		auto type = sema.CreateType(Type::Primitive(enum_name + "#" + *member.identifier, nominal));
+		auto type = sema.CreateType(Type::Primitive(*member.identifier, nominal));
 		type->set_dependent_type(enum_type);
 		NameRef name_ref = sema.add_type_identifier(type);
-		auto ir_member = sema.EnumMemberId(ast, type, name_ref, nominal);
+		auto ir_member = sema.EnumMemberId(ast, name_ref, nominal);
 		return ir_member;
 		break;
 	}
@@ -1600,20 +1608,19 @@ sema::sema_enum_member(
 		QualifiedName qname = idname(member.struct_stmt->data.structstmt.type_name->data.id);
 		std::string name_str = qname.part(0);
 
-		auto type = Type::Struct(
-			enum_name + "#" + idname(unpacked.name).part(0),
-			members_to_members(unpacked.members),
-			nominal);
+		auto type = Type::Struct(name_str, members_to_members(unpacked.members), nominal);
 		type.set_dependent_type(enum_type);
 
 		auto dep_type = sema.CreateType(type);
-		NameRef name = sema.add_type_identifier(dep_type);
+		NameRef name_ref = sema.add_type_identifier(dep_type);
 
-		return NotImpl();
-
-		// auto ir_member = sema.EnumMemberStruct(
-		// 	ast, dep_type, sema.Struct(ast, dep_type, unpacked.members), name, nominal);
-		// return ir_member;
+		auto ir_member = sema.EnumMemberStruct(
+			ast,
+			dep_type,
+			sema.Struct(ast, name_ref, dep_type, unpacked.members),
+			name_ref,
+			nominal);
+		return ir_member;
 		break;
 	}
 	}

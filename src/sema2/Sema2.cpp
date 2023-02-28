@@ -761,13 +761,12 @@ Sema2::BinOp(
 
 ir::IRStruct*
 Sema2::Struct(
-	ast::AstNode* node, sema::Type const* type, std::map<std::string, ir::IRValueDecl*> members)
+	ast::AstNode* node,
+	sema::NameRef name,
+	sema::Type const* type,
+	std::map<std::string, ir::IRValueDecl*> members)
 {
-	auto nod = new ir::IRStruct;
-
-	nod->node = node;
-	nod->members = members;
-	nod->struct_type = type;
+	auto nod = new ir::IRStruct(node, name, members, type);
 
 	return nod;
 }
@@ -792,7 +791,7 @@ Sema2::Enum(
 	auto nod = new ir::IREnum;
 
 	nod->node = node;
-	// nod->members = members;
+	nod->members = members;
 	nod->enum_type = type;
 
 	return nod;
@@ -813,7 +812,7 @@ Sema2::EnumMemberStruct(
 }
 
 ir::IREnumMember*
-Sema2::EnumMemberId(ast::AstNode* node, sema::Type const*, sema::NameRef name, EnumNominal idx)
+Sema2::EnumMemberId(ast::AstNode* node, sema::NameRef name, EnumNominal idx)
 {
 	//
 	auto nod = new ir::IREnumMember(node, idx, name);

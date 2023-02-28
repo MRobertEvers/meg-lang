@@ -1,10 +1,16 @@
 extern fn printf(str: i8*, ...): void;
 
 
-struct Point {
-    x: i32;
-    y: i32;
+enum Node {
+    Void,
+    String { ptr: i8*; size: i32 }
+    Point {
+        x: i32;
+        y: i32;
+    }
 }
+
+
 
 fn foo(a: i32): i32 {
     return a;
@@ -12,11 +18,13 @@ fn foo(a: i32): i32 {
 
 fn main(): i32 
 {
-    let p: Point = Point {
+    let np: Node = Node::Point {
         .x = 9,
         .y = 11
     };
-    
+
+
+
     let big: i32 = 88;
 
     let small: i8 = 8;

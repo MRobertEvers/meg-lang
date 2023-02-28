@@ -132,13 +132,16 @@ public:
 	ir::IRElse* Else(ast::AstNode* node, ir::IRStmt* assign);
 	ir::IRAssign* Assign(ast::AstNode*, ast::AssignOp, ir::IRExpr*, ir::IRExpr*);
 	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*, TypeInstance);
-	ir::IRStruct* Struct(ast::AstNode*, sema::Type const*, std::map<std::string, ir::IRValueDecl*>);
+	ir::IRStruct* Struct(
+		ast::AstNode*,
+		sema::NameRef name,
+		sema::Type const*,
+		std::map<std::string, ir::IRValueDecl*>);
 	ir::IRUnion* Union(ast::AstNode*, sema::Type const*, std::map<std::string, ir::IRValueDecl*>);
 	ir::IREnum* Enum(ast::AstNode*, sema::Type const*, std::map<std::string, ir::IREnumMember*>);
 	ir::IREnumMember* EnumMemberStruct(
 		ast::AstNode*, sema::Type const*, ir::IRStruct*, sema::NameRef name, EnumNominal idx);
-	ir::IREnumMember*
-	EnumMemberId(ast::AstNode*, sema::Type const*, sema::NameRef name, EnumNominal idx);
+	ir::IREnumMember* EnumMemberId(ast::AstNode*, sema::NameRef name, EnumNominal idx);
 	ir::IRMemberAccess*
 	MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::MemberTypeInstance, sema::NameRef name);
 	ir::IRIndirectMemberAccess* IndirectMemberAccess(

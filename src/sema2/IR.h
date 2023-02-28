@@ -172,10 +172,23 @@ struct IRTypeDeclaraor
 struct IRStruct
 {
 	ast::AstNode* node;
+	sema::NameRef name;
+
 	// TODO: Support non-member decls.
 	std::map<std::string, ir::IRValueDecl*> members;
 
 	sema::Type const* struct_type;
+
+	IRStruct(
+		ast::AstNode* node,
+		sema::NameRef name,
+		std::map<std::string, ir::IRValueDecl*> members,
+		sema::Type const* struct_type)
+		: node(node)
+		, name(name)
+		, members(members)
+		, struct_type(struct_type)
+	{}
 };
 
 struct IRUnion
@@ -400,11 +413,11 @@ struct IREnumMember
 {
 	ast::AstNode* node;
 	sema::EnumNominal number;
-	enum class Type
+	enum class Kind
 	{
 		Id,
 		Struct,
-	} contained_type;
+	} kind;
 
 	union
 	{
@@ -418,7 +431,7 @@ struct IREnumMember
 		: node(node)
 		, number(number)
 		, name(name)
-		, contained_type(Type::Id)
+		, kind(Kind::Id)
 	{}
 
 	IREnumMember(
@@ -427,7 +440,7 @@ struct IREnumMember
 		, number(number)
 		, name(name)
 		, struct_member(struct_member)
-		, contained_type(Type::Struct)
+		, kind(Kind::Struct)
 	{}
 };
 

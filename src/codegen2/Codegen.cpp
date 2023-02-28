@@ -10,6 +10,7 @@
 #include "Codegen/codegen_binop.h"
 #include "Codegen/codegen_call.h"
 #include "Codegen/codegen_deref.h"
+#include "Codegen/codegen_enum.h"
 #include "Codegen/codegen_function.h"
 #include "Codegen/codegen_initializer.h"
 #include "Codegen/codegen_is.h"
@@ -87,7 +88,7 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 	case ir::IRTopLevelType::Union:
 		return codegen_union(tls->stmt.union_decl);
 	case ir::IRTopLevelType::Enum:
-		return codegen_enum(tls->stmt.enum_decl);
+		return codegen_enum(*this, tls->stmt.enum_decl);
 	}
 
 	return NotImpl();
@@ -399,8 +400,8 @@ CG::codegen_struct(ir::IRStruct* st)
 	}
 
 	auto struct_type = st->struct_type;
-	auto name = struct_type->get_name();
-	llvm::StructType* llvm_struct_type = llvm::StructType::create(*Context, members, name);
+	std::string name_str = st->name.to_fqn_string();
+	llvm::StructType* llvm_struct_type = llvm::StructType::create(*Context, members, name_str);
 
 	this->types.emplace(struct_type, llvm_struct_type);
 
@@ -436,74 +437,6 @@ CG::codegen_union(ir::IRUnion* st)
 	llvm::StructType* llvm_union_type = llvm::StructType::create(*Context, members, name);
 
 	this->types.emplace(union_type, llvm_union_type);
-
-	return CGExpr();
-}
-
-/**
- * @brief
- *  For enums, need to look up name,
- * and have a mapping of member to llvm type
- *
- * Defines a struct, and a union
- *
- * struct MyEnum {
- * 	int type;
- * 	union {
- * 		...
- * 	}
- * }
- * @param st
- * @return CGResult<CGExpr>
- */
-CGResult<CGExpr>
-CG::codegen_enum(ir::IREnum* st)
-{
-	llvm::Type* llvm_max_type_by_size = nullptr;
-	int max_size = 0;
-
-	llvm::Type* llvm_current_type = nullptr;
-	int current_type_size = 0;
-	for( auto& member : st->members )
-	{
-		auto enum_member = member.second;
-
-		if( enum_member->contained_type == ir::IREnumMember::Type::Struct )
-		{
-			auto cg = codegen_struct(enum_member->struct_member);
-			if( !cg.ok() )
-				return cg;
-
-			auto typer = get_type(
-				*this, sema::TypeInstance::OfType(enum_member->struct_member->struct_type));
-			if( !typer.ok() )
-				return typer;
-			llvm_current_type = typer.unwrap();
-			auto llvm_size = Module->getDataLayout().getTypeAllocSize(llvm_current_type);
-			current_type_size = llvm_size.getKnownMinSize();
-		}
-		else
-		{
-			// Empty fields are 0.
-		}
-
-		if( current_type_size > max_size )
-		{
-			llvm_max_type_by_size = llvm_current_type;
-			max_size = current_type_size;
-		}
-	}
-	std::vector<llvm::Type*> members = {llvm::Type::getInt32Ty(*Context)};
-	if( llvm_max_type_by_size != nullptr )
-	{
-		members.push_back(llvm_max_type_by_size);
-	}
-
-	auto enum_type = st->enum_type;
-	auto name = enum_type->get_name();
-	llvm::StructType* llvm_struct_type = llvm::StructType::create(*Context, members, name);
-
-	this->types.emplace(enum_type, llvm_struct_type);
 
 	return CGExpr();
 }

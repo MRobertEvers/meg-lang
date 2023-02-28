@@ -87,6 +87,7 @@ add_executable(sushi
     src/codegen2/Codegen/cg_fixdown.cpp
     src/codegen2/Codegen/cg_enum_helpers.cpp
     src/codegen2/Codegen/codegen_initializer.cpp
+    src/codegen2/Codegen/codegen_enum.cpp
     src/codegen2/Codegen/codegen_switch.cpp
     src/codegen2/Codegen/codegen_while.cpp
     src/codegen2/Codegen/codegen_binop.cpp
