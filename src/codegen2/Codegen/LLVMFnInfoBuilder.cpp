@@ -10,13 +10,9 @@ void
 LLVMFnInfoBuilder::add_arg(LLVMFnArgInfo arg_info)
 {
 	if( arg_info.is_sret() )
-	{
 		this->sret_arg = arg_info;
-	}
 	else
-	{
-		this->args.emplace(arg_info.name(), arg_info);
-	}
+		this->args.emplace(arg_info.name().id().index(), arg_info);
 }
 
 LLVMFnInfo

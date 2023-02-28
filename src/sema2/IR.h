@@ -78,12 +78,35 @@ struct IRExternFn
 	IRProto* proto;
 };
 
+struct ProtoArg
+{
+	enum class Kind
+	{
+		VarArg,
+		Named
+	};
+	Kind kind;
+
+	union
+	{
+		sema::NameRef name;
+	};
+
+	ProtoArg(sema::NameRef name)
+		: kind(Kind::Named)
+		, name(name)
+	{}
+	ProtoArg()
+		: kind(Kind::VarArg)
+	{}
+};
+
 struct IRProto
 {
 	//
 	ast::AstNode* node;
 	sema::NameRef name;
-	std::vector<ir::IRParam*> args;
+	std::vector<ProtoArg> args;
 	ir::IRTypeDeclaraor* rt;
 
 	// Function
@@ -92,7 +115,7 @@ struct IRProto
 	IRProto(
 		ast::AstNode* node,
 		sema::NameRef name,
-		std::vector<ir::IRParam*> args,
+		std::vector<ProtoArg> args,
 		ir::IRTypeDeclaraor* rt,
 		sema::Type const* fn_type)
 		: node(node)
@@ -108,12 +131,13 @@ struct IRValueDecl
 	//
 	ast::AstNode* node;
 	IRTypeDeclaraor* type_decl;
-	sema::QualifiedName name;
+	// A value decl must be a simple name.
+	std::string simple_name;
 
-	IRValueDecl(ast::AstNode* node, sema::QualifiedName name, IRTypeDeclaraor* type_decl)
+	IRValueDecl(ast::AstNode* node, std::string name, IRTypeDeclaraor* type_decl)
 		: node(node)
 		, type_decl(type_decl)
-		, name(name)
+		, simple_name(name)
 	{}
 };
 

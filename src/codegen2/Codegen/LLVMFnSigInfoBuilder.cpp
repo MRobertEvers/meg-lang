@@ -21,11 +21,13 @@ LLVMFnSigInfoBuilder::add_arg_type(cg::LLVMArgABIInfo info)
 }
 
 void
-LLVMFnSigInfoBuilder::add_arg_type(String name, LLVMArgABIInfo info)
+LLVMFnSigInfoBuilder::add_arg_type(sema::NameRef name, LLVMArgABIInfo info)
 {
 	add_arg_type(info);
 
-	named_args_info_inds.emplace(name, abi_arg_infos.size() - 1);
+	named_args_info_inds.emplace(
+		name.id().index(),
+		std::make_pair<sema::NameRef, int>(sema::NameRef(name), abi_arg_infos.size() - 1));
 }
 
 cg::LLVMArgABIInfo

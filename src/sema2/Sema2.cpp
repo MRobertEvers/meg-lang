@@ -22,6 +22,14 @@ Sema2::CreateType(Type ty)
 }
 
 void
+Sema2::push_scope()
+{
+	Name anonymous = Name("", lookup_.current().id());
+	NameRef anonymous_ns = lookup_.add_name(anonymous);
+	push_scope(anonymous_ns);
+}
+
+void
 Sema2::push_scope(sema::NameRef nspace)
 {
 	lookup_.push_scope(nspace);
@@ -187,7 +195,7 @@ ir::IRProto*
 Sema2::Proto(
 	ast::AstNode* node,
 	sema::NameRef name,
-	std::vector<ir::IRParam*> args,
+	std::vector<ir::ProtoArg> args,
 	ir::IRTypeDeclaraor* rt,
 	Type const* fn_type)
 {
@@ -219,9 +227,9 @@ Sema2::Return(ast::AstNode* node, ir::IRExpr* expr)
 }
 
 ir::IRValueDecl*
-Sema2::ValueDecl(ast::AstNode* node, sema::QualifiedName name, ir::IRTypeDeclaraor* rt)
+Sema2::ValueDecl(ast::AstNode* node, std::string simple_name, ir::IRTypeDeclaraor* rt)
 {
-	auto nod = new ir::IRValueDecl(node, name, rt);
+	auto nod = new ir::IRValueDecl(node, simple_name, rt);
 
 	return nod;
 }

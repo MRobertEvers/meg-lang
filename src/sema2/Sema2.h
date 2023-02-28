@@ -42,6 +42,7 @@ public:
 	Types types;
 	Sema2();
 
+	void push_scope();
 	void push_scope(sema::NameRef nspace);
 	void pop_scope();
 	sema::NameRef add_value_identifier(std::string const& name, TypeInstance id);
@@ -74,13 +75,13 @@ public:
 	ir::IRProto* Proto(
 		ast::AstNode* node,
 		sema::NameRef name,
-		std::vector<ir::IRParam*> args,
+		std::vector<ir::ProtoArg> args,
 		ir::IRTypeDeclaraor* rt,
 		Type const* fn_type);
 	ir::IRBlock* Block(ast::AstNode* node, std::vector<ir::IRStmt*> stmts);
 	ir::IRReturn* Return(ast::AstNode* node, ir::IRExpr* expr);
 	ir::IRValueDecl*
-	ValueDecl(ast::AstNode* node, sema::QualifiedName name, ir::IRTypeDeclaraor* rt);
+	ValueDecl(ast::AstNode* node, std::string simple_name, ir::IRTypeDeclaraor* rt);
 	ir::IRTypeDeclaraor* TypeDecl(ast::AstNode* node, sema::TypeInstance type);
 	ir::IRExpr* Expr(ir::IRCall*);
 	ir::IRExpr* Expr(ir::IRNumberLiteral*);

@@ -13,7 +13,7 @@ using namespace cg;
 
 struct get_params_types_t
 {
-	Vec<std::pair<String, LLVMArgABIInfo>> args;
+	Vec<std::pair<sema::NameRef, LLVMArgABIInfo>> args;
 	bool is_var_arg;
 };
 
@@ -25,25 +25,24 @@ get_named_params(CG& cg, ir::IRProto* proto)
 
 	for( auto& arg : proto->args )
 	{
-		if( arg->type == ir::IRParamType::ValueDecl )
+		if( arg.kind == ir::ProtoArg::Kind::Named )
 		{
-			auto ir_value_decl = arg->data.value_decl;
-			auto argsr = get_type(cg, ir_value_decl);
+			sema::NameRef name_ref = arg.name;
+			auto argsr = get_type(cg, name_ref.type());
 			if( !argsr.ok() )
 				return argsr;
 			auto llvm_arg_ty = argsr.unwrap();
-			auto name = ir_value_decl->name;
-			auto sema_ty = ir_value_decl->type_decl->type_instance;
+			auto name = name_ref.name().name_str();
+			auto sema_ty = name_ref.type();
 			if( sema_ty.is_struct_type() || sema_ty.is_enum_type() || sema_ty.is_union_type() )
 			{
 				args.args.emplace_back(
-					String(name.to_string()),
-					LLVMArgABIInfo(LLVMArgABIInfo::Value, llvm_arg_ty->getPointerTo()));
+					name_ref, LLVMArgABIInfo(LLVMArgABIInfo::Value, llvm_arg_ty->getPointerTo()));
 			}
 			else
 			{
 				args.args.emplace_back(
-					String(name.to_string()), LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_arg_ty));
+					name_ref, LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_arg_ty));
 			}
 		}
 		else
@@ -79,7 +78,7 @@ codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			auto name = maybe_name.value();
 
 			llvm::AllocaInst* llvm_alloca =
-				codegen.Builder->CreateAlloca(arg_abi.llvm_type, nullptr, name);
+				codegen.Builder->CreateAlloca(arg_abi.llvm_type, nullptr, name.name().name_str());
 			codegen.Builder->CreateStore(llvm_arg, llvm_alloca);
 
 			auto lvalue = LValue(llvm_alloca, arg_abi.llvm_type);
@@ -147,9 +146,7 @@ from_argtypes(Vec<LLVMArgABIInfo>& args)
 {
 	Vec<llvm::Type*> vec;
 	for( auto arg : args )
-	{
 		vec.push_back(arg.llvm_type);
-	}
 	return vec;
 }
 
@@ -158,10 +155,10 @@ cg::codegen_function_proto(CG& codegen, ir::IRProto* ir_proto)
 {
 	auto name = ir_proto->name;
 
-	auto paramsr = get_named_params(codegen, ir_proto);
-	if( !paramsr.ok() )
-		return paramsr;
-	auto params_info = paramsr.unwrap();
+	auto params_result = get_named_params(codegen, ir_proto);
+	if( !params_result.ok() )
+		return params_result;
+	auto params_info = params_result.unwrap();
 
 	auto ir_rt_decl = ir_proto->rt;
 	auto retr = get_type(codegen, ir_rt_decl);
@@ -202,10 +199,8 @@ cg::codegen_function_body(CG& cg, cg::LLVMFnInfo& ctx, ir::IRBlock* block)
 {
 	auto previous_scope = cg.values;
 
-	for( auto [name, arg] : ctx.named_args )
-	{
-		// cg.values.insert_or_assign(name, arg.lvalue);
-	}
+	for( auto [name_id, arg] : ctx.named_args )
+		cg.values.insert_or_assign(name_id, arg.lvalue);
 
 	auto block_return = cg.codegen_block(ctx, block);
 

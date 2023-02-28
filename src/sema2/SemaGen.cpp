@@ -576,19 +576,6 @@ sema::sema_expr(Sema2& sema, ast::AstNode* ast)
 	return sema_expr_any(sema, expr_node);
 }
 
-static void
-inject_function_args(sema::Sema2& sema, std::vector<ir::IRParam*>& args)
-{
-	for( auto arg : args )
-	{
-		if( arg->type == ir::IRParamType::ValueDecl )
-		{
-			auto value_decl = arg->data.value_decl;
-			// sema.add_value_identifier(*value_decl->name, value_decl->type_decl->type_instance);
-		}
-	}
-}
-
 SemaResult<ir::IRFunction*>
 sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 {
@@ -607,14 +594,13 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 		maybe_return_type.has_value() &&
 		"Function prototype did not provide return type. (Missing infer?)");
 
-	// sema.push_scope();
-	inject_function_args(sema, proto->args);
+	sema.push_scope(proto->name);
 	// sema.set_expected_return(maybe_return_type.value());
 	auto bodyr = sema_block(sema, fn.body, false);
 	if( !bodyr.ok() )
 		return bodyr;
 	// sema.clear_expected_return();
-	// sema.pop_scope();
+	sema.pop_scope();
 
 	return sema.Fn(ast, proto, bodyr.unwrap());
 }
@@ -1219,8 +1205,8 @@ sema::sema_binop(Sema2& sema, ast::AstNode* ast)
 SemaResult<ir::IRBlock*>
 sema::sema_block(Sema2& sema, ast::AstNode* ast, bool new_scope)
 {
-	// if( new_scope )
-	// 	sema.push_scope();
+	if( new_scope )
+		sema.push_scope();
 
 	auto blockr = expected(ast, ast::as_block);
 	if( !blockr.ok() )
@@ -1237,8 +1223,8 @@ sema::sema_block(Sema2& sema, ast::AstNode* ast, bool new_scope)
 		stmtlist.push_back(stmtr.unwrap());
 	}
 
-	// if( new_scope )
-	// 	sema.pop_scope();
+	if( new_scope )
+		sema.pop_scope();
 
 	return sema.Block(ast, stmtlist);
 }
@@ -1366,7 +1352,7 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 		return argsr;
 	auto args = argsr.unwrap();
 
-	std::vector<ir::IRParam*> argslist;
+	std::vector<ir::IRParam*> params;
 	bool is_var_arg = false;
 	for( auto arg : args.params )
 	{
@@ -1376,24 +1362,42 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 
 		auto param = paramr.unwrap();
 		is_var_arg = param->type == IRParamType::VarArg;
-		argslist.push_back(param);
+		params.push_back(param);
 	}
 
-	auto rt_type_declr = sema_type_decl(sema, fn_proto.return_type);
-	if( !rt_type_declr.ok() )
-		return rt_type_declr;
+	auto ret_type_decl_result = sema_type_decl(sema, fn_proto.return_type);
+	if( !ret_type_decl_result.ok() )
+		return ret_type_decl_result;
 
-	auto rt = rt_type_declr.unwrap();
+	auto ir_ret_type_decl = ret_type_decl_result.unwrap();
 
-	auto membersr = params_to_members(argslist);
-	if( !membersr.ok() )
-		return membersr;
-	auto members = membersr.unwrap();
-	auto fn_type =
-		sema.CreateType(Type::Function(name_str, members.vec, rt->type_instance, is_var_arg));
-	sema::NameRef name_ref = sema.add_value_identifier(name_str, TypeInstance::OfType(fn_type));
+	auto members_converted_result = params_to_members(params);
+	if( !members_converted_result.ok() )
+		return members_converted_result;
+	auto members = members_converted_result.unwrap();
 
-	return sema.Proto(ast, name_ref, argslist, rt, fn_type);
+	auto fn_type = sema.CreateType(
+		Type::Function(name_str, members.vec, ir_ret_type_decl->type_instance, is_var_arg));
+
+	sema::NameRef fn_name_ref = sema.add_value_identifier(name_str, TypeInstance::OfType(fn_type));
+
+	sema.push_scope(fn_name_ref);
+	std::vector<ProtoArg> proto_params;
+	for( auto ir_param : params )
+	{
+		if( ir_param->type == ir::IRParamType::ValueDecl )
+		{
+			sema::NameRef arg_name_ref = sema.add_value_identifier(
+				ir_param->data.value_decl->simple_name,
+				ir_param->data.value_decl->type_decl->type_instance);
+			proto_params.push_back(ProtoArg(arg_name_ref));
+		}
+		else
+			proto_params.push_back(ProtoArg());
+	}
+	sema.pop_scope();
+
+	return sema.Proto(ast, fn_name_ref, proto_params, ir_ret_type_decl, fn_type);
 }
 
 struct unpack_struct_node_t
@@ -1423,7 +1427,7 @@ unpack_struct_node(Sema2& sema, ast::AstNode* ast)
 
 		auto member = memberr.unwrap();
 
-		members.emplace(member->name.to_string(), member);
+		members.emplace(member->simple_name, member);
 	}
 
 	return (unpack_struct_node_t){
@@ -1627,7 +1631,7 @@ sema::sema_value_decl(Sema2& sema, ast::AstNode* ast)
 		return value_declr;
 	auto value_decl = value_declr.unwrap();
 
-	// Lookup value by
+	// TODO: Simple name.
 	QualifiedName qname = idname(value_decl.name->data.id);
 	std::string name_str = qname.part(0);
 
@@ -1635,7 +1639,7 @@ sema::sema_value_decl(Sema2& sema, ast::AstNode* ast)
 	if( !type_declr.ok() )
 		return type_declr;
 
-	return sema.ValueDecl(ast, qname, type_declr.unwrap());
+	return sema.ValueDecl(ast, name_str, type_declr.unwrap());
 }
 
 SemaResult<ir::IRNumberLiteral*>

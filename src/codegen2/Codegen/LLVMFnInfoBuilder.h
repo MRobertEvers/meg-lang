@@ -14,7 +14,8 @@ struct LLVMFnInfoBuilder
 {
 	LLVMFnSigInfo sig_info;
 
-	std::map<String, LLVMFnArgInfo> args;
+	// NameId
+	std::map<int, LLVMFnArgInfo> args;
 
 	std::optional<LLVMFnArgInfo> sret_arg;
 

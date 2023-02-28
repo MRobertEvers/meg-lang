@@ -7,7 +7,7 @@ LLVMFnSigInfo::LLVMFnSigInfo(
 	llvm::Function* llvm_fn,
 	llvm::Type* llvm_fn_ty,
 	Vec<LLVMArgABIInfo> abi_infos,
-	std::map<String, int> named_args,
+	std::map<int, std::pair<sema::NameRef, int>> named_args,
 	sema::Type const* sema_ty,
 	LLVMFnSigRetType ret_type,
 	int sret_arg_index,
@@ -23,16 +23,16 @@ LLVMFnSigInfo::LLVMFnSigInfo(
 	, is_var_arg_(var_args)
 {}
 
-std::optional<String>
+std::optional<sema::NameRef>
 LLVMFnSigInfo::get_arg_name(int idx)
 {
 	for( auto& [name, ind] : named_args_info_inds_ )
 	{
-		if( idx == ind )
-			return name;
+		if( idx == ind.second )
+			return ind.first;
 	}
 
-	return std::optional<String>();
+	return std::optional<sema::NameRef>();
 }
 
 LLVMArgABIInfo

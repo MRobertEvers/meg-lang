@@ -1,8 +1,8 @@
 extern fn printf(str: i8*, ...): void;
 
 
-fn foo(): i32 {
-    return 34;
+fn foo(a: i32): i32 {
+    return a;
 }
 
 fn main(): i32 
@@ -15,7 +15,7 @@ fn main(): i32
 
     if (big > 8)
     {
-        return foo();
+        return foo(big);
     }
 
     return 1;

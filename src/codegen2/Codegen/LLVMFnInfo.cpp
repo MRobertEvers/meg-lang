@@ -3,12 +3,11 @@
 using namespace cg;
 
 LLVMFnArgInfo::LLVMFnArgInfo(LLVMArgABIInfo abi, LValue lvalue)
-	: name_("")
-	, abi(abi)
+	: abi(abi)
 	, lvalue(lvalue)
 {}
 
-LLVMFnArgInfo::LLVMFnArgInfo(String name, LLVMArgABIInfo abi, LValue lvalue)
+LLVMFnArgInfo::LLVMFnArgInfo(sema::NameRef name, LLVMArgABIInfo abi, LValue lvalue)
 	: name_(name)
 	, abi(abi)
 	, lvalue(lvalue)
@@ -20,14 +19,14 @@ LLVMFnArgInfo::is_sret() const
 	return abi.attr == LLVMArgABIInfo::SRet;
 }
 
-String const&
+sema::NameRef
 LLVMFnArgInfo::name() const
 {
-	return name_;
+	return name_.value();
 }
 
 LLVMFnArgInfo
-LLVMFnArgInfo::Named(String name, LLVMArgABIInfo abi, LValue lvalue)
+LLVMFnArgInfo::Named(sema::NameRef name, LLVMArgABIInfo abi, LValue lvalue)
 {
 	return LLVMFnArgInfo(name, abi, lvalue);
 }
@@ -40,7 +39,7 @@ LLVMFnArgInfo::SRet(LLVMArgABIInfo abi, LValue lvalue)
 
 LLVMFnInfo::LLVMFnInfo(
 	LLVMFnSigInfo sig_info,
-	std::map<String, LLVMFnArgInfo> named_args,
+	std::map<int, LLVMFnArgInfo> named_args,
 	std::optional<LLVMFnArgInfo> sret_arg)
 	: named_args(named_args)
 	, sig_info(sig_info)

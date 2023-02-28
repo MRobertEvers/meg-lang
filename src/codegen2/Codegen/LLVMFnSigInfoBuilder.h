@@ -21,7 +21,8 @@ private:
 
 public:
 	Vec<LLVMArgABIInfo> abi_arg_infos;
-	std::map<String, int> named_args_info_inds;
+	// NameId -> Index
+	std::map<int, std::pair<sema::NameRef, int>> named_args_info_inds;
 
 	sema::Type const* sema_fn_ty;
 	String name;
@@ -31,7 +32,7 @@ public:
 	LLVMFnSigInfoBuilder(String name, sema::Type const* sema_ty);
 
 	void add_arg_type(LLVMArgABIInfo);
-	void add_arg_type(String, LLVMArgABIInfo);
+	void add_arg_type(sema::NameRef name, LLVMArgABIInfo);
 	LLVMArgABIInfo arg_type(int idx);
 
 	void set_llvm_ret_ty(llvm::Type*);

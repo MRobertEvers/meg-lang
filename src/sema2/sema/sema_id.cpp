@@ -15,7 +15,7 @@ sema::sema_id(Sema2& sema, ast::AstNode* ast)
 
 	QualifiedName qname = idname(id);
 
-	auto maybe_value = sema.lookup_fqn(qname);
+	auto maybe_value = sema.lookup_local(qname);
 	if( !maybe_value.is_found() )
 		return SemaError("Use of undeclared identifier " + qname.to_string());
 

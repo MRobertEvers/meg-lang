@@ -3,12 +3,9 @@
 #include "../Scope.h"
 #include "common/String.h"
 #include "common/Vec.h"
+#include "sema2/Name.h"
 #include "sema2/type/Type.h"
-#include <llvm-c/Core.h>
-#include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Value.h>
 
 #include <map>
 #include <optional>
@@ -64,7 +61,8 @@ private:
 	bool is_var_arg_;
 	int sret_arg_ind_;
 
-	std::map<String, int> named_args_info_inds_;
+	// NameId -> Index
+	std::map<int, std::pair<sema::NameRef, int>> named_args_info_inds_;
 
 public:
 	String name;
@@ -80,13 +78,13 @@ public:
 		llvm::Function*,
 		llvm::Type*,
 		Vec<LLVMArgABIInfo>,
-		std::map<String, int>,
+		std::map<int, std::pair<sema::NameRef, int>>,
 		sema::Type const*,
 		LLVMFnSigRetType,
 		int,
 		bool);
 
-	std::optional<String> get_arg_name(int idx);
+	std::optional<sema::NameRef> get_arg_name(int idx);
 
 	LLVMArgABIInfo arg_type(int idx) const;
 	int nonvar_arg_count(void) const;

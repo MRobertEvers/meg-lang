@@ -15,7 +15,7 @@ cg::cg_discriminations(CG& codegen, CGExpr& discriminating_expr, Vec<ir::IRParam
 		auto ir_type_decl = param->data.value_decl->type_decl;
 		auto llvm_type = get_type(codegen, ir_type_decl).unwrap();
 
-		auto name = ir_value_decl->name;
+		auto name = ir_value_decl->simple_name;
 
 		auto enum_value = discriminating_expr.get_discrimination(ind).address();
 		auto llvm_enum_value = enum_value.llvm_pointer();
