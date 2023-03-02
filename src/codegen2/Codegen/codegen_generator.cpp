@@ -136,21 +136,37 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 CGResult<CGExpr>
 cg::codegen_yield(CG& codegen, cg::LLVMFnInfo&, ir::IRYield* ir_yield)
 {
-	// Create a SUSPENDING BB and save it until the frame generation
-	// In frame generation
-	// Store allocas
-	// return yield type.
+	// The "generator" function is the "Send" function. So create the
+	// The generator call creates the "Send" function
 	//
-	// Create a RESUMING BB
+	// # Create a SUSPENDING BB and save it until the frame generation
+	// In frame generation
+	// Loop over allocas that were stored from generation.
+	// Store allocas in frame.
+	// Set step index in the frame to the index of this suspending bb.
+	// return yield type (in struct with false... {TRet, false})
+	//
+	// # Create a RESUMING BB
 	// Then return the "Send" argument, e.g. the function Send(<my_arg>)
 	// as the CGExpr.
 	//
 	//
 	// After the function finishes codegen,
 	// Create the frame struct
-	// create the Function that takes the frame type and the send type
-	// Create the rehydration of the local vars (which we kept track of)
-	// Create the jump table
-	// Add the RESUMING BBs to the jump table.
+	// create the Function that takes the frame type and the send type (we are in it now...
+	// actually)
+	// Create the rehydration of the local vars and args (which we kept track of) Create the jump
+	// table to the RESUMING BBs. Add the RESUMING BBs to the jump table.
 	//
+	//
+	// # Early returns
+	// Set the step the end bb
+	// return yield type (in struct with true... {TRet, true})
+	//
+	//
+	// # Coro Constructor
+	// after frame generation, generator a constructor function
+	// that fills the frame argument fields with the function args
+
+	// TODO: Need gotos until better flow control for dtors or defer.
 }
