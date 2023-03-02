@@ -16,6 +16,7 @@ struct IRModule;
 struct IRTopLevelStmt;
 struct IRTypeDeclaraor;
 struct IRFunction;
+struct IRGenerator;
 struct IRExternFn;
 struct IRProto;
 struct IRBlock;
@@ -43,6 +44,7 @@ struct IRModule
 enum IRTopLevelType
 {
 	Function,
+	Generator,
 	ExternFn,
 	Struct,
 	Union,
@@ -60,6 +62,7 @@ struct IRTopLevelStmt
 		IRStruct* struct_decl;
 		IREnum* enum_decl;
 		IRFunction* fn;
+		IRGenerator* generator;
 		IRExternFn* extern_fn;
 		IRNamespace* nspace;
 	} stmt;
@@ -81,6 +84,18 @@ struct IRFunction
 	IRBlock* block;
 };
 
+struct IRGenerator
+{
+	ast::AstNode* node;
+	//
+	IRProto* proto;
+	IRBlock* block;
+};
+
+// TODO: Supporting data structure not IR
+/**
+ * @deprecated
+ */
 struct IRExternFn
 {
 	ast::AstNode* node;
@@ -135,6 +150,10 @@ struct IRProto
 	{}
 };
 
+// TODO: Supporting data structure not IR
+/**
+ * @deprecated
+ */
 struct IRValueDecl
 {
 	//
@@ -150,6 +169,10 @@ struct IRValueDecl
 	{}
 };
 
+// TODO: Supporting data structure not IR
+/**
+ * @deprecated
+ */
 struct IRVarArg
 {
 	ast::AstNode* node;
@@ -172,6 +195,10 @@ struct IRParam
 	IRParamType type;
 };
 
+// TODO: Supporting data structure not IR
+/**
+ * @deprecated
+ */
 struct IRTypeDeclaraor
 {
 	ast::AstNode* node;
@@ -248,6 +275,10 @@ struct IRBlock
 	std::vector<IRStmt*> stmts;
 };
 
+// TODO: Supporting data structure not IR
+/**
+ * @deprecated
+ */
 struct IRArgs
 {
 	//
@@ -362,6 +393,10 @@ struct IRStringLiteral
 	sema::TypeInstance type_instance;
 };
 
+// TODO: Supporting data structure not IR
+/**
+ * @deprecated
+ */
 struct IRDesignator
 {
 	ast::AstNode* node;
@@ -442,6 +477,16 @@ struct IRCase
 	std::vector<ir::IRParam*> discriminations;
 };
 
+struct IRYield
+{
+	ast::AstNode* node;
+	IRExpr* expr;
+};
+
+// TODO: Supporting data structure not IR
+/**
+ * @deprecated
+ */
 struct IREnumMember
 {
 	ast::AstNode* node;
@@ -586,7 +631,8 @@ enum class IRExprType
 	IndirectMemberAccess,
 	AddressOf,
 	Empty,
-	Deref
+	Deref,
+	Yield,
 };
 
 struct IRExpr
@@ -604,6 +650,7 @@ struct IRExpr
 		IRIs* is;
 		IRInitializer* initializer;
 		IRAddressOf* addr_of;
+		IRYield* yield;
 		IRDeref* deref;
 		IREmpty* empty;
 		IRMemberAccess* member_access;

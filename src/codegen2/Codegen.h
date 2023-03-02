@@ -2,6 +2,7 @@
 #include "CGExpr.h"
 #include "CGResult.h"
 #include "Codegen/LLVMFnInfo.h"
+#include "Codegen/codegen_generator.h"
 #include "LValue.h"
 #include "Scope.h"
 #include "ast2/Ast.h"
@@ -9,15 +10,12 @@
 #include "sema2/IR.h"
 #include "sema2/Scope.h"
 #include "sema2/Sema2.h"
-#include <llvm-c/Core.h>
-#include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Value.h>
 
 #include <map>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace cg
 {
@@ -34,14 +32,13 @@ public:
 	std::map<sema::Type const*, llvm::Type*> types;
 	std::map<int, LValue> values;
 
-	// std::vector<cg::Scope> scopes;
-	// Scope* current_scope;
+	std::optional<LLVMAsyncFn> async_context;
 
 	sema::Sema2& sema;
 	CG(sema::Sema2& sema);
 
-	// Scope* push_scope();
-	// void pop_scope();
+	llvm::AllocaInst* builder_alloca(llvm::Type* llvm_type);
+	llvm::AllocaInst* builder_alloca(llvm::Type* llvm_type, std::string name);
 
 	void add_function(sema::Type const*, LLVMFnSigInfo);
 

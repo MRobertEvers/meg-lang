@@ -273,20 +273,24 @@ Ast::NumberLiteral(Span span, long long literal)
 }
 
 AstNode*
-Ast::TypeDeclarator(Span span, AstList<String*>* name, unsigned int indirection_level)
+Ast::TypeDeclarator(Span span, AstList<String*>* name, unsigned int indirection_level, bool is_impl)
 {
 	auto node = make_empty<AstTypeDeclarator>(span);
-	node->data.type_declarator = AstTypeDeclarator{name, indirection_level};
+	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, is_impl};
 	node->data.type_declarator.empty = false;
 	return node;
 }
 
 AstNode*
 Ast::TypeDeclaratorArray(
-	Span span, AstList<String*>* name, unsigned int indirection_level, unsigned int array_size)
+	Span span,
+	AstList<String*>* name,
+	unsigned int indirection_level,
+	unsigned int array_size,
+	bool is_impl)
 {
 	auto node = make_empty<AstTypeDeclarator>(span);
-	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, array_size};
+	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, array_size, is_impl};
 	node->data.type_declarator.empty = false;
 	return node;
 }
@@ -385,6 +389,14 @@ Ast::Case(Span span, AstNode* expr, AstNode* stmt)
 {
 	auto node = make_empty<AstCase>(span);
 	node->data.case_stmt = AstCase{expr, stmt};
+	return node;
+}
+
+AstNode*
+Ast::Yield(Span span, AstNode* expr)
+{
+	auto node = make_empty<AstYield>(span);
+	node->data.yield = AstYield{expr};
 	return node;
 }
 

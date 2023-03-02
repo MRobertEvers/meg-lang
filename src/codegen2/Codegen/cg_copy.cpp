@@ -11,8 +11,7 @@ cg::cg_copy(CG& codegen, LLVMAddress& src)
 	//
 	auto src_address = src.fixup();
 
-	llvm::AllocaInst* llvm_cpy_alloca =
-		codegen.Builder->CreateAlloca(src_address.llvm_allocated_type(), nullptr);
+	llvm::AllocaInst* llvm_cpy_alloca = codegen.builder_alloca(src_address.llvm_allocated_type());
 	auto llvm_size =
 		codegen.Module->getDataLayout().getTypeAllocSize(src_address.llvm_allocated_type());
 	auto llvm_align =

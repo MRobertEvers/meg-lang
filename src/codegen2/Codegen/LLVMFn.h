@@ -1,11 +1,7 @@
 #pragma once
 
 #include "../LValue.h"
-#include "../Scope.h"
-#include "LLVMFnSigInfo.h"
-#include "common/Vec.h"
-#include "sema2/Name.h"
-#include "sema2/type/Type.h"
+#include "LLVMArgABIInfo.h"
 #include <llvm/IR/IRBuilder.h>
 
 #include <optional>
@@ -16,9 +12,7 @@ namespace cg
 struct LLVMFnArgInfo
 {
 private:
-	std::optional<sema::NameRef> name_;
 	LLVMFnArgInfo(LLVMArgABIInfo abi, LValue lvalue);
-	LLVMFnArgInfo(sema::NameRef name, LLVMArgABIInfo abi, LValue lvalue);
 
 public:
 	LLVMArgABIInfo abi;
@@ -55,12 +49,6 @@ struct LLVMSwitchInfo
 	llvm::BasicBlock* default_bb() const { return default_block_; }
 };
 
-struct LLVMFrameArg
-{
-	std::vector<llvm::Type*> locals;
-	llvm::StructType* frame_type;
-};
-
 /**
  * @brief Contains the llvm argument values and their.
  *
@@ -70,9 +58,6 @@ struct LLVMFnInfo
 	LLVMFnSigInfo sig_info;
 
 	std::map<int, LLVMFnArgInfo> named_args;
-
-	// Async only
-	std::optional<LLVMFrameArg> frame_arg;
 
 	std::optional<LLVMFnArgInfo> sret_arg;
 	std::optional<llvm::BasicBlock*> merge_block_;

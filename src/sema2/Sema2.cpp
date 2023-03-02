@@ -175,6 +175,18 @@ Sema2::TLS(ir::IREnum* st)
 }
 
 ir::IRTopLevelStmt*
+Sema2::TLS(ir::IRGenerator* st)
+{
+	auto nod = new ir::IRTopLevelStmt;
+
+	nod->node = st->node;
+	nod->stmt.generator = st;
+	nod->type = ir::IRTopLevelType::Generator;
+
+	return nod;
+}
+
+ir::IRTopLevelStmt*
 Sema2::TLS(ir::IRNamespace* st)
 {
 	auto nod = new ir::IRTopLevelStmt;
@@ -182,6 +194,18 @@ Sema2::TLS(ir::IRNamespace* st)
 	nod->node = st->node;
 	nod->stmt.nspace = st;
 	nod->type = ir::IRTopLevelType::Namespace;
+
+	return nod;
+}
+
+ir::IRGenerator*
+Sema2::Generator(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block)
+{
+	auto nod = new ir::IRGenerator;
+
+	nod->node = node;
+	nod->proto = proto;
+	nod->block = block;
 
 	return nod;
 }
@@ -744,6 +768,17 @@ Sema2::Else(ast::AstNode* node, ir::IRStmt* stmt)
 
 	nod->node = node;
 	nod->stmt = stmt;
+
+	return nod;
+}
+
+ir::IRYield*
+Sema2::Yield(ast::AstNode* node, ir::IRExpr* expr)
+{
+	auto nod = new ir::IRYield;
+
+	nod->node = node;
+	nod->expr = expr;
 
 	return nod;
 }

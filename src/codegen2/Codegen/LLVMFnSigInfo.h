@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Scope.h"
+#include "LLVMArgABIInfo.h"
 #include "common/String.h"
 #include "common/Vec.h"
 #include "sema2/Name.h"
@@ -11,43 +12,6 @@
 #include <optional>
 namespace cg
 {
-
-/**
- * @brief Pass by value still uses pointers.
- * The difference is that by-value structs are copied to their own
- * memory location before the call and a pointer to that is passed in.
- *
- */
-struct LLVMArgABIInfo
-{
-	enum Kind : char
-	{
-		Default,
-		SRet,
-		Value,
-
-		// Indicates that this ABI Arg Info contains
-		// no information about the arg becuase it was
-		// provided as a var arg. User must check
-		// the type of the argument by examining
-		// the expression type.
-		UncheckedVarArg
-	};
-
-	Kind attr = Default;
-	llvm::Type* llvm_type;
-
-	LLVMArgABIInfo(Kind attr, llvm::Type* llvm_type)
-		: attr(attr)
-		, llvm_type(llvm_type){};
-
-	bool is_sret() const { return attr == SRet; }
-
-	static LLVMArgABIInfo Unchecked()
-	{
-		return LLVMArgABIInfo(LLVMArgABIInfo::UncheckedVarArg, nullptr);
-	}
-};
 
 enum class LLVMFnSigRetType
 {
@@ -61,10 +25,11 @@ private:
 	bool is_var_arg_;
 	int sret_arg_ind_;
 
-	// NameId -> Index
+	// NameId -> Index in abi_arg_infos
 	std::map<int, std::pair<sema::NameRef, int>> named_args_info_inds_;
 
 public:
+	// These may be empty.
 	sema::NameRef name;
 	sema::Type const* sema_fn_ty;
 
@@ -72,6 +37,16 @@ public:
 	llvm::Type* llvm_fn_ty;
 	Vec<LLVMArgABIInfo> abi_arg_infos;
 	LLVMFnSigRetType ret_type = LLVMFnSigRetType::Default;
+
+	LLVMFnSigInfo(
+		llvm::Function*,
+		llvm::Type*,
+		Vec<LLVMArgABIInfo>,
+		std::map<int, std::pair<sema::NameRef, int>>,
+		sema::Type const*,
+		LLVMFnSigRetType,
+		int,
+		bool);
 
 	LLVMFnSigInfo(
 		sema::NameRef,

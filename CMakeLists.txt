@@ -93,6 +93,7 @@ add_executable(sushi
     src/codegen2/Codegen/codegen_while.cpp
     src/codegen2/Codegen/codegen_binop.cpp
     src/codegen2/Codegen/codegen_return.cpp
+    src/codegen2/Codegen/codegen_generator.cpp
     src/codegen2/Codegen/codegen_function.cpp
     src/codegen2/Codegen/codegen_member_access.cpp
     src/codegen2/Codegen/codegen_array_access.cpp

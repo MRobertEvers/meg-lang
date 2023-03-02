@@ -23,7 +23,30 @@ SemaResult<ir::IRValueDecl*> sema_struct_tls(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExpr*> sema_expr_any(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExpr*> sema_expr(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRExternFn*> sema_extern_fn(Sema2& sema, ast::AstNode* ast);
-SemaResult<ir::IRFunction*> sema_fn(Sema2& sema, ast::AstNode* ast);
+
+struct sema_fn_t
+{
+	enum class Kind
+	{
+		Generator,
+		Fn,
+	} kind;
+	union
+	{
+		ir::IRFunction* fn;
+		ir::IRGenerator* generator;
+	};
+
+	sema_fn_t(ir::IRFunction* fn_)
+		: fn(fn_)
+		, kind(Kind::Fn)
+	{}
+	sema_fn_t(ir::IRGenerator* generator)
+		: generator(generator)
+		, kind(Kind::Generator)
+	{}
+};
+SemaResult<sema_fn_t> sema_fn(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRArgs*> sema_fn_args(Sema2& sema, ast::AstNode* ast, sema::Type const& fn_type);
 SemaResult<ir::IRCall*> sema_fn_call(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRArrayAccess*> sema_array_access(Sema2& sema, ast::AstNode* ast);
@@ -35,6 +58,7 @@ SemaResult<ir::IRReturn*> sema_return(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRLet*> sema_let(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRSwitch*> sema_switch(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRCase*> sema_case(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRYield*> sema_yield(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRAssign*> sema_assign(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRBinOp*> sema_binop(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRBlock*> sema_block(Sema2& sema, ast::AstNode* ast, bool new_scope);

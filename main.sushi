@@ -6,9 +6,20 @@ fn foo(a: i32): i32 {
     return 1;
 }
 
+fn iter_foo(): impl i32 {
+    for (let i = 0; i < 5; i += 1)
+    {
+        yield i;
+    }
+
+    return 5;
+}
+
 fn main(): i32 
 {
     let try = &foo;
+
+    iter_foo();
 
     return try(1);
 }

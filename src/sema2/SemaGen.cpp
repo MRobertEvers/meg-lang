@@ -57,8 +57,15 @@ sema::sema_tls(Sema2& sema, AstNode* ast)
 		auto ex = sema_fn(sema, ast);
 		if( !ex.ok() )
 			return ex;
+		auto fn_ret = ex.unwrap();
 
-		return sema.TLS(ex.unwrap());
+		switch( fn_ret.kind )
+		{
+		case sema_fn_t::Kind::Fn:
+			return sema.TLS(fn_ret.fn);
+		case sema_fn_t::Kind::Generator:
+			return sema.TLS(fn_ret.generator);
+		}
 	}
 	case NodeType::ExternFn:
 	{
@@ -585,7 +592,7 @@ sema::sema_expr(Sema2& sema, ast::AstNode* ast)
 	return sema_expr_any(sema, expr_node);
 }
 
-SemaResult<ir::IRFunction*>
+SemaResult<sema_fn_t>
 sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 {
 	auto fnr = expected(ast, ast::as_fn);
@@ -603,6 +610,14 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 		maybe_return_type.has_value() &&
 		"Function prototype did not provide return type. (Missing infer?)");
 
+	// TODO: Async
+	bool is_async = false;
+	if( maybe_return_type.value().type->is_impl_ )
+	{
+		sema.async_fn_context_set(AsyncFnContext());
+		is_async = true;
+	}
+
 	sema.push_scope(proto->name);
 	// sema.set_expected_return(maybe_return_type.value());
 	auto bodyr = sema_block(sema, fn.body, false);
@@ -611,7 +626,12 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 	// sema.clear_expected_return();
 	sema.pop_scope();
 
-	return sema.Fn(ast, proto, bodyr.unwrap());
+	sema.async_fn_context_clear();
+
+	if( is_async )
+		return sema_fn_t(sema.Generator(ast, proto, bodyr.unwrap()));
+	else
+		return sema_fn_t(sema.Fn(ast, proto, bodyr.unwrap()));
 }
 
 SemaResult<ir::IRArgs*>
@@ -1387,8 +1407,9 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 		return members_converted_result;
 	auto members = members_converted_result.unwrap();
 
-	auto fn_type = sema.CreateType(
+	sema::Type* fn_type = sema.CreateType(
 		Type::Function(name_str, members.vec, ir_ret_type_decl->type_instance, is_var_arg));
+	fn_type->is_impl_ = fn_proto.return_type->data.type_declarator.is_impl;
 
 	sema::NameRef fn_name_ref = sema.add_value_identifier(name_str, TypeInstance::OfType(fn_type));
 

@@ -258,16 +258,19 @@ AstGen::parse_type_decl(bool allow_empty)
 	auto trail = get_parse_trail();
 
 	auto tok = cursor.peek();
-	if( tok.type != TokenType::identifier )
+	if( tok.type != TokenType::identifier && tok.type != TokenType::impl_keyword )
 	{
 		if( allow_empty )
-		{
 			return ast.TypeDeclaratorEmpty();
-		}
 		else
-		{
 			return ParseError("Unexpected token while parsing type.", tok);
-		}
+	}
+
+	bool is_impl = false;
+	if( tok.type == TokenType::impl_keyword )
+	{
+		is_impl = true;
+		cursor.consume(TokenType::impl_keyword);
 	}
 
 	auto name_parsed = parse_name_parts(*this);
@@ -286,7 +289,7 @@ AstGen::parse_type_decl(bool allow_empty)
 	// TODO: Clean this up.
 	auto array_tok = cursor.consume_if_expected(TokenType::open_square);
 	if( !array_tok.ok() )
-		return ast.TypeDeclarator(trail.mark(), name, indirection_count);
+		return ast.TypeDeclarator(trail.mark(), name, indirection_count, is_impl);
 
 	auto literal_parse = parse_literal();
 	if( !literal_parse.ok() )
@@ -300,7 +303,7 @@ AstGen::parse_type_decl(bool allow_empty)
 		return ParseError("Expected ']'.", end_tok.as());
 
 	return ast.TypeDeclaratorArray(
-		trail.mark(), name, indirection_count, literal->data.number_literal.literal);
+		trail.mark(), name, indirection_count, literal->data.number_literal.literal, is_impl);
 }
 
 ParseResult<ast::AstNode*>
@@ -374,9 +377,7 @@ AstGen::parse_assign(ast::AstNode* lhs)
 		TokenType::equal,
 	});
 	if( !tok.ok() )
-	{
 		return ParseError("Expected '='", tok.as());
-	}
 
 	auto rhs = parse_expr();
 	if( !rhs.ok() )
@@ -511,6 +512,22 @@ AstGen::parse_switch()
 		return block;
 
 	return ast.Switch(trail.mark(), expr.unwrap(), block.unwrap());
+}
+
+ParseResult<AstNode*>
+AstGen::parse_yield()
+{
+	//
+	auto trail = get_parse_trail();
+	auto tok = cursor.consume(TokenType::yield_keyword);
+	if( !tok.ok() )
+		return ParseError("Expected yield keyword", tok.as());
+
+	auto expr = parse_expr();
+	if( !expr.ok() )
+		return expr;
+
+	return ast.Yield(trail.mark(), expr.unwrap());
 }
 
 ParseResult<AstNode*>
@@ -1232,13 +1249,19 @@ AstGen::parse_simple_expr()
 		result = expr.unwrap();
 		break;
 	}
+	case TokenType::yield_keyword:
+	{
+		auto expr = parse_yield();
+		if( !expr.ok() )
+			return expr;
 
+		result = expr.unwrap();
+		break;
+	}
 	default:
 		// Is this right?
 		result = ast.Empty(trail.mark());
 		break;
-		// ???
-		// return ParseError("Expected simple expression.", tok);
 	}
 
 	return ast.Expr(trail.mark(), result);

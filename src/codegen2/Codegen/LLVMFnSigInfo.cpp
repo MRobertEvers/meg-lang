@@ -3,6 +3,25 @@
 using namespace cg;
 
 LLVMFnSigInfo::LLVMFnSigInfo(
+	llvm::Function* llvm_fn,
+	llvm::Type* llvm_fn_ty,
+	Vec<LLVMArgABIInfo> abi_infos,
+	std::map<int, std::pair<sema::NameRef, int>> named_args,
+	sema::Type const* sema_ty,
+	LLVMFnSigRetType ret_type,
+	int sret_arg_index,
+	bool var_args)
+	: llvm_fn(llvm_fn)
+	, llvm_fn_ty(llvm_fn_ty)
+	, abi_arg_infos(abi_infos)
+	, named_args_info_inds_(named_args)
+	, sema_fn_ty(sema_ty)
+	, ret_type(ret_type)
+	, sret_arg_ind_(sret_arg_index)
+	, is_var_arg_(var_args)
+{}
+
+LLVMFnSigInfo::LLVMFnSigInfo(
 	sema::NameRef name,
 	llvm::Function* llvm_fn,
 	llvm::Type* llvm_fn_ty,

@@ -45,7 +45,7 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 		{
 			// If no value was provided for the return value create a dummy alloca.
 			llvm::AllocaInst* llvm_sret_alloca =
-				codegen.Builder->CreateAlloca(sret_arg_info.llvm_type, nullptr, ".dummy");
+				codegen.builder_alloca(sret_arg_info.llvm_type, ".dummy");
 			llvm_arg_values.push_back(llvm_sret_alloca);
 		}
 		arg_ind += 1;
@@ -79,7 +79,7 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			auto address = arg_expr.address();
 			auto llvm_arg_expr_value = arg_expr.address().llvm_pointer();
 			llvm::AllocaInst* llvm_cpy_alloca =
-				codegen.Builder->CreateAlloca(address.llvm_allocated_type(), nullptr);
+				codegen.builder_alloca(address.llvm_allocated_type());
 			auto llvm_size =
 				codegen.Module->getDataLayout().getTypeAllocSize(address.llvm_allocated_type());
 			auto llvm_align =

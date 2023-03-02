@@ -64,6 +64,9 @@ private:
 		bool is_var_arg);
 
 public:
+	// Impl
+	bool is_impl_;
+
 	~Type();
 
 	std::optional<TypeInstance> get_return_type() const;

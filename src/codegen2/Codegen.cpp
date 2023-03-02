@@ -12,6 +12,7 @@
 #include "Codegen/codegen_deref.h"
 #include "Codegen/codegen_enum.h"
 #include "Codegen/codegen_function.h"
+#include "Codegen/codegen_generator.h"
 #include "Codegen/codegen_initializer.h"
 #include "Codegen/codegen_is.h"
 #include "Codegen/codegen_member_access.h"
@@ -51,6 +52,22 @@ CG::CG(sema::Sema2& sema)
 	establish_llvm_builtin_types(*this, sema.types, this->types);
 }
 
+llvm::AllocaInst*
+CG::builder_alloca(llvm::Type* llvm_type)
+{
+	return builder_alloca(llvm_type, "");
+}
+
+llvm::AllocaInst*
+CG::builder_alloca(llvm::Type* llvm_type, std::string name)
+{
+	llvm::AllocaInst* llvm_alloca = builder_alloca(llvm_type, name);
+	if( async_context.has_value() )
+		async_context.value().add_alloca(LLVMAddress(llvm_alloca, llvm_type));
+
+	return llvm_alloca;
+}
+
 void
 CG::add_function(sema::Type const* type, LLVMFnSigInfo context)
 {
@@ -83,6 +100,8 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 		return codegen_extern_fn(tls->stmt.extern_fn);
 	case ir::IRTopLevelType::Function:
 		return codegen_function(*this, tls->stmt.fn);
+	case ir::IRTopLevelType::Generator:
+		return codegen_generator(*this, tls->stmt.fn);
 	case ir::IRTopLevelType::Struct:
 		return codegen_struct(tls->stmt.struct_decl);
 	case ir::IRTopLevelType::Union:
@@ -149,7 +168,6 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 		return codegen_number_literal(expr->expr.num_literal);
 	case ir::IRExprType::StringLiteral:
 		return codegen_string_literal(*this, expr->expr.str_literal);
-
 	case ir::IRExprType::BinOp:
 		return codegen_binop(*this, fn, expr->expr.binop);
 	case ir::IRExprType::MemberAccess:
@@ -164,6 +182,8 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 		return codegen_is(*this, fn, expr->expr.is);
 	case ir::IRExprType::Initializer:
 		return codegen_initializer(*this, fn, expr->expr.initializer, lvalue);
+	case ir::IRExprType::Yield:
+		return codegen_yield(*this, fn, expr->expr.yield, lvalue);
 	case ir::IRExprType::Empty:
 		return CGExpr();
 	}
@@ -190,7 +210,7 @@ CG::codegen_let(cg::LLVMFnInfo& fn, ir::IRLet* ir_let)
 		return typer;
 	auto llvm_allocated_type = typer.unwrap();
 
-	llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_allocated_type, nullptr);
+	llvm::AllocaInst* llvm_alloca = builder_alloca(llvm_allocated_type);
 	auto lvalue = LValue(llvm_alloca, llvm_allocated_type);
 	values.insert_or_assign(name.id().index(), lvalue);
 

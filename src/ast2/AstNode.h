@@ -41,6 +41,7 @@ enum class NodeType
 	EnumMember,
 	// MemberDef,
 	While,
+	Yield,
 	For,
 	StringLiteral,
 	NumberLiteral,
@@ -496,6 +497,18 @@ struct AstWhile
 	{}
 };
 
+struct AstYield
+{
+	static constexpr NodeType nt = NodeType::Yield;
+
+	AstNode* expr;
+
+	AstYield() = default;
+	AstYield(AstNode* expr)
+		: expr(expr)
+	{}
+};
+
 struct AstSwitch
 {
 	static constexpr NodeType nt = NodeType::Switch;
@@ -581,19 +594,23 @@ struct AstTypeDeclarator
 	unsigned int indirection_level;
 	AstList<String*>* name;
 	bool empty;
+	bool is_impl;
 
 	AstTypeDeclarator() = default;
-	AstTypeDeclarator(AstList<String*>* name, unsigned int indirection_level)
+	AstTypeDeclarator(AstList<String*>* name, unsigned int indirection_level, bool is_impl)
 		: name(name)
 		, indirection_level(indirection_level)
 		, array_size(0)
 		, empty(false)
+		, is_impl(is_impl)
 	{}
-	AstTypeDeclarator(AstList<String*>* name, unsigned int indirection_level, unsigned array_size)
+	AstTypeDeclarator(
+		AstList<String*>* name, unsigned int indirection_level, unsigned array_size, bool is_impl)
 		: name(name)
 		, indirection_level(indirection_level)
 		, array_size(array_size)
 		, empty(false)
+		, is_impl(is_impl)
 	{}
 };
 
@@ -701,6 +718,7 @@ struct AstNode
 		AstIf ifcond;
 		AstSwitch switch_stmt;
 		AstCase case_stmt;
+		AstYield yield;
 		AstIfArrow if_arrow;
 		AstElse else_stmt;
 		AstLet let;

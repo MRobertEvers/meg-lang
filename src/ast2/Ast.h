@@ -62,8 +62,9 @@ public:
 	AstNode* For(Span span, AstNode* init, AstNode* condition, AstNode* end_loop, AstNode* body);
 	AstNode* StringLiteral(Span span, String* literal);
 	AstNode* NumberLiteral(Span span, long long literal);
-	AstNode* TypeDeclarator(Span span, AstList<String*>* name, unsigned int indirection_level);
-	AstNode* TypeDeclaratorArray(Span span, AstList<String*>* name, unsigned int, unsigned int);
+	AstNode* TypeDeclarator(Span span, AstList<String*>* name, unsigned int, bool is_impl);
+	AstNode* TypeDeclaratorArray(
+		Span span, AstList<String*>* name, unsigned int, unsigned int, bool is_impl);
 	AstNode* TypeDeclaratorEmpty();
 	AstNode* MemberAccess(Span span, AstNode* expr, AstNode* member_name);
 	AstNode* IndirectMemberAccess(Span span, AstNode* expr, AstNode* member_name);
@@ -76,6 +77,7 @@ public:
 	AstNode* Is(Span span, AstNode* expr, AstNode* type);
 	AstNode* Switch(Span span, AstNode* expr, AstNode* block);
 	AstNode* Case(Span span, AstNode* expr, AstNode* stmt);
+	AstNode* Yield(Span span, AstNode* expr);
 	AstNode* CaseDefault(Span span, AstNode* stmt);
 	AstNode* Initializer(Span span, AstNode* type_name, AstList<AstNode*>* members);
 	AstNode* InitializerDesignator(Span span, AstNode* name, AstNode* expr);
