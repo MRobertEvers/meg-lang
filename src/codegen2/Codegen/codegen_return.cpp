@@ -13,6 +13,19 @@ cg::codegen_return(CG& codegen, cg::LLVMFnInfo& fn, ir::IRReturn* ir_return)
 		return exprr;
 	auto expr = exprr.unwrap();
 
+	if( codegen.async_context.has_value() )
+	{
+		llvm::BasicBlock* llvm_return_block = llvm::BasicBlock::Create(*codegen.Context, "return");
+		fn.add_basic_block(llvm_return_block);
+
+		codegen.async_context.value().add_early_return(
+			LLVMYieldPoint(codegen.Builder->GetInsertBlock(), llvm_return_block, expr));
+		codegen.Builder->SetInsertPoint(llvm_return_block);
+
+		codegen.Builder->CreateRetVoid();
+		return CGExpr();
+	}
+
 	if( expr.is_empty() )
 	{
 		codegen.Builder->CreateRetVoid();

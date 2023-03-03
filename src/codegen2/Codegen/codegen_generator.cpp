@@ -118,6 +118,8 @@ cg_send_fn(
 
 	llvm::ConstantInt* llvm_zero_1bit =
 		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(1, 0, true));
+	llvm::ConstantInt* llvm_one_1bit =
+		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(1, 1, true));
 
 	// Store the variables in the frame in the suspend blocks
 	int yield_idx = 1;
@@ -153,6 +155,24 @@ cg_send_fn(
 		codegen.Builder->CreateStore(llvm_yielded_value, llvm_yield_ptr);
 
 		codegen.Builder->CreateRetVoid();
+	}
+
+	for( LLVMYieldPoint& return_block : async_fn.early_return_blocks )
+	{
+		codegen.Builder->SetInsertPoint(return_block.llvm_suspend_block);
+		llvm::ConstantInt* llvm_bad_resume_idx =
+			llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, -1, true));
+		auto llvm_step_gep =
+			codegen.Builder->CreateStructGEP(llvm_frame_type, llvm_fn->getArg(1), 0);
+		codegen.Builder->CreateStore(llvm_bad_resume_idx, llvm_step_gep);
+
+		auto llvm_ret_done_ptr =
+			codegen.Builder->CreateStructGEP(llvm_send_return_type, llvm_fn->getArg(0), 0);
+		codegen.Builder->CreateStore(llvm_one_1bit, llvm_ret_done_ptr);
+
+		// TODO: Store return expr in frame.
+
+		codegen.Builder->CreateBr(return_block.llvm_resume_block);
 	}
 
 	codegen.Builder->SetInsertPoint(llvm_bad_send_bb);

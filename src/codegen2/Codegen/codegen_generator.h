@@ -28,11 +28,13 @@ class LLVMAsyncFn
 {
 public:
 	llvm::BasicBlock* entry_block;
+	std::vector<LLVMYieldPoint> early_return_blocks;
 	std::vector<LLVMYieldPoint> yield_bbs;
 	std::vector<LLVMAddress> allocas;
 	llvm::Type* llvm_send_return_type;
 	llvm::Type* llvm_frame_type;
 
+	void add_early_return(LLVMYieldPoint early_ret) { early_return_blocks.push_back(early_ret); }
 	void add_yield(LLVMYieldPoint yield) { yield_bbs.push_back(yield); }
 	void add_alloca(LLVMAddress alloca) { allocas.push_back(alloca); }
 };
