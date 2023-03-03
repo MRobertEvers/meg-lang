@@ -34,16 +34,8 @@ get_named_params(CG& cg, ir::IRProto* proto)
 			auto llvm_arg_ty = argsr.unwrap();
 			auto name = name_ref.name().name_str();
 			auto sema_ty = name_ref.type();
-			if( sema_ty.is_struct_type() || sema_ty.is_enum_type() || sema_ty.is_union_type() )
-			{
-				args.args.emplace_back(
-					name_ref, LLVMArgABIInfo(LLVMArgABIInfo::Value, llvm_arg_ty->getPointerTo()));
-			}
-			else
-			{
-				args.args.emplace_back(
-					name_ref, LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_arg_ty));
-			}
+
+			args.args.emplace_back(name_ref, LLVMArgABIInfo(LLVMArgABIInfo::Value, llvm_arg_ty));
 		}
 		else
 		{
@@ -54,8 +46,8 @@ get_named_params(CG& cg, ir::IRProto* proto)
 	return args;
 }
 
-static cg::CGResult<LLVMFnInfo>
-codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
+cg::CGResult<LLVMFnInfo>
+cg::codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 {
 	LLVMFnInfoBuilder builder(fn_info);
 
@@ -99,7 +91,7 @@ codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			assert(maybe_name.has_value());
 			auto name = maybe_name.value();
 
-			auto lvalue = LValue(llvm_arg, llvm_arg->getType()->getPointerElementType());
+			auto lvalue = LValue(llvm_arg, llvm_arg->getType());
 
 			builder.add_arg(LLVMFnArgInfo::Named(name, arg_abi, lvalue));
 			break;

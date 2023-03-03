@@ -99,6 +99,9 @@ cg::codegen_assign(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAssign* ir_assign)
 			SemaTypedInt(ir_assign->rhs->type_instance, rhs),
 			to_binop(ir_assign->op));
 
+		auto llvm_rval_expr = llvm_rval.unwrap();
+		rhs = codegen_operand_expr(codegen, llvm_rval_expr);
+
 		rhs = trunc_ints(codegen, ir_assign->lhs->type_instance, rhs);
 		codegen.Builder->CreateStore(rhs, lhs);
 	}

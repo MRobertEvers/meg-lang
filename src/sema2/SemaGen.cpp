@@ -636,8 +636,34 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 
 	if( is_async )
 	{
-		auto ret =
-			sema_fn_t(sema.Generator(ast, sema.async_fn_context().value(), proto, bodyr.unwrap()));
+		// TODO: Actual template return type.
+		auto payload_type = sema.types.i32_type();
+
+		std::map<std::string, MemberTypeInstance> members;
+		members.emplace("done", MemberTypeInstance(sema.types.BoolType(), 0));
+		members.emplace("value", MemberTypeInstance(TypeInstance::OfType(payload_type), 1));
+		sema::Type struct_type = sema::Type::Struct(proto->name.to_fqn_string() + "#send", members);
+		auto send_result_type = sema.CreateType(struct_type);
+
+		sema::NameRef name_ref = sema.add_type_identifier(send_result_type);
+		name_ref.add_name(Name("done", sema.types.BoolType(), sema::Name::NameKind::Member));
+		name_ref.add_name(
+			Name("value", TypeInstance::OfType(payload_type), sema::Name::NameKind::Member));
+
+		sema::Type* send_fn_type = sema.CreateType(Type::Function(
+			proto->name.to_fqn_string() + "_send",
+			{MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0)},
+			TypeInstance::OfType(send_result_type),
+			false));
+
+		sema::NameRef send_name_ref = sema.add_value_identifier(
+			proto->name.to_fqn_string() + "_send", TypeInstance::OfType(send_fn_type));
+
+		send_name_ref.add_name(
+			Name("frame", proto->rt->type_instance.PointerTo(1), Name::NameKind::Member));
+
+		auto ret = sema_fn_t(sema.Generator(
+			ast, sema.async_fn_context().value(), send_name_ref, proto, bodyr.unwrap()));
 
 		sema.async_fn_context_clear();
 		return ret;
@@ -778,8 +804,8 @@ sema::sema_member_access(Sema2& sema, ast::AstNode* ast)
 			"Cannot access member '" + name_str + "' of '" + to_string(expr_type) + "' because '" +
 			name_str + "' does not exist");
 	auto member = maybe_member.value();
-	return NotImpl();
-	// return sema.MemberAccess(ast, val_expr, member, name);
+
+	return sema.MemberAccess(ast, val_expr, member);
 }
 
 SemaResult<ir::IRIndirectMemberAccess*>
@@ -817,8 +843,7 @@ sema::sema_indirect_member_access(Sema2& sema, ast::AstNode* ast)
 			"Cannot access member '" + name_str + "' of '" + to_string(expr_type) + "' because '" +
 			name_str + "' does not exist");
 	auto member = maybe_member.value();
-	return NotImpl();
-	// return sema.IndirectMemberAccess(ast, val_expr, member, name);
+	return sema.IndirectMemberAccess(ast, val_expr, member);
 }
 
 SemaResult<ir::IRAddressOf*>
@@ -1447,9 +1472,17 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 		return members_converted_result;
 	auto members = members_converted_result.unwrap();
 
+	bool is_impl = fn_proto.return_type->data.type_declarator.is_impl;
+	if( is_impl )
+	{
+		sema::Type struct_type = sema::Type::Struct(name_str + "#frame", {});
+		auto frame_type = sema.CreateType(struct_type);
+
+		ir_ret_type_decl->type_instance = TypeInstance::OfType(frame_type);
+	}
 	sema::Type* fn_type = sema.CreateType(
 		Type::Function(name_str, members.vec, ir_ret_type_decl->type_instance, is_var_arg));
-	fn_type->is_impl_ = fn_proto.return_type->data.type_declarator.is_impl;
+	fn_type->is_impl_ = is_impl;
 
 	sema::NameRef fn_name_ref = sema.add_value_identifier(name_str, TypeInstance::OfType(fn_type));
 

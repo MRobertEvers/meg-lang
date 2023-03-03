@@ -36,3 +36,21 @@ cg::cg_copy(CG& codegen, LLVMAddress& src, LLVMAddress& dest)
 	else
 		return CGExpr::MakeAddress(dest);
 }
+
+CGExpr
+cg::cg_zero(CG& codegen, LLVMAddress& src)
+{
+	auto src_address = src.fixup();
+
+	auto llvm_size =
+		codegen.Module->getDataLayout().getTypeAllocSize(src_address.llvm_allocated_type());
+	auto llvm_align =
+		codegen.Module->getDataLayout().getPrefTypeAlign(src_address.llvm_allocated_type());
+
+	llvm::ConstantInt* llvm_zero =
+		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(8, 0, true));
+
+	codegen.Builder->CreateMemSet(src_address.llvm_pointer(), llvm_zero, llvm_size, llvm_align);
+
+	return CGExpr();
+}

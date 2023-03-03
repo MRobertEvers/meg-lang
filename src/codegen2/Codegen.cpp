@@ -38,6 +38,7 @@ establish_llvm_builtin_types(
 	lut.emplace(types.i16_type(), llvm::Type::getInt16Ty(*cg.Context));
 	lut.emplace(types.i32_type(), llvm::Type::getInt32Ty(*cg.Context));
 	lut.emplace(types.void_type(), llvm::Type::getVoidTy(*cg.Context));
+	lut.emplace(types.bool_type(), llvm::Type::getInt1Ty(*cg.Context));
 }
 
 CG::CG(sema::Sema2& sema)

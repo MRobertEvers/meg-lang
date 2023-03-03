@@ -76,20 +76,29 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			// Passing struct by values actually passes a pointer.
 			// We need to make a copy in a new alloca, and then pass
 			// that alloca
-			auto address = arg_expr.address();
-			auto llvm_arg_expr_value = arg_expr.address().llvm_pointer();
-			llvm::AllocaInst* llvm_cpy_alloca =
-				codegen.builder_alloca(address.llvm_allocated_type());
-			auto llvm_size =
-				codegen.Module->getDataLayout().getTypeAllocSize(address.llvm_allocated_type());
-			auto llvm_align =
-				codegen.Module->getDataLayout().getPrefTypeAlign(address.llvm_allocated_type());
+			if( arg_expr.is_address() )
+			{
+				auto address = arg_expr.address();
+				auto llvm_arg_expr_value = arg_expr.address().llvm_pointer();
+				llvm::AllocaInst* llvm_cpy_alloca =
+					codegen.builder_alloca(address.llvm_allocated_type());
+				auto llvm_size =
+					codegen.Module->getDataLayout().getTypeAllocSize(address.llvm_allocated_type());
+				auto llvm_align =
+					codegen.Module->getDataLayout().getPrefTypeAlign(address.llvm_allocated_type());
 
-			codegen.Builder->CreateMemCpy(
-				llvm_cpy_alloca, llvm_align, llvm_arg_expr_value, llvm_align, llvm_size);
+				codegen.Builder->CreateMemCpy(
+					llvm_cpy_alloca, llvm_align, llvm_arg_expr_value, llvm_align, llvm_size);
 
-			llvm_arg_values.push_back(llvm_cpy_alloca);
-			break;
+				llvm_arg_values.push_back(llvm_cpy_alloca);
+				break;
+			}
+			else
+			{
+				// Canibalize rvalue.
+				llvm_arg_values.push_back(arg_expr.rvalue().llvm_pointer());
+				break;
+			}
 		}
 		case LLVMArgABIInfo::SRet:
 		{

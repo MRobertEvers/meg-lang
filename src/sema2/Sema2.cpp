@@ -199,7 +199,12 @@ Sema2::TLS(ir::IRNamespace* st)
 }
 
 ir::IRGenerator*
-Sema2::Generator(ast::AstNode* node, ir::GeneratorFn fn, ir::IRProto* proto, ir::IRBlock* block)
+Sema2::Generator(
+	ast::AstNode* node,
+	ir::GeneratorFn fn,
+	sema::NameRef send_fn_name_ref,
+	ir::IRProto* proto,
+	ir::IRBlock* block)
 {
 	auto nod = new ir::IRGenerator;
 
@@ -207,6 +212,7 @@ Sema2::Generator(ast::AstNode* node, ir::GeneratorFn fn, ir::IRProto* proto, ir:
 	nod->proto = proto;
 	nod->block = block;
 	nod->fn = fn;
+	nod->send_fn_name_ref = send_fn_name_ref;
 
 	return nod;
 }
@@ -886,19 +892,17 @@ Sema2::EnumMemberId(ast::AstNode* node, sema::NameRef name, EnumNominal idx)
 }
 
 ir::IRMemberAccess*
-Sema2::MemberAccess(
-	ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member, sema::NameRef name)
+Sema2::MemberAccess(ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member)
 {
-	auto nod = new ir::IRMemberAccess(node, name, member, expr);
+	auto nod = new ir::IRMemberAccess(node, member, expr);
 
 	return nod;
 }
 
 ir::IRIndirectMemberAccess*
-Sema2::IndirectMemberAccess(
-	ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member, sema::NameRef name)
+Sema2::IndirectMemberAccess(ast::AstNode* node, ir::IRExpr* expr, sema::MemberTypeInstance member)
 {
-	auto nod = new ir::IRIndirectMemberAccess(node, name, member, expr);
+	auto nod = new ir::IRIndirectMemberAccess(node, member, expr);
 
 	return nod;
 }

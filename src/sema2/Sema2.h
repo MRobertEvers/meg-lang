@@ -78,8 +78,12 @@ public:
 	ir::IRTopLevelStmt* TLS(ir::IREnum*);
 	ir::IRTopLevelStmt* TLS(ir::IRGenerator*);
 	ir::IRTopLevelStmt* TLS(ir::IRNamespace*);
-	ir::IRGenerator*
-	Generator(ast::AstNode* node, ir::GeneratorFn fn, ir::IRProto* proto, ir::IRBlock* block);
+	ir::IRGenerator* Generator(
+		ast::AstNode* node,
+		ir::GeneratorFn fn,
+		sema::NameRef send_fn_name_ref,
+		ir::IRProto* proto,
+		ir::IRBlock* block);
 	ir::IRFunction* Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block);
 	ir::IRCall* FnCall(ast::AstNode* node, ir::IRExpr* call_target, ir::IRArgs* args);
 	ir::IRExternFn* ExternFn(ast::AstNode* node, ir::IRProto* stmts);
@@ -162,10 +166,9 @@ public:
 	ir::IREnumMember* EnumMemberStruct(
 		ast::AstNode*, sema::Type const*, ir::IRStruct*, sema::NameRef name, EnumNominal idx);
 	ir::IREnumMember* EnumMemberId(ast::AstNode*, sema::NameRef name, EnumNominal idx);
-	ir::IRMemberAccess*
-	MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::MemberTypeInstance, sema::NameRef name);
-	ir::IRIndirectMemberAccess* IndirectMemberAccess(
-		ast::AstNode*, ir::IRExpr* expr, sema::MemberTypeInstance, sema::NameRef name);
+	ir::IRMemberAccess* MemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::MemberTypeInstance);
+	ir::IRIndirectMemberAccess*
+	IndirectMemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::MemberTypeInstance);
 	ir::IRVarArg* VarArg(ast::AstNode*);
 	ir::IRAddressOf* AddressOf(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
 	ir::IRDeref* Deref(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);

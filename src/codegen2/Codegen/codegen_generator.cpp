@@ -4,6 +4,7 @@
 #include "LLVMFnSigInfoBuilder.h"
 #include "cg_copy.h"
 #include "codegen_fn_sig_info.h"
+#include "codegen_function.h"
 #include "lookup.h"
 #include "operand.h"
 
@@ -119,10 +120,17 @@ cg_send_fn(
 		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(1, 0, true));
 
 	// Store the variables in the frame in the suspend blocks
+	int yield_idx = 1;
 	for( LLVMYieldPoint& yield : async_fn.yield_bbs )
 	{
 		llvm::BasicBlock* llvm_suspend_block = yield.llvm_suspend_block;
 		codegen.Builder->SetInsertPoint(llvm_suspend_block);
+
+		llvm::ConstantInt* llvm_idx =
+			llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, yield_idx, true));
+		auto llvm_step_gep =
+			codegen.Builder->CreateStructGEP(llvm_frame_type, llvm_fn->getArg(1), 0);
+		codegen.Builder->CreateStore(llvm_idx, llvm_step_gep);
 
 		int alloca_idx = 1;
 		for( LLVMAddress& stack_address : async_fn.allocas )
@@ -213,10 +221,15 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 	llvm::StructType* llvm_send_return_type =
 		cg_send_result_struct(codegen, codegen.async_context.value());
 
+	codegen.types.emplace(
+		ir_gen->send_fn_name_ref.type().type->get_return_type().value().type,
+		llvm_send_return_type);
 	// LLVMFnSigInfoBuilder builder(name, ir_proto->fn_type);
 
 	llvm::StructType* llvm_frame_type =
 		cg_frame(codegen, ir_gen->fn, codegen.async_context.value());
+
+	codegen.types.emplace(ir_gen->proto->rt->type_instance.type, llvm_frame_type);
 
 	llvm::FunctionType* llvm_fn_ty = llvm::FunctionType::get(
 		llvm::Type::getVoidTy(*codegen.Context),
@@ -226,34 +239,48 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 		},
 		false);
 
-	llvm::Function* llvm_fn = llvm::Function::Create(
-		llvm_fn_ty, llvm::Function::ExternalLinkage, "Send", codegen.Module.get());
-	llvm::Argument* llvm_arg = llvm_fn->getArg(0);
-	llvm_arg->addAttrs(llvm::AttrBuilder().addStructRetAttr(llvm_send_return_type));
+	// llvm::Function* llvm_fn = llvm::Function::Create(
+	// 	llvm_fn_ty, llvm::Function::ExternalLinkage, "Send", codegen.Module.get());
+	// llvm::Argument* llvm_arg = llvm_fn->getArg(0);
+	// llvm_arg->addAttrs(llvm::AttrBuilder().addStructRetAttr(llvm_send_return_type));
 
-	llvm::BasicBlock* llvm_jump_block = llvm::BasicBlock::Create(*codegen.Context, "Jump", llvm_fn);
-	codegen.async_context.value().entry_block = llvm_jump_block;
-
-	//
-	// Create the basic blocks, then once code is generated, we have all the info we need
-	// Create the function and add the basic block.
-	llvm::BasicBlock* llvm_entry_bb =
-		llvm::BasicBlock::Create(*codegen.Context, "normal_begin", llvm_fn);
-	codegen.Builder->SetInsertPoint(llvm_entry_bb);
 	// No arguments for now.
 
 	// Generate code as normal
 	// for( auto [name_id, arg] : ctx.named_args )
 	// 	cg.values.insert_or_assign(name_id, arg.lvalue);
 
-	LLVMFnSigInfo fn(llvm_fn, llvm_fn_ty, {}, {}, nullptr, LLVMFnSigRetType::Default, 0, false);
-	LLVMFnInfo bogus(fn, {}, std::optional<LLVMFnArgInfo>());
+	LLVMFnSigInfoBuilder send_sig_info_builder(
+		ir_gen->send_fn_name_ref, ir_gen->send_fn_name_ref.type().type);
+	send_sig_info_builder.llvm_ret_ty = llvm::Type::getVoidTy(*codegen.Context);
+	send_sig_info_builder.add_arg_type(
+		LLVMArgABIInfo(LLVMArgABIInfo::Kind::SRet, llvm_send_return_type->getPointerTo()));
+	send_sig_info_builder.add_arg_type(
+		ir_gen->send_fn_name_ref.lookup("frame").value(),
+		LLVMArgABIInfo(LLVMArgABIInfo::Kind::Value, llvm_frame_type->getPointerTo()));
 
-	codegen.codegen_block(bogus, ir_gen->block);
+	LLVMFnSigInfo send_fn_sig = codegen_fn_sig_info(codegen, send_sig_info_builder);
+	codegen.add_function(ir_gen->send_fn_name_ref.type().type, send_fn_sig);
+
+	llvm::Function* llvm_fn = send_fn_sig.llvm_fn;
+
+	//
+	// Create the basic blocks, then once code is generated, we have all the info we need
+	// Create the function and add the basic block.
+
+	LLVMFnInfo send_fn = codegen_function_entry(codegen, send_fn_sig).unwrap();
+
+	llvm::BasicBlock* llvm_entry_block = &llvm_fn->getEntryBlock();
+
+	llvm::BasicBlock* llvm_jump_block =
+		llvm::BasicBlock::Create(*codegen.Context, "Jump", llvm_fn, llvm_entry_block);
+	codegen.async_context.value().entry_block = llvm_jump_block;
+
+	codegen.codegen_block(send_fn, ir_gen->block);
 
 	// Generate frame and function
 
-	cg_send_fn(codegen, llvm_fn, llvm_send_return_type, llvm_frame_type, llvm_entry_bb);
+	cg_send_fn(codegen, llvm_fn, llvm_send_return_type, llvm_frame_type, llvm_entry_block);
 
 	// llvm::FunctionType* llvm_init_fn_ty = llvm::FunctionType::get(
 	// 	llvm::Type::getVoidTy(*codegen.Context),
@@ -268,7 +295,7 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 	LLVMFnSigInfoBuilder sig_info_builder(ir_gen->proto->name, ir_gen->proto->fn_type);
 	sig_info_builder.llvm_ret_ty = llvm::Type::getVoidTy(*codegen.Context);
 	sig_info_builder.add_arg_type(
-		LLVMArgABIInfo(LLVMArgABIInfo::Kind::SRet, llvm_send_return_type->getPointerTo()));
+		LLVMArgABIInfo(LLVMArgABIInfo::Kind::SRet, llvm_frame_type->getPointerTo()));
 
 	LLVMFnSigInfo init_fn = codegen_fn_sig_info(codegen, sig_info_builder);
 	codegen.add_function(ir_gen->proto->fn_type, init_fn);
@@ -276,6 +303,9 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 		llvm::BasicBlock::Create(*codegen.Context, "entry", init_fn.llvm_fn);
 
 	codegen.Builder->SetInsertPoint(llvm_init_entry_block);
+
+	LLVMAddress frame_arg(init_fn.llvm_fn->getArg(0), llvm_frame_type);
+	cg_zero(codegen, frame_arg);
 
 	codegen.Builder->CreateRetVoid();
 

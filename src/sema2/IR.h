@@ -97,6 +97,8 @@ struct IRGenerator
 	ast::AstNode* node;
 	GeneratorFn fn;
 
+	sema::NameRef send_fn_name_ref;
+
 	//
 	IRProto* proto;
 	IRBlock* block;
@@ -438,15 +440,13 @@ struct IRMemberAccess
 {
 	//
 	ast::AstNode* node;
-	sema::NameRef name;
 	sema::MemberTypeInstance member;
 	IRExpr* expr;
 
-	IRMemberAccess(
-		ast::AstNode* node, sema::NameRef name, sema::MemberTypeInstance member, IRExpr* expr)
+	IRMemberAccess(ast::AstNode* node, sema::MemberTypeInstance member, IRExpr* expr)
 		: node(node)
-		, name(name)
 		, expr(expr)
+		, member(member)
 	{}
 };
 
@@ -454,15 +454,13 @@ struct IRIndirectMemberAccess
 {
 	//
 	ast::AstNode* node;
-	sema::NameRef name;
 	sema::MemberTypeInstance member;
 	IRExpr* expr;
 
-	IRIndirectMemberAccess(
-		ast::AstNode* node, sema::NameRef name, sema::MemberTypeInstance member, IRExpr* expr)
+	IRIndirectMemberAccess(ast::AstNode* node, sema::MemberTypeInstance member, IRExpr* expr)
 		: node(node)
-		, name(name)
 		, expr(expr)
+		, member(member)
 	{}
 };
 

@@ -61,7 +61,9 @@ cg::get_llvm_arg_types(Vec<LLVMArgABIInfo> const& abis)
 	Vec<llvm::Type*> result;
 
 	for( auto& abi : abis )
+	{
 		result.push_back(abi.llvm_type);
+	}
 
 	return result;
 }
