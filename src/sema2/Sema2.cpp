@@ -414,6 +414,19 @@ Sema2::Expr(ir::IRAddressOf* nl)
 }
 
 ir::IRExpr*
+Sema2::Expr(ir::IRBoolNot* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.bool_not = nl;
+	nod->type = ir::IRExprType::BoolNot;
+	nod->type_instance = nl->type_instance;
+
+	return nod;
+}
+
+ir::IRExpr*
 Sema2::Expr(ir::IRDeref* nl)
 {
 	auto nod = new ir::IRExpr;
@@ -921,6 +934,18 @@ ir::IRAddressOf*
 Sema2::AddressOf(ast::AstNode* node, ir::IRExpr* expr, sema::TypeInstance type)
 {
 	auto nod = new ir::IRAddressOf;
+
+	nod->node = node;
+	nod->expr = expr;
+	nod->type_instance = type;
+
+	return nod;
+}
+
+ir::IRBoolNot*
+Sema2::BoolNot(ast::AstNode* node, ir::IRExpr* expr, sema::TypeInstance type)
+{
+	auto nod = new ir::IRBoolNot;
 
 	nod->node = node;
 	nod->expr = expr;

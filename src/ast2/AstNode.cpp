@@ -94,5 +94,7 @@ ast::to_string(NodeType type)
 		return "Is";
 	case NodeType::Namespace:
 		return "Namespace";
+	case NodeType::BoolNot:
+		return "BoolNot";
 	}
 }

@@ -186,6 +186,8 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 		return codegen_indirect_member_access(*this, fn, expr->expr.indirect_member_access);
 	case ir::IRExprType::AddressOf:
 		return codegen_addressof(*this, fn, expr->expr.addr_of);
+	case ir::IRExprType::BoolNot:
+		return codegen_bool_not(fn, expr->expr.bool_not);
 	case ir::IRExprType::Deref:
 		return codegen_deref(*this, fn, expr->expr.deref);
 	case ir::IRExprType::Is:
@@ -253,6 +255,22 @@ CG::codegen_value_decl(ir::IRValueDecl* decl)
 	// assert(valuer.has_value());
 
 	// return CGExpr::MakeAddress(valuer.value().address());
+}
+
+CGResult<CGExpr>
+CG::codegen_bool_not(cg::LLVMFnInfo& fn, ir::IRBoolNot* ir_bool_not)
+{
+	auto expr_result = codegen_expr(fn, ir_bool_not->expr);
+	if( !expr_result.ok() )
+		return expr_result;
+	auto cond_expr = expr_result.unwrap();
+
+	llvm::ConstantInt* llvm_zero_1bit = llvm::ConstantInt::get(*Context, llvm::APInt(1, 0, true));
+
+	auto llvm_cond = codegen_operand_expr(*this, cond_expr);
+	llvm::Value* llvm_negation = Builder->CreateICmpEQ(llvm_cond, llvm_zero_1bit);
+
+	return CGExpr::MakeRValue(RValue(llvm_negation, llvm::Type::getInt1Ty(*Context)));
 }
 
 CGResult<CGExpr>

@@ -53,6 +53,7 @@ SemaResult<ir::IRArrayAccess*> sema_array_access(Sema2& sema, ast::AstNode* ast)
 SemaResult<ir::IRMemberAccess*> sema_member_access(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRIndirectMemberAccess*> sema_indirect_member_access(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRAddressOf*> sema_addressof(Sema2& sema, ast::AstNode* ast);
+SemaResult<ir::IRBoolNot*> sema_bool_not(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRDeref*> sema_deref(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRReturn*> sema_return(Sema2& sema, ast::AstNode* ast);
 SemaResult<ir::IRLet*> sema_let(Sema2& sema, ast::AstNode* ast);

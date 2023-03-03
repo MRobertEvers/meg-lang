@@ -211,6 +211,15 @@ ast::as_address_of(ast::AstNode* node)
 	return &node->data.address_of;
 }
 
+Cast<AstBoolNot>
+ast::as_bool_not(ast::AstNode* node)
+{
+	if( node->type != AstBoolNot::nt )
+		return Cast<AstBoolNot>();
+
+	return &node->data.bool_not;
+}
+
 Cast<AstDeref>
 ast::as_deref(ast::AstNode* node)
 {

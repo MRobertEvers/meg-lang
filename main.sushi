@@ -17,11 +17,11 @@ fn main(): i32
 
     let test = iter_foo_send(&frame);
 
-    printf("%d\n", test.value);
-
-    iter_foo_send(&frame);
-    iter_foo_send(&frame);
-    iter_foo_send(&frame);
+    while (!test.done)
+    {
+        printf("%d\n", test.value);
+        test = iter_foo_send(&frame);
+    }
 
     return 1;
 }

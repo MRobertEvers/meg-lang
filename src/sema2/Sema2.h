@@ -106,6 +106,7 @@ public:
 	ir::IRExpr* Expr(ir::IRMemberAccess*);
 	ir::IRExpr* Expr(ir::IRIndirectMemberAccess*);
 	ir::IRExpr* Expr(ir::IRAddressOf*);
+	ir::IRExpr* Expr(ir::IRBoolNot*);
 	ir::IRExpr* Expr(ir::IRDeref*);
 	ir::IRExpr* Expr(ir::IRArrayAccess*);
 	ir::IRExpr* Expr(ir::IREmpty*);
@@ -171,6 +172,7 @@ public:
 	IndirectMemberAccess(ast::AstNode*, ir::IRExpr* expr, sema::MemberTypeInstance);
 	ir::IRVarArg* VarArg(ast::AstNode*);
 	ir::IRAddressOf* AddressOf(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
+	ir::IRBoolNot* BoolNot(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
 	ir::IRDeref* Deref(ast::AstNode*, ir::IRExpr* expr, sema::TypeInstance);
 	ir::IREmpty* Empty(ast::AstNode*, sema::TypeInstance);
 	ir::IRArrayAccess*

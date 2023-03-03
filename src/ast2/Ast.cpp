@@ -340,6 +340,14 @@ Ast::AddressOf(Span span, AstNode* expr)
 }
 
 AstNode*
+Ast::BoolNot(Span span, AstNode* expr)
+{
+	auto node = make_empty<AstBoolNot>(span);
+	node->data.bool_not = AstBoolNot{expr};
+	return node;
+}
+
+AstNode*
 Ast::Expr(Span span, AstNode* expr)
 {
 	auto node = make_empty<AstExpr>(span);

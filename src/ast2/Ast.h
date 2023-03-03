@@ -70,6 +70,7 @@ public:
 	AstNode* IndirectMemberAccess(Span span, AstNode* expr, AstNode* member_name);
 	AstNode* Deref(Span span, AstNode* expr);
 	AstNode* AddressOf(Span span, AstNode* expr);
+	AstNode* BoolNot(Span span, AstNode* expr);
 	AstNode* Expr(Span span, AstNode* expr);
 	AstNode* Stmt(Span span, AstNode* expr);
 	AstNode* VarArg(Span span);

@@ -1137,6 +1137,26 @@ AstGen::parse_array_access(AstNode* base)
 }
 
 ParseResult<AstNode*>
+AstGen::parse_boolnot()
+{
+	auto trail = get_parse_trail();
+
+	auto tok = cursor.consume(TokenType::exclam);
+	if( !tok.ok() )
+	{
+		return ParseError("Expected '!'", tok.as());
+	}
+
+	auto expr = parse_expr();
+	if( !expr.ok() )
+	{
+		return expr;
+	}
+
+	return ast.BoolNot(trail.mark(), expr.unwrap());
+}
+
+ParseResult<AstNode*>
 AstGen::parse_deref()
 {
 	auto trail = get_parse_trail();
@@ -1230,6 +1250,20 @@ AstGen::parse_simple_expr()
 		// A: Jakt parses prefix expressioons in the same
 		// switch as identifiers and literals too.
 		auto expr = parse_addressof();
+		if( !expr.ok() )
+		{
+			return expr;
+		}
+
+		result = expr.unwrap();
+		break;
+	}
+	case TokenType::exclam:
+	{
+		// TODO: Is this the right place to do this?
+		// A: Jakt parses prefix expressioons in the same
+		// switch as identifiers and literals too.
+		auto expr = parse_boolnot();
 		if( !expr.ok() )
 		{
 			return expr;

@@ -576,6 +576,14 @@ struct IRAddressOf
 	sema::TypeInstance type_instance;
 };
 
+struct IRBoolNot
+{
+	//
+	ast::AstNode* node;
+	IRExpr* expr;
+	sema::TypeInstance type_instance;
+};
+
 struct IRDeref
 {
 	//
@@ -639,6 +647,7 @@ enum class IRExprType
 	MemberAccess,
 	IndirectMemberAccess,
 	AddressOf,
+	BoolNot,
 	Empty,
 	Deref,
 	Yield,
@@ -659,6 +668,7 @@ struct IRExpr
 		IRIs* is;
 		IRInitializer* initializer;
 		IRAddressOf* addr_of;
+		IRBoolNot* bool_not;
 		IRYield* yield;
 		IRDeref* deref;
 		IREmpty* empty;

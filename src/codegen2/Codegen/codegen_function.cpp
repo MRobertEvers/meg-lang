@@ -130,9 +130,6 @@ cg::codegen_function(CG& cg, ir::IRFunction* ir_fn)
 	if( !bodyr.ok() )
 		return bodyr;
 
-	for( llvm::BasicBlock* block : fn_info.blocks_ )
-		fn_sig_info.llvm_fn->getBasicBlockList().push_back(block);
-
 	return protor;
 }
 

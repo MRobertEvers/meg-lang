@@ -548,6 +548,14 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 
 		return sema.Expr(litr.unwrap());
 	}
+	case NodeType::BoolNot:
+	{
+		auto litr = sema_bool_not(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
 	case NodeType::Deref:
 	{
 		auto litr = sema_deref(sema, expr_node);
@@ -861,6 +869,26 @@ sema::sema_addressof(Sema2& sema, ast::AstNode* ast)
 	auto expr = exprr.unwrap();
 
 	return sema.AddressOf(ast, expr, expr->type_instance.PointerTo(1));
+}
+
+SemaResult<ir::IRBoolNot*>
+sema::sema_bool_not(Sema2& sema, ast::AstNode* ast)
+{
+	auto ast_bool_not = expected(ast, ast::as_bool_not);
+	if( !ast_bool_not.ok() )
+		return ast_bool_not;
+	auto bool_not_node = ast_bool_not.unwrap();
+
+	auto expr_result = sema_expr(sema, bool_not_node.expr);
+	if( !expr_result.ok() )
+		return expr_result;
+
+	auto expr = expr_result.unwrap();
+
+	if( !sema.types.equal_types(sema.types.BoolType(), expr->type_instance) )
+		return SemaError("'!' can only be used on boolean expressions");
+
+	return sema.BoolNot(ast, expr, sema.types.BoolType());
 }
 
 SemaResult<ir::IRDeref*>

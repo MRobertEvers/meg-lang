@@ -51,6 +51,7 @@ public:
 	ParseResult<AstNode*> parse_array_access(AstNode* base);
 
 	ParseResult<AstNode*> parse_deref();
+	ParseResult<AstNode*> parse_boolnot();
 	ParseResult<AstNode*> parse_addressof();
 	ParseResult<AstNode*> parse_simple_expr();
 	ParseResult<AstNode*> parse_postfix_expr();

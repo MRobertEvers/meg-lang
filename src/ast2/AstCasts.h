@@ -41,6 +41,7 @@ Cast<AstStmt> as_stmt(ast::AstNode* node);
 Cast<AstExpr> as_expr(ast::AstNode* node);
 Cast<AstStruct> as_struct(ast::AstNode* node);
 Cast<AstAddressOf> as_address_of(ast::AstNode* node);
+Cast<AstBoolNot> as_bool_not(ast::AstNode* node);
 Cast<AstDeref> as_deref(ast::AstNode* node);
 Cast<AstMemberAccess> as_member_access(ast::AstNode* node);
 Cast<AstIndirectMemberAccess> as_indirect_member_access(ast::AstNode* node);

@@ -49,6 +49,7 @@ enum class NodeType
 	MemberAccess,
 	IndirectMemberAccess,
 	AddressOf,
+	BoolNot,
 	Deref,
 	Empty,
 	Expr,
@@ -654,6 +655,18 @@ struct AstAddressOf
 	{}
 };
 
+struct AstBoolNot
+{
+	static constexpr NodeType nt = NodeType::BoolNot;
+
+	AstNode* expr;
+
+	AstBoolNot() = default;
+	AstBoolNot(AstNode* expr)
+		: expr(expr)
+	{}
+};
+
 // This is '*'
 struct AstDeref
 {
@@ -738,6 +751,7 @@ struct AstNode
 		AstDeref deref;
 		AstEmpty empty;
 		AstAddressOf address_of;
+		AstBoolNot bool_not;
 		AstExpr expr;
 		AstStmt stmt;
 	} data;
