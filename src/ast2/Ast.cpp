@@ -273,10 +273,15 @@ Ast::NumberLiteral(Span span, long long literal)
 }
 
 AstNode*
-Ast::TypeDeclarator(Span span, AstList<String*>* name, unsigned int indirection_level, bool is_impl)
+Ast::TypeDeclarator(
+	Span span,
+	AstList<String*>* name,
+	AstList<AstNode*>* type_params,
+	unsigned int indirection_level,
+	bool is_impl)
 {
 	auto node = make_empty<AstTypeDeclarator>(span);
-	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, is_impl};
+	node->data.type_declarator = AstTypeDeclarator{name, type_params, indirection_level, is_impl};
 	node->data.type_declarator.empty = false;
 	node->data.type_declarator.is_impl = is_impl;
 	return node;
@@ -286,12 +291,14 @@ AstNode*
 Ast::TypeDeclaratorArray(
 	Span span,
 	AstList<String*>* name,
+	AstList<AstNode*>* type_params,
 	unsigned int indirection_level,
 	unsigned int array_size,
 	bool is_impl)
 {
 	auto node = make_empty<AstTypeDeclarator>(span);
-	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, array_size, is_impl};
+	node->data.type_declarator =
+		AstTypeDeclarator{name, type_params, indirection_level, array_size, is_impl};
 	node->data.type_declarator.empty = false;
 	node->data.type_declarator.is_impl = is_impl;
 	return node;

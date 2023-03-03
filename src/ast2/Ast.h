@@ -62,9 +62,19 @@ public:
 	AstNode* For(Span span, AstNode* init, AstNode* condition, AstNode* end_loop, AstNode* body);
 	AstNode* StringLiteral(Span span, String* literal);
 	AstNode* NumberLiteral(Span span, long long literal);
-	AstNode* TypeDeclarator(Span span, AstList<String*>* name, unsigned int, bool is_impl);
+	AstNode* TypeDeclarator(
+		Span span,
+		AstList<String*>* name,
+		AstList<AstNode*>* type_params,
+		unsigned int,
+		bool is_impl);
 	AstNode* TypeDeclaratorArray(
-		Span span, AstList<String*>* name, unsigned int, unsigned int, bool is_impl);
+		Span span,
+		AstList<String*>* name,
+		AstList<AstNode*>* type_params,
+		unsigned int,
+		unsigned int,
+		bool is_impl);
 	AstNode* TypeDeclaratorEmpty();
 	AstNode* MemberAccess(Span span, AstNode* expr, AstNode* member_name);
 	AstNode* IndirectMemberAccess(Span span, AstNode* expr, AstNode* member_name);

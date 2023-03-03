@@ -594,20 +594,31 @@ struct AstTypeDeclarator
 	unsigned int array_size;
 	unsigned int indirection_level;
 	AstList<String*>* name;
+	AstList<AstNode*>* type_params;
 	bool empty;
 	bool is_impl;
 
 	AstTypeDeclarator() = default;
-	AstTypeDeclarator(AstList<String*>* name, unsigned int indirection_level, bool is_impl)
+	AstTypeDeclarator(
+		AstList<String*>* name,
+		AstList<AstNode*>* type_params,
+		unsigned int indirection_level,
+		bool is_impl)
 		: name(name)
+		, type_params(type_params)
 		, indirection_level(indirection_level)
 		, array_size(0)
 		, empty(false)
 		, is_impl(is_impl)
 	{}
 	AstTypeDeclarator(
-		AstList<String*>* name, unsigned int indirection_level, unsigned array_size, bool is_impl)
+		AstList<String*>* name,
+		AstList<AstNode*>* type_params,
+		unsigned int indirection_level,
+		unsigned array_size,
+		bool is_impl)
 		: name(name)
+		, type_params(type_params)
 		, indirection_level(indirection_level)
 		, array_size(array_size)
 		, empty(false)

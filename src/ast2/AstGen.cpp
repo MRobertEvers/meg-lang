@@ -286,10 +286,30 @@ AstGen::parse_type_decl(bool allow_empty)
 		star_tok = cursor.consume_if_expected(TokenType::star);
 	}
 
+	AstList<AstNode*>* type_params = ast.create_list();
+	auto open_angle_tok = cursor.consume_if_expected(TokenType::lt);
+	if( open_angle_tok.ok() )
+	{
+		tok = cursor.peek();
+		while( tok.type != TokenType::gt )
+		{
+			auto type_param_parsed = parse_type_decl(false);
+			if( !type_param_parsed.ok() )
+				return type_param_parsed;
+
+			type_params->append(type_param_parsed.unwrap());
+
+			cursor.consume_if_expected(TokenType::comma);
+
+			tok = cursor.peek();
+		}
+		cursor.consume(TokenType::gt);
+	}
+
 	// TODO: Clean this up.
 	auto array_tok = cursor.consume_if_expected(TokenType::open_square);
 	if( !array_tok.ok() )
-		return ast.TypeDeclarator(trail.mark(), name, indirection_count, is_impl);
+		return ast.TypeDeclarator(trail.mark(), name, type_params, indirection_count, is_impl);
 
 	auto literal_parse = parse_literal();
 	if( !literal_parse.ok() )
@@ -303,7 +323,12 @@ AstGen::parse_type_decl(bool allow_empty)
 		return ParseError("Expected ']'.", end_tok.as());
 
 	return ast.TypeDeclaratorArray(
-		trail.mark(), name, indirection_count, literal->data.number_literal.literal, is_impl);
+		trail.mark(),
+		name,
+		type_params,
+		indirection_count,
+		literal->data.number_literal.literal,
+		is_impl);
 }
 
 ParseResult<ast::AstNode*>

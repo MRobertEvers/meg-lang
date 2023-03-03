@@ -1,11 +1,11 @@
 extern fn printf(str: i8*, ...): void;
 
-fn iter_foo(): impl i32 {
+fn iter_foo(): impl generator<i32, i32, i32> {
     for (let i = 0; i < 5; i += 1)
     {
         printf("before %d\n", i);
-        yield i;
-        printf("after %d\n", i);
+        let recved = yield i;
+        printf("recved %d\n", recved);
     }
 
     return;
