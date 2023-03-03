@@ -8,6 +8,18 @@
 namespace sema
 {
 
+// class NameTable<T>
+// {
+// 	std::map<int, std::pair<sema::NameRef, T>> values_;
+
+// public:
+// 	NameTable<T>(){};
+
+// 	void insert(sema::NameRef name, T value);
+
+// 	T& lookup(sema::NameRef name);
+// };
+
 class NameLookupResult
 {
 	enum LookupResultKind

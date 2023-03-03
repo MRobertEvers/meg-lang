@@ -278,6 +278,7 @@ Ast::TypeDeclarator(Span span, AstList<String*>* name, unsigned int indirection_
 	auto node = make_empty<AstTypeDeclarator>(span);
 	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, is_impl};
 	node->data.type_declarator.empty = false;
+	node->data.type_declarator.is_impl = is_impl;
 	return node;
 }
 
@@ -292,6 +293,7 @@ Ast::TypeDeclaratorArray(
 	auto node = make_empty<AstTypeDeclarator>(span);
 	node->data.type_declarator = AstTypeDeclarator{name, indirection_level, array_size, is_impl};
 	node->data.type_declarator.empty = false;
+	node->data.type_declarator.is_impl = is_impl;
 	return node;
 }
 
@@ -301,6 +303,7 @@ Ast::TypeDeclaratorEmpty()
 	auto node = make_empty<AstTypeDeclarator>(Span{});
 	node->data.type_declarator = AstTypeDeclarator{};
 	node->data.type_declarator.empty = true;
+	node->data.type_declarator.is_impl = false;
 	return node;
 }
 

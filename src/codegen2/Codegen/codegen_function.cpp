@@ -77,9 +77,8 @@ codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			assert(maybe_name.has_value());
 			auto name = maybe_name.value();
 
-			llvm::AllocaInst* llvm_alloca =
-				codegen.builder_alloca(arg_abi.llvm_type) codegen.Builder->CreateAlloca(
-					arg_abi.llvm_type, nullptr, name.name().name_str());
+			llvm::AllocaInst* llvm_alloca = codegen.builder_alloca(arg_abi.llvm_type);
+			codegen.Builder->CreateAlloca(arg_abi.llvm_type, nullptr, name.name().name_str());
 			codegen.Builder->CreateStore(llvm_arg, llvm_alloca);
 
 			auto lvalue = LValue(llvm_alloca, arg_abi.llvm_type);
@@ -138,6 +137,9 @@ cg::codegen_function(CG& cg, ir::IRFunction* ir_fn)
 	auto bodyr = codegen_function_body(cg, fn_info, ir_fn->block);
 	if( !bodyr.ok() )
 		return bodyr;
+
+	for( llvm::BasicBlock* block : fn_info.blocks_ )
+		fn_sig_info.llvm_fn->getBasicBlockList().push_back(block);
 
 	return protor;
 }

@@ -572,6 +572,14 @@ sema::sema_expr_any(Sema2& sema, ast::AstNode* expr_node)
 
 		return sema.Expr(litr.unwrap());
 	}
+	case NodeType::Yield:
+	{
+		auto litr = sema_yield(sema, expr_node);
+		if( !litr.ok() )
+			return litr;
+
+		return sema.Expr(litr.unwrap());
+	}
 	default:
 		break;
 	}
@@ -612,9 +620,9 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 
 	// TODO: Async
 	bool is_async = false;
-	if( maybe_return_type.value().type->is_impl_ )
+	if( proto->fn_type->is_impl_ )
 	{
-		sema.async_fn_context_set(AsyncFnContext());
+		sema.async_fn_context_set(ir::GeneratorFn());
 		is_async = true;
 	}
 
@@ -626,10 +634,14 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 	// sema.clear_expected_return();
 	sema.pop_scope();
 
-	sema.async_fn_context_clear();
-
 	if( is_async )
-		return sema_fn_t(sema.Generator(ast, proto, bodyr.unwrap()));
+	{
+		auto ret =
+			sema_fn_t(sema.Generator(ast, sema.async_fn_context().value(), proto, bodyr.unwrap()));
+
+		sema.async_fn_context_clear();
+		return ret;
+	}
 	else
 		return sema_fn_t(sema.Fn(ast, proto, bodyr.unwrap()));
 }
@@ -922,6 +934,12 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 			sema.types.non_inferred(type_declr->type_instance, rhs->type_instance);
 
 		NameRef name_ref = sema.add_value_identifier(name_str, type_declr->type_instance);
+		if( sema.async_fn_context().has_value() )
+		{
+			ir::GeneratorFn& gen = sema.async_fn_context().value();
+			gen.locals.push_back(name_ref);
+		}
+
 		auto lhs_expr =
 			sema.Expr(sema.Id(let.identifier, name_ref, type_declr->type_instance, false));
 		return sema.Let(ast, name_ref, sema.Assign(ast, ast::AssignOp::assign, lhs_expr, rhs));
@@ -933,6 +951,12 @@ sema::sema_let(Sema2& sema, ast::AstNode* ast)
 							 "expression.");
 
 		NameRef name_ref = sema.add_value_identifier(name_str, type_declr->type_instance);
+		if( sema.async_fn_context().has_value() )
+		{
+			ir::GeneratorFn& gen = sema.async_fn_context().value();
+			gen.locals.push_back(name_ref);
+		}
+
 		return sema.LetEmpty(ast, name_ref, type_declr->type_instance);
 	}
 }
@@ -1090,6 +1114,22 @@ sema::sema_case(Sema2& sema, ast::AstNode* ast)
 		return sema_integral_case(sema, ast, case_node);
 	else
 		return SemaError("Unreachable?");
+}
+
+SemaResult<ir::IRYield*>
+sema::sema_yield(Sema2& sema, ast::AstNode* ast)
+{
+	auto assignr = expected(ast, ast::as_yield);
+	if( !assignr.ok() )
+		return assignr;
+	auto assign = assignr.unwrap();
+
+	auto exprr = sema_expr(sema, assign.expr);
+	if( !exprr.ok() )
+		return exprr;
+	auto expr = exprr.unwrap();
+
+	return sema.Yield(ast, expr, expr->type_instance);
 }
 
 static bool

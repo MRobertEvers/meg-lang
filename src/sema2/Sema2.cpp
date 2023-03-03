@@ -199,13 +199,14 @@ Sema2::TLS(ir::IRNamespace* st)
 }
 
 ir::IRGenerator*
-Sema2::Generator(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block)
+Sema2::Generator(ast::AstNode* node, ir::GeneratorFn fn, ir::IRProto* proto, ir::IRBlock* block)
 {
 	auto nod = new ir::IRGenerator;
 
 	nod->node = node;
 	nod->proto = proto;
 	nod->block = block;
+	nod->fn = fn;
 
 	return nod;
 }
@@ -471,6 +472,19 @@ Sema2::Expr(ir::IRInitializer* nl)
 	nod->node = nl->node;
 	nod->expr.initializer = nl;
 	nod->type = ir::IRExprType::Initializer;
+	nod->type_instance = nl->type_instance;
+
+	return nod;
+}
+
+ir::IRExpr*
+Sema2::Expr(ir::IRYield* nl)
+{
+	auto nod = new ir::IRExpr;
+
+	nod->node = nl->node;
+	nod->expr.yield = nl;
+	nod->type = ir::IRExprType::Yield;
 	nod->type_instance = nl->type_instance;
 
 	return nod;
@@ -773,12 +787,13 @@ Sema2::Else(ast::AstNode* node, ir::IRStmt* stmt)
 }
 
 ir::IRYield*
-Sema2::Yield(ast::AstNode* node, ir::IRExpr* expr)
+Sema2::Yield(ast::AstNode* node, ir::IRExpr* expr, sema::TypeInstance type_instance)
 {
 	auto nod = new ir::IRYield;
 
 	nod->node = node;
 	nod->expr = expr;
+	nod->type_instance = type_instance;
 
 	return nod;
 }

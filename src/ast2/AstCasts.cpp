@@ -367,3 +367,12 @@ ast::as_namespace(ast::AstNode* node)
 
 	return &node->data.namespace_node;
 }
+
+Cast<AstYield>
+ast::as_yield(ast::AstNode* node)
+{
+	if( node->type != AstYield::nt )
+		return Cast<AstYield>();
+
+	return &node->data.yield;
+}

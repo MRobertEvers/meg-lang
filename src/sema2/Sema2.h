@@ -25,12 +25,6 @@ struct SwitchContext
 	{}
 };
 
-struct AsyncFnContext
-{
-	// TODO: Other
-	AsyncFnContext() {}
-};
-
 class Sema2
 {
 	// std::vector<Scope> scopes;
@@ -43,7 +37,7 @@ class Sema2
 	std::vector<ir::IRTopLevelStmt*> generated;
 
 	std::optional<SwitchContext> switch_context_;
-	std::optional<AsyncFnContext> async_context_;
+	std::optional<ir::GeneratorFn> async_context_;
 
 public:
 	Types types;
@@ -63,12 +57,12 @@ public:
 	void set_expected_return(TypeInstance id);
 	void clear_expected_return();
 
-	std::optional<SwitchContext> switch_context() { return switch_context_; }
+	std::optional<SwitchContext>& switch_context() { return switch_context_; }
 	void switch_context_set(std::optional<SwitchContext> ctx) { switch_context_ = ctx; }
 	void switch_context_clear() { switch_context_.reset(); }
 
-	std::optional<AsyncFnContext> async_fn_context() { return async_context_; }
-	void async_fn_context_set(std::optional<AsyncFnContext> ctx) { async_context_ = ctx; }
+	std::optional<ir::GeneratorFn>& async_fn_context() { return async_context_; }
+	void async_fn_context_set(std::optional<ir::GeneratorFn> ctx) { async_context_ = ctx; }
 	void async_fn_context_clear() { async_context_.reset(); }
 
 	Type* CreateType(Type ty);
@@ -84,7 +78,8 @@ public:
 	ir::IRTopLevelStmt* TLS(ir::IREnum*);
 	ir::IRTopLevelStmt* TLS(ir::IRGenerator*);
 	ir::IRTopLevelStmt* TLS(ir::IRNamespace*);
-	ir::IRGenerator* Generator(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block);
+	ir::IRGenerator*
+	Generator(ast::AstNode* node, ir::GeneratorFn fn, ir::IRProto* proto, ir::IRBlock* block);
 	ir::IRFunction* Fn(ast::AstNode* node, ir::IRProto* proto, ir::IRBlock* block);
 	ir::IRCall* FnCall(ast::AstNode* node, ir::IRExpr* call_target, ir::IRArgs* args);
 	ir::IRExternFn* ExternFn(ast::AstNode* node, ir::IRProto* stmts);
@@ -112,6 +107,7 @@ public:
 	ir::IRExpr* Expr(ir::IREmpty*);
 	ir::IRExpr* Expr(ir::IRIs*);
 	ir::IRExpr* Expr(ir::IRInitializer*);
+	ir::IRExpr* Expr(ir::IRYield*);
 	ir::IRStmt* Stmt(ir::IRReturn*);
 	ir::IRStmt* Stmt(ir::IRExpr*);
 	ir::IRStmt* Stmt(ir::IRLet*);
@@ -145,7 +141,7 @@ public:
 	ir::IRIf*
 	IfArrow(ast::AstNode*, ir::IRExpr*, ir::IRStmt*, ir::IRElse*, std::vector<ir::IRParam*> args);
 	ir::IRElse* Else(ast::AstNode* node, ir::IRStmt* assign);
-	ir::IRYield* Yield(ast::AstNode* node, ir::IRExpr*);
+	ir::IRYield* Yield(ast::AstNode* node, ir::IRExpr*, sema::TypeInstance type_instance);
 	ir::IRAssign* Assign(ast::AstNode*, ast::AssignOp, ir::IRExpr*, ir::IRExpr*);
 	ir::IRBinOp* BinOp(ast::AstNode*, ast::BinOp, ir::IRExpr*, ir::IRExpr*, TypeInstance);
 	ir::IRStruct* Struct(

@@ -16,6 +16,7 @@ class NameId
 	int index_;
 
 public:
+	NameId() = default;
 	NameId(int index)
 		: index_(index)
 	{}
@@ -102,6 +103,7 @@ class NameRef
 	std::vector<Name>* names_;
 
 public:
+	NameRef() = default;
 	NameRef(std::vector<Name>* names, NameId id)
 		: names_(names)
 		, id_(id)

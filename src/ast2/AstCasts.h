@@ -58,6 +58,7 @@ Cast<AstInitializerDesignator> as_initializer_designator(ast::AstNode* node);
 Cast<AstSwitch> as_switch(ast::AstNode* node);
 Cast<AstCase> as_case(ast::AstNode* node);
 Cast<AstNamespace> as_namespace(ast::AstNode* node);
+Cast<AstYield> as_yield(ast::AstNode* node);
 
 // template<template<typename> typename Container, typename NodeType>
 // Container<NodeType>

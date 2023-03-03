@@ -1,25 +1,17 @@
 extern fn printf(str: i8*, ...): void;
 
-
-fn foo(a: i32): i32 {
-    printf("Hello\n");
-    return 1;
-}
-
 fn iter_foo(): impl i32 {
     for (let i = 0; i < 5; i += 1)
     {
         yield i;
     }
 
-    return 5;
+    return;
 }
 
 fn main(): i32 
 {
-    let try = &foo;
+    let iter = iter_foo();
 
-    iter_foo();
-
-    return try(1);
+    return 1;
 }

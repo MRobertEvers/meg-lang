@@ -45,7 +45,7 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 		{
 			// If no value was provided for the return value create a dummy alloca.
 			llvm::AllocaInst* llvm_sret_alloca =
-				codegen.builder_alloca(sret_arg_info.llvm_type, ".dummy");
+				codegen.builder_alloca(sret_arg_info.llvm_type->getPointerElementType(), ".dummy");
 			llvm_arg_values.push_back(llvm_sret_alloca);
 		}
 		arg_ind += 1;

@@ -10,15 +10,30 @@ namespace cg
 {
 class CG;
 
+struct LLVMYieldPoint
+{
+	llvm::BasicBlock* llvm_suspend_block;
+	llvm::BasicBlock* llvm_resume_block;
+
+	CGExpr yield_expr;
+
+	LLVMYieldPoint(llvm::BasicBlock* suspend, llvm::BasicBlock* resume, CGExpr yield_expr)
+		: llvm_suspend_block(suspend)
+		, llvm_resume_block(resume)
+		, yield_expr(yield_expr)
+	{}
+};
+
 class LLVMAsyncFn
 {
 public:
-	std::vector<llvm::BasicBlock*> yield_bbs;
+	llvm::BasicBlock* entry_block;
+	std::vector<LLVMYieldPoint> yield_bbs;
 	std::vector<LLVMAddress> allocas;
 	llvm::Type* llvm_send_return_type;
 	llvm::Type* llvm_frame_type;
 
-	void add_yield_bb(llvm::BasicBlock* bb) { yield_bbs.push_back(bb); }
+	void add_yield(LLVMYieldPoint yield) { yield_bbs.push_back(yield); }
 	void add_alloca(LLVMAddress alloca) { allocas.push_back(alloca); }
 };
 

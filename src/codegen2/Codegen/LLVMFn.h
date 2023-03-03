@@ -13,6 +13,7 @@ struct LLVMFnArgInfo
 {
 private:
 	LLVMFnArgInfo(LLVMArgABIInfo abi, LValue lvalue);
+	LLVMFnArgInfo(sema::NameRef name, LLVMArgABIInfo abi, LValue lvalue);
 
 public:
 	LLVMArgABIInfo abi;

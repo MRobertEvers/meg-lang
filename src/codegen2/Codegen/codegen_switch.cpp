@@ -51,10 +51,11 @@ cg::codegen_switch(CG& codegen, cg::LLVMFnInfo& fn, ir::IRSwitch* ir_switch)
 
 	codegen.Builder->SetInsertPoint(llvm_default_bb);
 	codegen.Builder->CreateBr(llvm_merge_bb);
-	fn.llvm_fn()->getBasicBlockList().push_back(llvm_default_bb);
+	fn.add_basic_block(llvm_default_bb);
+	// fn.llvm_fn()->getBasicBlockList().push_back(llvm_default_bb);
 
 	codegen.Builder->SetInsertPoint(llvm_merge_bb);
-	fn.llvm_fn()->getBasicBlockList().push_back(llvm_merge_bb);
+	fn.add_basic_block(llvm_merge_bb);
 
 	fn.set_switch_inst(restore_switch);
 	fn.set_merge_block(restore_merge_block);
@@ -76,9 +77,12 @@ cg::codegen_case(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCase* ir_case)
 
 	// TODO: If default block.
 	llvm::BasicBlock* llvm_case_bb =
-		ir_case->is_default ? switch_info.default_bb()
-							: llvm::BasicBlock::Create(
-								  *codegen.Context, std::to_string(ir_case->value), fn.llvm_fn());
+		ir_case->is_default
+			? switch_info.default_bb()
+			: llvm::BasicBlock::Create(*codegen.Context, std::to_string(ir_case->value));
+
+	if( !ir_case->is_default )
+		fn.add_basic_block(llvm_case_bb);
 
 	llvm_switch_inst->addCase(llvm_const_int, llvm_case_bb);
 

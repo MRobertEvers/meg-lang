@@ -9,9 +9,9 @@ using namespace cg;
 CGResult<CGExpr>
 cg::codegen_while(CG& codegen, cg::LLVMFnInfo& fn, ir::IRWhile* ir_while)
 {
-	auto llvm_fn = fn.llvm_fn();
-	llvm::BasicBlock* llvm_cond_bb =
-		llvm::BasicBlock::Create(*codegen.Context, "condition", llvm_fn);
+	// auto llvm_fn = fn.llvm_fn();
+	llvm::BasicBlock* llvm_cond_bb = llvm::BasicBlock::Create(*codegen.Context, "condition");
+	fn.add_basic_block(llvm_cond_bb);
 	llvm::BasicBlock* llvm_loop_bb = llvm::BasicBlock::Create(*codegen.Context, "loop");
 	llvm::BasicBlock* llvm_done_bb = llvm::BasicBlock::Create(*codegen.Context, "after_loop");
 
@@ -33,7 +33,7 @@ cg::codegen_while(CG& codegen, cg::LLVMFnInfo& fn, ir::IRWhile* ir_while)
 	auto llvm_cond = codegen_operand_expr(codegen, cond);
 	// TODO: Typecheck is boolean or cast?
 	codegen.Builder->CreateCondBr(llvm_cond, llvm_loop_bb, llvm_done_bb);
-	llvm_fn->getBasicBlockList().push_back(llvm_loop_bb);
+	fn.add_basic_block(llvm_loop_bb);
 	codegen.Builder->SetInsertPoint(llvm_loop_bb);
 
 	auto bodyr = codegen.codegen_stmt(fn, ir_while->body);
@@ -43,7 +43,7 @@ cg::codegen_while(CG& codegen, cg::LLVMFnInfo& fn, ir::IRWhile* ir_while)
 
 	codegen.Builder->CreateBr(llvm_cond_bb);
 
-	llvm_fn->getBasicBlockList().push_back(llvm_done_bb);
+	fn.add_basic_block(llvm_done_bb);
 	codegen.Builder->SetInsertPoint(llvm_done_bb);
 
 	return CGExpr();

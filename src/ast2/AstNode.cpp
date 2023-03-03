@@ -88,5 +88,11 @@ ast::to_string(NodeType type)
 		return "Case";
 	case NodeType::Switch:
 		return "Switch";
+	case NodeType::Yield:
+		return "Yield";
+	case NodeType::Is:
+		return "Is";
+	case NodeType::Namespace:
+		return "Namespace";
 	}
 }

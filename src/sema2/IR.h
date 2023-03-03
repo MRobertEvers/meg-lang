@@ -84,9 +84,19 @@ struct IRFunction
 	IRBlock* block;
 };
 
+struct GeneratorFn
+{
+	// TODO: Other
+	std::vector<sema::NameRef> locals;
+
+	GeneratorFn() {}
+};
+
 struct IRGenerator
 {
 	ast::AstNode* node;
+	GeneratorFn fn;
+
 	//
 	IRProto* proto;
 	IRBlock* block;
@@ -481,6 +491,7 @@ struct IRYield
 {
 	ast::AstNode* node;
 	IRExpr* expr;
+	sema::TypeInstance type_instance;
 };
 
 // TODO: Supporting data structure not IR

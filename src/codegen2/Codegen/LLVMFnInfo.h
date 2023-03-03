@@ -78,6 +78,8 @@ struct LLVMFnInfo
 	std::optional<llvm::BasicBlock*> merge_block_;
 	std::optional<LLVMSwitchInfo> switch_info_;
 
+	std::vector<llvm::BasicBlock*> blocks_;
+
 	LLVMFnInfo(
 		LLVMFnSigInfo sig_info,
 		std::map<int, LLVMFnArgInfo> named_args,
@@ -86,7 +88,13 @@ struct LLVMFnInfo
 	bool has_sret_arg() const;
 	LLVMFnArgInfo sret() const;
 
-	llvm::Function* llvm_fn() const { return sig_info.llvm_fn; }
+	// llvm::Function* llvm_fn() const { return sig_info.llvm_fn; }
+	void add_basic_block(llvm::BasicBlock* block)
+	{
+		blocks_.push_back(block);
+		if( sig_info.llvm_fn )
+			block->insertInto(sig_info.llvm_fn);
+	}
 
 	// TODO: This is inviting bad code.
 	// How to keep track of if - else if - chains, without

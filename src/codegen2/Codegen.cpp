@@ -61,9 +61,18 @@ CG::builder_alloca(llvm::Type* llvm_type)
 llvm::AllocaInst*
 CG::builder_alloca(llvm::Type* llvm_type, std::string name)
 {
-	llvm::AllocaInst* llvm_alloca = builder_alloca(llvm_type, name);
+	llvm::BasicBlock* llvm_restore_block;
 	if( async_context.has_value() )
+	{
+		llvm_restore_block = Builder->GetInsertBlock();
+		Builder->SetInsertPoint(async_context.value().entry_block);
+	}
+	llvm::AllocaInst* llvm_alloca = Builder->CreateAlloca(llvm_type, nullptr, name);
+	if( async_context.has_value() )
+	{
+		Builder->SetInsertPoint(llvm_restore_block);
 		async_context.value().add_alloca(LLVMAddress(llvm_alloca, llvm_type));
+	}
 
 	return llvm_alloca;
 }
@@ -101,7 +110,7 @@ CG::codegen_tls(ir::IRTopLevelStmt* tls)
 	case ir::IRTopLevelType::Function:
 		return codegen_function(*this, tls->stmt.fn);
 	case ir::IRTopLevelType::Generator:
-		return codegen_generator(*this, tls->stmt.fn);
+		return codegen_generator(*this, tls->stmt.generator);
 	case ir::IRTopLevelType::Struct:
 		return codegen_struct(tls->stmt.struct_decl);
 	case ir::IRTopLevelType::Union:
@@ -183,7 +192,7 @@ CG::codegen_expr(cg::LLVMFnInfo& fn, ir::IRExpr* expr, std::optional<LValue> lva
 	case ir::IRExprType::Initializer:
 		return codegen_initializer(*this, fn, expr->expr.initializer, lvalue);
 	case ir::IRExprType::Yield:
-		return codegen_yield(*this, fn, expr->expr.yield, lvalue);
+		return codegen_yield(*this, fn, expr->expr.yield);
 	case ir::IRExprType::Empty:
 		return CGExpr();
 	}
@@ -335,8 +344,8 @@ CG::codegen_for(cg::LLVMFnInfo& fn, ir::IRFor* ir_for)
 		return forr;
 	auto for_stmt = forr.unwrap();
 
-	auto llvm_fn = fn.llvm_fn();
-	llvm::BasicBlock* llvm_cond_bb = llvm::BasicBlock::Create(*Context, "condition", llvm_fn);
+	llvm::BasicBlock* llvm_cond_bb = llvm::BasicBlock::Create(*Context, "condition");
+	fn.add_basic_block(llvm_cond_bb);
 	llvm::BasicBlock* llvm_loop_bb = llvm::BasicBlock::Create(*Context, "loop");
 	llvm::BasicBlock* llvm_done_bb = llvm::BasicBlock::Create(*Context, "after_loop");
 
@@ -353,7 +362,7 @@ CG::codegen_for(cg::LLVMFnInfo& fn, ir::IRFor* ir_for)
 	auto llvm_cond = codegen_operand_expr(*this, cond);
 	// TODO: Typecheck is boolean or cast?
 	Builder->CreateCondBr(llvm_cond, llvm_loop_bb, llvm_done_bb);
-	llvm_fn->getBasicBlockList().push_back(llvm_loop_bb);
+	fn.add_basic_block(llvm_loop_bb);
 	Builder->SetInsertPoint(llvm_loop_bb);
 
 	auto bodyr = codegen_stmt(fn, ir_for->body);
@@ -368,7 +377,7 @@ CG::codegen_for(cg::LLVMFnInfo& fn, ir::IRFor* ir_for)
 
 	Builder->CreateBr(llvm_cond_bb);
 
-	llvm_fn->getBasicBlockList().push_back(llvm_done_bb);
+	fn.add_basic_block(llvm_done_bb);
 	Builder->SetInsertPoint(llvm_done_bb);
 
 	return CGExpr();
