@@ -31,8 +31,8 @@ cg_send_result_struct(CG& codegen, LLVMAsyncFn& async_fn)
 	members.push_back(llvm_done_ty);
 
 	// TODO: Hardcode to i32
-	llvm::Type* llvm_payload_ty = llvm::Type::getInt32Ty(*codegen.Context);
-	members.push_back(llvm_payload_ty);
+	llvm::Type* llvm_yield_ty = llvm::Type::getInt32Ty(*codegen.Context);
+	members.push_back(llvm_yield_ty);
 
 	llvm::StructType* llvm_struct_type =
 		llvm::StructType::create(*codegen.Context, members, "SendResult<i32>");
@@ -150,9 +150,19 @@ cg_send_fn(
 
 		auto llvm_yield_ptr =
 			codegen.Builder->CreateStructGEP(llvm_send_return_type, llvm_fn->getArg(0), 1);
-		auto llvm_yielded_value = codegen_operand_expr(codegen, yield.yield_expr);
-		// TODO: Support complex return type.
-		codegen.Builder->CreateStore(llvm_yielded_value, llvm_yield_ptr);
+		if( yield.yield_expr.is_rvalue() )
+		{
+			auto llvm_yielded_value = codegen_operand_expr(codegen, yield.yield_expr);
+			// TODO: Support complex return type.
+			codegen.Builder->CreateStore(llvm_yielded_value, llvm_yield_ptr);
+		}
+		else
+		{
+			LLVMAddress src_addr = yield.yield_expr.address();
+			LLVMAddress dest_addr =
+				LLVMAddress(llvm_yield_ptr, llvm_yield_ptr->getType()->getPointerElementType());
+			cg_copy(codegen, src_addr, dest_addr);
+		}
 
 		codegen.Builder->CreateRetVoid();
 	}
@@ -170,7 +180,24 @@ cg_send_fn(
 			codegen.Builder->CreateStructGEP(llvm_send_return_type, llvm_fn->getArg(0), 0);
 		codegen.Builder->CreateStore(llvm_one_1bit, llvm_ret_done_ptr);
 
+		auto llvm_return_ptr =
+			codegen.Builder->CreateStructGEP(llvm_frame_type, llvm_fn->getArg(1), 2);
+
 		// TODO: Store return expr in frame.
+
+		if( return_block.yield_expr.is_rvalue() )
+		{
+			auto llvm_yielded_value = codegen_operand_expr(codegen, return_block.yield_expr);
+			// TODO: Support complex return type.
+			codegen.Builder->CreateStore(llvm_yielded_value, llvm_return_ptr);
+		}
+		else
+		{
+			LLVMAddress src_addr = return_block.yield_expr.address();
+			LLVMAddress result_addr =
+				LLVMAddress(llvm_return_ptr, llvm_return_ptr->getType()->getPointerElementType());
+			cg_copy(codegen, src_addr, result_addr);
+		}
 
 		codegen.Builder->CreateBr(return_block.llvm_resume_block);
 	}
@@ -211,14 +238,18 @@ cg_frame(CG& codegen, ir::GeneratorFn& fn, LLVMAsyncFn& async_fn)
 	//
 	std::vector<llvm::Type*> members;
 
-	llvm::Type* llvm_step_type = llvm::Type::getInt32Ty(*codegen.Context);
-	members.push_back(llvm_step_type);
+	llvm::Type* llvm_step_idx_type = llvm::Type::getInt32Ty(*codegen.Context);
+	members.push_back(llvm_step_idx_type);
 
 	for( auto& local : fn.locals )
 	{
 		llvm::Type* llvm_local_type = get_type(codegen, local.type()).unwrap();
 		members.push_back(llvm_local_type);
 	}
+
+	// TODO: Hardcode to i32
+	llvm::Type* llvm_ret_ty = llvm::Type::getInt32Ty(*codegen.Context);
+	members.push_back(llvm_ret_ty);
 
 	llvm::StructType* llvm_struct_type =
 		llvm::StructType::create(*codegen.Context, members, "AsyncFn<i32, i32>");

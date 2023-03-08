@@ -8,7 +8,7 @@ fn iter_foo(): impl generator<i32, i32, i32> {
         printf("recved %d\n", recved);
     }
 
-    return;
+    return 3;
 }
 
 fn main(): i32 
