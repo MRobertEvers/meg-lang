@@ -7,10 +7,15 @@ using namespace sema;
 Type::Type(std::string name)
 	: name(name)
 	, is_var_arg_(false)
-	, cls(TypeClassification::primitive){};
+	, cls(Kind::Primitive){};
 
-Type::Type(
-	std::string name, std::map<std::string, MemberTypeInstance> members, TypeClassification cls)
+Type::Type(std::string name, std::vector<TypeInstance> type_parameters, Kind cls, Kind template_cls)
+	: name(name)
+	, type_parameters(type_parameters)
+	, template_cls(template_cls)
+	, cls(cls){};
+
+Type::Type(std::string name, std::map<std::string, MemberTypeInstance> members, Kind cls)
 	: name(name)
 	, members(members)
 	, is_var_arg_(false)
@@ -32,7 +37,7 @@ Type::Type(
 	, members_order(args)
 	, return_type(return_type)
 	, is_var_arg_(is_var_arg)
-	, cls(TypeClassification::function)
+	, cls(Kind::Function)
 {
 	for( auto arg : args )
 	{
@@ -44,13 +49,13 @@ Type::~Type()
 {
 	// switch( cls )
 	// {
-	// case TypeClassification::function:
+	// case Kind::Function:
 	// 	this->type_info.fn_.~FunctionTypeInfo();
 	// 	break;
-	// case TypeClassification::struct_cls:
+	// case Kind::Struct:
 	// 	this->type_info.struct_.~StructTypeInfo();
 	// 	break;
-	// case TypeClassification::primitive:
+	// case Kind::Primitive:
 	// 	break;
 	// }
 }
@@ -89,7 +94,7 @@ Type::get_member(int idx) const
 int
 Type::get_member_count() const
 {
-	if( cls == TypeClassification::function )
+	if( cls == Kind::Function )
 		return members_order.size();
 	else
 		return members.size();
@@ -106,7 +111,7 @@ Type::set_enum_members(std::map<std::string, MemberTypeInstance> members)
 std::optional<TypeInstance>
 Type::get_return_type() const
 {
-	if( cls != TypeClassification::function )
+	if( cls != Kind::Function )
 		return std::optional<TypeInstance>();
 
 	return this->return_type;
@@ -120,6 +125,15 @@ Type::get_dependent_type() const
 		return this->dependent_on_type_;
 	else
 		return this;
+}
+
+Type
+Type::instantiate_template(std::vector<TypeInstance> concrete_types) const
+{
+	assert(concrete_types.size() == type_parameters.size());
+
+	// TODO: template name
+	return Type("template", concrete_types, template_cls, Kind::None);
 }
 
 Type
@@ -142,14 +156,14 @@ Type::Function(
 Type
 Type::Struct(std::string const& name, std::map<std::string, MemberTypeInstance> members)
 {
-	return Type{name, members, TypeClassification::struct_cls};
+	return Type{name, members, Kind::Struct};
 }
 
 Type
 Type::Struct(
 	std::string const& name, std::map<std::string, MemberTypeInstance> members, EnumNominal nominal)
 {
-	auto type = Type{name, members, TypeClassification::struct_cls};
+	auto type = Type{name, members, Kind::Struct};
 	type.nominal_ = nominal;
 	return type;
 }
@@ -157,13 +171,26 @@ Type::Struct(
 Type
 Type::Union(std::string const& name, std::map<std::string, MemberTypeInstance> members)
 {
-	return Type{name, members, TypeClassification::union_cls};
+	return Type{name, members, Kind::Union};
 }
 
 Type
 Type::EnumPartial(std::string const& name)
 {
-	return Type{name, {}, TypeClassification::enum_cls};
+	return Type{name, {}, Kind::Enum};
+}
+
+Type
+Type::Generic(std::string name)
+{
+	return Type{name, {}, Kind::Generic};
+}
+
+Type
+Type::Template(std::string name, std::vector<TypeInstance> type_params)
+{
+	//
+	return Type{name, type_params, Kind::Template, Kind::Struct};
 }
 
 Type

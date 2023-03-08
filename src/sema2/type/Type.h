@@ -26,20 +26,24 @@ namespace sema
 class Type
 {
 private:
-	enum class TypeClassification
+	enum class Kind
 	{
-		function,
-		struct_cls,
-		union_cls,
-		enum_cls,
-		enum_member_cls,
-		primitive,
+		None,
+		Function,
+		Struct,
+		Union,
+		Enum,
+		Primitive,
+		Generic,
+		Template,
 	};
 
-	TypeClassification cls = TypeClassification::primitive;
+	Kind cls = Kind::Primitive;
+	Kind template_cls = Kind::None;
 	std::map<std::string, MemberTypeInstance> members;
 
 	std::vector<MemberTypeInstance> members_order;
+	std::vector<TypeInstance> type_parameters;
 
 	// For integers
 	int int_width_ = 0;
@@ -56,7 +60,8 @@ private:
 	std::string name;
 
 	Type(std::string name);
-	Type(std::string name, std::map<std::string, MemberTypeInstance> members, TypeClassification);
+	Type(std::string name, std::vector<TypeInstance> type_parameters, Kind, Kind);
+	Type(std::string name, std::map<std::string, MemberTypeInstance> members, Kind);
 	Type(
 		std::string name,
 		std::vector<MemberTypeInstance> args,
@@ -70,10 +75,11 @@ public:
 	~Type();
 
 	std::optional<TypeInstance> get_return_type() const;
-	bool is_function_type() const { return cls == TypeClassification::function; }
-	bool is_struct_type() const { return cls == TypeClassification::struct_cls; }
-	bool is_union_type() const { return cls == TypeClassification::union_cls; }
-	bool is_enum_type() const { return cls == TypeClassification::enum_cls; }
+	bool is_function_type() const { return cls == Kind::Function; }
+	bool is_struct_type() const { return cls == Kind::Struct; }
+	bool is_union_type() const { return cls == Kind::Union; }
+	bool is_enum_type() const { return cls == Kind::Enum; }
+	bool is_template() const { return cls == Kind::Template; }
 	std::string get_name() const;
 
 	// Enum members only
@@ -94,6 +100,8 @@ public:
 	Type const* get_dependent_type() const;
 	void set_dependent_type(Type const* t) { this->dependent_on_type_ = t; };
 
+	Type instantiate_template(std::vector<TypeInstance> concrete_types) const;
+
 	static Type Function(std::string const&, std::vector<MemberTypeInstance>, TypeInstance, bool);
 	static Type Function(std::string const&, std::vector<MemberTypeInstance>, TypeInstance);
 	static Type Struct(std::string const& name, std::map<std::string, MemberTypeInstance> members);
@@ -101,6 +109,8 @@ public:
 	Struct(std::string const& name, std::map<std::string, MemberTypeInstance>, EnumNominal);
 	static Type Union(std::string const& name, std::map<std::string, MemberTypeInstance> members);
 	static Type EnumPartial(std::string const& name);
+	static Type Generic(std::string name);
+	static Type Template(std::string name, std::vector<TypeInstance> type_params);
 	static Type Primitive(std::string name);
 	static Type Primitive(std::string name, int bit_width);
 	static Type Primitive(std::string name, EnumNominal);

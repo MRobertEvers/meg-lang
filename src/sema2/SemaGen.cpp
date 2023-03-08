@@ -1809,7 +1809,7 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 	auto type_declr = expected(ast, ast::as_type_decl);
 	if( !type_declr.ok() )
 		return type_declr;
-	auto type_decl = type_declr.unwrap();
+	ast::AstTypeDeclarator type_decl = type_declr.unwrap();
 
 	if( !type_decl.empty )
 	{
@@ -1818,9 +1818,53 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 
 		if( !lu_result.is_found() || !lu_result.result().name().is_type() )
 			return SemaError("Could not find type '" + qname.to_string() + "'");
-		auto type = lu_result.result().name().type().type;
 
-		auto type_instance = TypeInstance::PointerTo(type, type_decl.indirection_level);
+		NameRef type_name = lu_result.result();
+		Type const* type = type_name.name().type().type;
+
+		if( type->is_template() )
+		{
+			//
+			// TODO: not great.
+			std::string longname = "";
+
+			std::vector<TypeInstance> type_params;
+			for( auto type_param : type_decl.type_params )
+			{
+				QualifiedName param_qname = idname(*type_param->data.type_declarator.name);
+				NameLookupResult param_lu_result = sema.lookup_fqn(qname);
+
+				if( !param_lu_result.is_found() || !param_lu_result.result().name().is_type() )
+					return SemaError("Could not find type '" + param_qname.to_string() + "'");
+
+				type_params.push_back(param_lu_result.result().type());
+
+				longname += param_qname.to_string();
+			}
+
+			// Instantiate the template
+			// TODO: How to specify template stuff.
+
+			std::optional<sema::NameRef> maybe_template_instance = type_name.lookup_local(longname);
+			if( !maybe_template_instance.has_value() )
+			{
+				Type const* instantiated_type =
+					sema.types.define_type(type->instantiate_template(type_params));
+				type_name.add_name(Name(
+					longname,
+					type_name.id(),
+					TypeInstance::OfType(instantiated_type),
+					Name::NameKind::Type));
+
+				type = instantiated_type;
+			}
+			else
+			{
+				type = maybe_template_instance.value().name().type().type;
+			}
+		}
+
+		TypeInstance type_instance = TypeInstance::PointerTo(type, type_decl.indirection_level);
 
 		if( type_decl.array_size > 0 )
 			type_instance = TypeInstance::ArrayOf(type_instance, type_decl.array_size);

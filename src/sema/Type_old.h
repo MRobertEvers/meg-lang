@@ -22,7 +22,7 @@ static char const* infer_type_name = "@_infer";
 class Type
 {
 private:
-	enum class TypeClassification
+	enum class Kind
 	{
 		function,
 		struct_cls,
@@ -48,21 +48,21 @@ private:
 
 	Type(Type const& base, bool dummy)
 		: base(&base)
-		, cls(TypeClassification::pointer){};
+		, cls(Kind::pointer){};
 
 	Type(String name)
 		: name(name)
-		, cls(TypeClassification::primitive){};
+		, cls(Kind::Primitive){};
 
 	Type(String name, std::map<String, Type const*> members)
 		: name(name)
 		, members(members)
-		, cls(TypeClassification::struct_cls){};
+		, cls(Kind::Struct){};
 
 	Type(String name, Vec<Type const*> args, Type const* return_type)
 		: name(name)
 		, return_type(return_type)
-		, cls(TypeClassification::function)
+		, cls(Kind::Function)
 	{
 		for( auto arg : args )
 		{
@@ -71,7 +71,7 @@ private:
 	};
 
 public:
-	TypeClassification cls = TypeClassification::primitive;
+	Kind cls = Kind::Primitive;
 
 	// Copy constructor
 	Type(Type const& other)
@@ -92,9 +92,9 @@ public:
 	};
 
 	bool is_infer_type() const { return name == infer_type_name; }
-	bool is_pointer_type() const { return cls == TypeClassification::pointer; }
-	bool is_function_type() const { return cls == TypeClassification::function; }
-	bool is_struct_type() const { return cls == TypeClassification::struct_cls; }
+	bool is_pointer_type() const { return cls == Kind::pointer; }
+	bool is_function_type() const { return cls == Kind::Function; }
+	bool is_struct_type() const { return cls == Kind::Struct; }
 	String get_name() const;
 
 	Type const* get_base() const;

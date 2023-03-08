@@ -46,6 +46,16 @@ NameRef::lookup(std::string name_str) const
 	return std::optional<NameRef>();
 }
 
+std::optional<NameRef>
+NameRef::lookup_local(std::string name_str) const
+{
+	Name& name = this->name();
+	auto maybe_id = name.lookup(name_str);
+	if( maybe_id.has_value() )
+		return NameRef(names_, maybe_id.value());
+	return std::optional<NameRef>();
+}
+
 NameRef
 NameRef::add_name(Name create_name)
 {

@@ -13,6 +13,17 @@ Sema2::Sema2()
 		auto second = &ty.second;
 		add_type_identifier(second);
 	}
+
+	Type const* template_param_1 = types.define_type(Type::Generic("TYield"));
+	Type const* template_param_2 = types.define_type(Type::Generic("TSend"));
+	Type const* template_param_3 = types.define_type(Type::Generic("TRet"));
+	Type const* generator_type = types.define_type(Type::Template(
+		"generator",
+		{TypeInstance::OfType(template_param_1),
+		 TypeInstance::OfType(template_param_2),
+		 TypeInstance::OfType(template_param_3)}));
+
+	add_type_identifier(generator_type);
 }
 
 Type*

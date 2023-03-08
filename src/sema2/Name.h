@@ -113,6 +113,7 @@ public:
 	Name& operator->() { return name(); }
 
 	std::optional<NameRef> lookup(std::string) const;
+	std::optional<NameRef> lookup_local(std::string) const;
 	NameRef add_name(Name);
 	TypeInstance type() const { return name().type(); }
 	NameId id() const { return id_; }
