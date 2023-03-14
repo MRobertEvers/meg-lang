@@ -35,13 +35,13 @@ cg::codegen_fn_sig_info(CG& codegen, LLVMFnSigInfoBuilder const& builder)
 				llvm::AttrBuilder().addStructRetAttr(abi_arg.llvm_type->getPointerElementType()));
 			break;
 		}
-		case LLVMArgABIInfo::Value:
+		case LLVMArgABIInfo::ValueRef:
 		{
-			// TODO: Avoid getPointerElementType
-			if( llvm_arg->getType()->isAggregateType() )
-				llvm_arg->addAttrs(llvm::AttrBuilder().addByValAttr(abi_arg.llvm_type));
+			llvm_arg->addAttrs(llvm::AttrBuilder().addByValAttr(abi_arg.llvm_type));
 			break;
 		}
+		case LLVMArgABIInfo::Value:
+			break;
 		}
 
 		arg_ind++;

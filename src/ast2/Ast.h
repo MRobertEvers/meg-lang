@@ -44,8 +44,6 @@ public:
 	AstNode* Block(Span span, AstList<AstNode*>* statements);
 	AstNode* BinOp(Span span, BinOp op, AstNode* left, AstNode* right);
 	AstNode* Id(Span span, AstList<String*>*);
-	// AstNode* TypeId(Span span, String* name);
-	// AstNode* ValueId(Span span, String* name);
 	AstNode* Assign(Span span, AssignOp op, AstNode* left, AstNode* right);
 	AstNode* If(Span span, AstNode* condition, AstNode* then_block, AstNode* else_block);
 	AstNode* IfArrow(Span span, AstNode* args, AstNode* block);

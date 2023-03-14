@@ -29,15 +29,4 @@ public:
 	}
 };
 
-// class SimpleName
-// {
-// 	std::string simple_;
-
-// public:
-// 	SimpleName(){};
-// 	SimpleName(std::string const& name)
-// 		: simple_(name){};
-
-// 	std::string to_string() const { return simple_; }
-// }
 } // namespace sema

@@ -102,7 +102,7 @@ static DebugTokenTypeString debug_tokentype_string[] = {
 	{TokenType::union_keyword, "union"},
 	{TokenType::enum_keyword, "enum"},
 	{TokenType::dot, "dot"},
-	{TokenType::eof, "<EOF>"},
+	{TokenType::eof, "Eof"},
 	{TokenType::bad, "bad"},
 	{TokenType::for_keyword, "for"},
 	{TokenType::is, "is"},

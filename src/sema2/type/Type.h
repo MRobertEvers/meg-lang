@@ -95,6 +95,9 @@ public:
 	MemberTypeInstance get_member(int idx) const;
 	int get_member_count() const;
 
+	TypeInstance get_type_parameter(int idx) const;
+	int get_type_parameter_count() const;
+
 	// The enum members depend on the parent type.
 	void set_enum_members(std::map<std::string, MemberTypeInstance> members);
 	Type const* get_dependent_type() const;

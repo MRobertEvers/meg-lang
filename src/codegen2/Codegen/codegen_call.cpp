@@ -58,7 +58,7 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			return arg_exprr;
 
 		auto arg_expr = arg_exprr.unwrap();
-		auto abi_info = callee_sig_info.arg_type(arg_ind);
+		LLVMArgABIInfo abi_info = callee_sig_info.arg_type(arg_ind);
 
 		switch( abi_info.attr )
 		{
@@ -72,6 +72,13 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 		}
 		case LLVMArgABIInfo::Value:
 		{
+			auto llvm_value = codegen_operand_expr(codegen, arg_expr);
+
+			llvm_arg_values.push_back(llvm_value);
+			break;
+		}
+		case LLVMArgABIInfo::ValueRef:
+		{
 			// TODO: This is a bit confusing.
 			// Passing struct by values actually passes a pointer.
 			// We need to make a copy in a new alloca, and then pass
@@ -80,17 +87,8 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			{
 				auto address = arg_expr.address();
 				auto llvm_arg_expr_value = arg_expr.address().llvm_pointer();
-				llvm::AllocaInst* llvm_cpy_alloca =
-					codegen.builder_alloca(address.llvm_allocated_type());
-				auto llvm_size =
-					codegen.Module->getDataLayout().getTypeAllocSize(address.llvm_allocated_type());
-				auto llvm_align =
-					codegen.Module->getDataLayout().getPrefTypeAlign(address.llvm_allocated_type());
 
-				codegen.Builder->CreateMemCpy(
-					llvm_cpy_alloca, llvm_align, llvm_arg_expr_value, llvm_align, llvm_size);
-
-				llvm_arg_values.push_back(llvm_cpy_alloca);
+				llvm_arg_values.push_back(llvm_arg_expr_value);
 				break;
 			}
 			else

@@ -80,11 +80,11 @@ cg::codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 		}
 		case LLVMArgABIInfo::SRet:
 		{
-			// TODO: Opaque pointer.
-			builder.add_arg(LLVMFnArgInfo::SRet(
-				arg_abi, LValue(llvm_arg, arg_abi.llvm_type->getPointerElementType())));
+			builder.add_arg(
+				LLVMFnArgInfo::SRet(arg_abi, LValue(llvm_arg, arg_abi.llvm_value_type)));
 			break;
 		}
+		case LLVMArgABIInfo::ValueRef:
 		case LLVMArgABIInfo::Value:
 		{
 			auto maybe_name = fn_info.get_arg_name(arg_ind);

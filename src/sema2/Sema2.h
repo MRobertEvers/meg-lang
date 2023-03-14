@@ -40,6 +40,7 @@ class Sema2
 	std::optional<ir::GeneratorFn> async_context_;
 
 public:
+	std::optional<TypeInstance> expected_yield_type;
 	Types types;
 	Sema2();
 

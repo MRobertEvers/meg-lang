@@ -631,6 +631,7 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 	if( proto->fn_type->is_impl_ )
 	{
 		sema.async_fn_context_set(ir::GeneratorFn());
+		sema.expected_yield_type = proto->rt->type_instance.type->get_type_parameter(1);
 		is_async = true;
 	}
 
@@ -644,23 +645,31 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 
 	if( is_async )
 	{
-		// TODO: Actual template return type.
-		auto payload_type = sema.types.i32_type();
+		auto payload_type = proto->rt->type_instance.type->get_type_parameter(0);
 
 		std::map<std::string, MemberTypeInstance> members;
 		members.emplace("done", MemberTypeInstance(sema.types.BoolType(), 0));
-		members.emplace("value", MemberTypeInstance(TypeInstance::OfType(payload_type), 1));
+		members.emplace("value", MemberTypeInstance(payload_type, 1));
 		sema::Type struct_type = sema::Type::Struct(proto->name.to_fqn_string() + "#send", members);
 		auto send_result_type = sema.CreateType(struct_type);
 
 		sema::NameRef name_ref = sema.add_type_identifier(send_result_type);
 		name_ref.add_name(Name("done", sema.types.BoolType(), sema::Name::NameKind::Member));
-		name_ref.add_name(
-			Name("value", TypeInstance::OfType(payload_type), sema::Name::NameKind::Member));
+		name_ref.add_name(Name("value", payload_type, sema::Name::NameKind::Member));
 
+		// sema::Type* begin_fn_type = sema.CreateType(Type::Function(
+		// 	proto->name.to_fqn_string() + "_send",
+		// 	{MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0)},
+		// 	TypeInstance::OfType(send_result_type),
+		// 	false));
+
+		auto send_type = proto->rt->type_instance.type->get_type_parameter(1);
 		sema::Type* send_fn_type = sema.CreateType(Type::Function(
 			proto->name.to_fqn_string() + "_send",
-			{MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0)},
+			{
+				MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0),
+				MemberTypeInstance(send_type, 1) //
+			},
 			TypeInstance::OfType(send_result_type),
 			false));
 
@@ -669,10 +678,13 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 
 		send_name_ref.add_name(
 			Name("frame", proto->rt->type_instance.PointerTo(1), Name::NameKind::Member));
+		// This is the send value.
+		send_name_ref.add_name(Name("send", send_type, Name::NameKind::Member));
 
 		auto ret = sema_fn_t(sema.Generator(
 			ast, sema.async_fn_context().value(), send_name_ref, proto, bodyr.unwrap()));
 
+		sema.expected_yield_type.reset();
 		sema.async_fn_context_clear();
 		return ret;
 	}
@@ -1182,7 +1194,7 @@ sema::sema_yield(Sema2& sema, ast::AstNode* ast)
 		return exprr;
 	auto expr = exprr.unwrap();
 
-	return sema.Yield(ast, expr, expr->type_instance);
+	return sema.Yield(ast, expr, sema.expected_yield_type.value());
 }
 
 static bool
@@ -1501,13 +1513,16 @@ sema::sema_fn_proto(Sema2& sema, ast::AstNode* ast)
 	auto members = members_converted_result.unwrap();
 
 	bool is_impl = fn_proto.return_type->data.type_declarator.is_impl;
-	if( is_impl )
-	{
-		sema::Type struct_type = sema::Type::Struct(name_str + "#frame", {});
-		auto frame_type = sema.CreateType(struct_type);
+	// TODO: Impl creates opaque type
+	// Had to comment this out because we technically still need the type parameters.
+	// and this blows them away.
+	// if( is_impl )
+	// {
+	// 	sema::Type struct_type = sema::Type::Struct(name_str + "#frame", {});
+	// 	auto frame_type = sema.CreateType(struct_type);
 
-		ir_ret_type_decl->type_instance = TypeInstance::OfType(frame_type);
-	}
+	// 	ir_ret_type_decl->type_instance = TypeInstance::OfType(frame_type);
+	// }
 	sema::Type* fn_type = sema.CreateType(
 		Type::Function(name_str, members.vec, ir_ret_type_decl->type_instance, is_var_arg));
 	fn_type->is_impl_ = is_impl;
@@ -1832,7 +1847,7 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 			for( auto type_param : type_decl.type_params )
 			{
 				QualifiedName param_qname = idname(*type_param->data.type_declarator.name);
-				NameLookupResult param_lu_result = sema.lookup_fqn(qname);
+				NameLookupResult param_lu_result = sema.lookup_fqn(param_qname);
 
 				if( !param_lu_result.is_found() || !param_lu_result.result().name().is_type() )
 					return SemaError("Could not find type '" + param_qname.to_string() + "'");
@@ -1841,9 +1856,6 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 
 				longname += param_qname.to_string();
 			}
-
-			// Instantiate the template
-			// TODO: How to specify template stuff.
 
 			std::optional<sema::NameRef> maybe_template_instance = type_name.lookup_local(longname);
 			if( !maybe_template_instance.has_value() )

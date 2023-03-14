@@ -1,10 +1,19 @@
 extern fn printf(str: i8*, ...): void;
 
-fn iter_foo(): impl generator<i32, i32, i32> {
-    for (let i = 0; i < 5; i += 1)
+struct Point {
+    x: i32;
+    y: i32;
+}
+
+
+
+fn iter_foo(): impl generator<Point, i32, i32> {
+    let p: Point = Point { .x = 0, .y = 0 };
+    for (let i = 1; i < 5; i += 1)
     {
-        printf("before %d\n", i);
-        let recved = yield i;
+        p.x = i;
+        printf("?%d\n", p.x);
+        let recved = yield p;
         printf("recved %d\n", recved);
     }
 
@@ -15,12 +24,14 @@ fn main(): i32
 {
     let frame = iter_foo();
 
-    let test = iter_foo_send(&frame);
-
+    let test = iter_foo_send(&frame, 0);
+    printf("Hello");
+    let t = 0;
     while (!test.done)
     {
-        printf("%d\n", test.value);
-        test = iter_foo_send(&frame);
+        printf("%d\n", test.value.x);
+        test = iter_foo_send(&frame, t);
+        t += 2;
     }
 
     return 1;

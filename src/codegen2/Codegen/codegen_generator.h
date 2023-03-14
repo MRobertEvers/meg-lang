@@ -34,6 +34,10 @@ public:
 	llvm::Type* llvm_send_return_type;
 	llvm::Type* llvm_frame_type;
 
+	sema::TypeInstance sema_send_type;
+	sema::TypeInstance sema_yield_type;
+	sema::TypeInstance sema_return_type;
+
 	void add_early_return(LLVMYieldPoint early_ret) { early_return_blocks.push_back(early_ret); }
 	void add_yield(LLVMYieldPoint yield) { yield_bbs.push_back(yield); }
 	void add_alloca(LLVMAddress alloca) { allocas.push_back(alloca); }

@@ -100,6 +100,20 @@ Type::get_member_count() const
 		return members.size();
 }
 
+TypeInstance
+Type::get_type_parameter(int idx) const
+{
+	assert(idx < type_parameters.size());
+
+	return type_parameters.at(idx);
+}
+
+int
+Type::get_type_parameter_count() const
+{
+	return type_parameters.size();
+}
+
 void
 Type::set_enum_members(std::map<std::string, MemberTypeInstance> members)
 {
