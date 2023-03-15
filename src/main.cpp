@@ -135,6 +135,29 @@ main(int argc, char* argv[])
 		// return 0;
 	}
 
+	// llvm::FunctionType* llvm_fn_ty_inner = llvm::FunctionType::get(
+	// 	llvm::Type::getVoidTy(*cg.Context), {llvm::Type::getInt32Ty(*cg.Context)}, false);
+	// llvm::Function* llvm_fn_inner = llvm::Function::Create(
+	// 	llvm_fn_ty_inner, llvm::Function::ExternalLinkage, "inner", cg.Module.get());
+
+	// llvm::BasicBlock* llvm_inner_send_entry_block =
+	// 	llvm::BasicBlock::Create(*cg.Context, "entry", llvm_fn_inner);
+	// cg.Builder->SetInsertPoint(llvm_inner_send_entry_block);
+	// cg.Builder->CreateRetVoid();
+
+	// llvm::FunctionType* llvm_fn_ty_outer = llvm::FunctionType::get(
+	// 	llvm::Type::getVoidTy(*cg.Context), {llvm::Type::getInt32Ty(*cg.Context)}, false);
+	// llvm::Function* llvm_fn_outer = llvm::Function::Create(
+	// 	llvm_fn_ty_outer, llvm::Function::ExternalLinkage, "outer", cg.Module.get());
+
+	// llvm::BasicBlock* llvm_outer_send_entry_block =
+	// 	llvm::BasicBlock::Create(*cg.Context, "entry", llvm_fn_outer);
+	// cg.Builder->SetInsertPoint(llvm_outer_send_entry_block);
+	// // cg.Builder->CreateAlloca(llvm_fn_inner->getArg(0)->getType());
+	// // cg.Builder->CreateLoad(llvm_fn_inner->getArg(0)->getType(), llvm_fn_inner->getArg(0));
+	// cg.Builder->CreateCall(llvm_fn_inner, {llvm_fn_outer->getArg(0)});
+	// cg.Builder->CreateRetVoid();
+
 	std::string Str;
 	raw_string_ostream OS(Str);
 

@@ -85,10 +85,22 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			// that alloca
 			if( arg_expr.is_address() )
 			{
+				// TODO: Clang explicitly creates a memcpy for pass-by-value structs...
+				// I couldn't tell if this was needed.
 				auto address = arg_expr.address();
-				auto llvm_arg_expr_value = arg_expr.address().llvm_pointer();
+				llvm::Value* llvm_arg_expr_value = arg_expr.address().llvm_pointer();
 
-				llvm_arg_values.push_back(llvm_arg_expr_value);
+				llvm::AllocaInst* llvm_cpy_alloca =
+					codegen.builder_alloca(address.llvm_allocated_type());
+				auto llvm_size =
+					codegen.Module->getDataLayout().getTypeAllocSize(address.llvm_allocated_type());
+				auto llvm_align =
+					codegen.Module->getDataLayout().getPrefTypeAlign(address.llvm_allocated_type());
+
+				codegen.Builder->CreateMemCpy(
+					llvm_cpy_alloca, llvm_align, llvm_arg_expr_value, llvm_align, llvm_size);
+
+				llvm_arg_values.push_back(llvm_cpy_alloca);
 				break;
 			}
 			else

@@ -37,7 +37,7 @@ cg::codegen_fn_sig_info(CG& codegen, LLVMFnSigInfoBuilder const& builder)
 		}
 		case LLVMArgABIInfo::ValueRef:
 		{
-			llvm_arg->addAttrs(llvm::AttrBuilder().addByValAttr(abi_arg.llvm_type));
+			llvm_arg->addAttrs(llvm::AttrBuilder().addByValAttr(abi_arg.llvm_value_type));
 			break;
 		}
 		case LLVMArgABIInfo::Value:

@@ -69,8 +69,10 @@ cg::codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			assert(maybe_name.has_value());
 			auto name = maybe_name.value();
 
-			llvm::AllocaInst* llvm_alloca = codegen.builder_alloca(arg_abi.llvm_type);
-			codegen.Builder->CreateAlloca(arg_abi.llvm_type, nullptr, name.name().name_str());
+			// Attention! Do not need to use builder alloca because we are already in the entry
+			// block.
+			auto llvm_alloca =
+				codegen.Builder->CreateAlloca(arg_abi.llvm_type, nullptr, name.name().name_str());
 			codegen.Builder->CreateStore(llvm_arg, llvm_alloca);
 
 			auto lvalue = LValue(llvm_alloca, arg_abi.llvm_type);
@@ -91,7 +93,13 @@ cg::codegen_function_entry(CG& codegen, cg::LLVMFnSigInfo& fn_info)
 			assert(maybe_name.has_value());
 			auto name = maybe_name.value();
 
-			auto lvalue = LValue(llvm_arg, llvm_arg->getType());
+			// Attention! Do not need to use builder alloca because we are already in the entry
+			// block.
+			llvm::AllocaInst* llvm_alloca =
+				codegen.Builder->CreateAlloca(arg_abi.llvm_type, nullptr, name.name().name_str());
+			codegen.Builder->CreateStore(llvm_arg, llvm_alloca);
+
+			auto lvalue = LValue(llvm_alloca, llvm_arg->getType());
 
 			builder.add_arg(LLVMFnArgInfo::Named(name, arg_abi, lvalue));
 			break;

@@ -52,6 +52,10 @@ struct LLVMArgABIInfo
 		return LLVMArgABIInfo(LLVMArgABIInfo::SRet, llvm_type->getPointerTo(), llvm_type);
 	}
 
+	static LLVMArgABIInfo ByDefault(llvm::Type* llvm_type)
+	{
+		return LLVMArgABIInfo(LLVMArgABIInfo::Default, llvm_type);
+	}
 	static LLVMArgABIInfo ByValue(llvm::Type* llvm_type)
 	{
 		if( llvm_type->isAggregateType() )

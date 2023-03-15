@@ -657,11 +657,15 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 		name_ref.add_name(Name("done", sema.types.BoolType(), sema::Name::NameKind::Member));
 		name_ref.add_name(Name("value", payload_type, sema::Name::NameKind::Member));
 
-		// sema::Type* begin_fn_type = sema.CreateType(Type::Function(
-		// 	proto->name.to_fqn_string() + "_send",
-		// 	{MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0)},
-		// 	TypeInstance::OfType(send_result_type),
-		// 	false));
+		sema::Type* begin_fn_type = sema.CreateType(Type::Function(
+			proto->name.to_fqn_string() + "_begin",
+			{
+				MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0),
+			},
+			TypeInstance::OfType(send_result_type),
+			false));
+		sema::NameRef begin_name_ref = sema.add_value_identifier(
+			proto->name.to_fqn_string() + "_begin", TypeInstance::OfType(begin_fn_type));
 
 		auto send_type = proto->rt->type_instance.type->get_type_parameter(1);
 		sema::Type* send_fn_type = sema.CreateType(Type::Function(
@@ -672,17 +676,30 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 			},
 			TypeInstance::OfType(send_result_type),
 			false));
-
 		sema::NameRef send_name_ref = sema.add_value_identifier(
 			proto->name.to_fqn_string() + "_send", TypeInstance::OfType(send_fn_type));
+
+		TypeInstance gen_return_type = proto->rt->type_instance.type->get_type_parameter(2);
+		sema::Type* close_fn_type = sema.CreateType(Type::Function(
+			proto->name.to_fqn_string() + "_close",
+			{
+				MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0),
+			},
+			gen_return_type,
+			false));
+		sema::NameRef close_name_ref = sema.add_value_identifier(
+			proto->name.to_fqn_string() + "_close", TypeInstance::OfType(close_fn_type));
 
 		send_name_ref.add_name(
 			Name("frame", proto->rt->type_instance.PointerTo(1), Name::NameKind::Member));
 		// This is the send value.
 		send_name_ref.add_name(Name("send", send_type, Name::NameKind::Member));
 
-		auto ret = sema_fn_t(sema.Generator(
-			ast, sema.async_fn_context().value(), send_name_ref, proto, bodyr.unwrap()));
+		ir::IRGenerator* gen = sema.Generator(
+			ast, sema.async_fn_context().value(), send_name_ref, proto, bodyr.unwrap());
+		gen->begin_fn_name_ref = begin_name_ref;
+		gen->close_fn_name_ref = close_name_ref;
+		auto ret = sema_fn_t(gen);
 
 		sema.expected_yield_type.reset();
 		sema.async_fn_context_clear();

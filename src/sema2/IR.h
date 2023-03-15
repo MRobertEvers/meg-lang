@@ -97,7 +97,9 @@ struct IRGenerator
 	ast::AstNode* node;
 	GeneratorFn fn;
 
+	sema::NameRef begin_fn_name_ref;
 	sema::NameRef send_fn_name_ref;
+	sema::NameRef close_fn_name_ref;
 
 	//
 	IRProto* proto;

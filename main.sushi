@@ -24,7 +24,7 @@ fn main(): i32
 {
     let frame = iter_foo();
 
-    let test = iter_foo_send(&frame, 0);
+    let test = iter_foo_begin(&frame);
     printf("Hello");
     let t = 0;
     while (!test.done)

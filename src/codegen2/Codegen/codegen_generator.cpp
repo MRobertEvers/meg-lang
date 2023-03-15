@@ -33,8 +33,12 @@ cg_send_result_struct(CG& codegen, LLVMAsyncFn& async_fn)
 	llvm::Type* llvm_yield_ty = get_type(codegen, async_fn.sema_yield_type).unwrap();
 	members.push_back(llvm_yield_ty);
 
+	std::string result_struct_name = "SendResult<";
+	result_struct_name += async_fn.sema_yield_type.type->get_name();
+	result_struct_name += ">";
+
 	llvm::StructType* llvm_struct_type =
-		llvm::StructType::create(*codegen.Context, members, "SendResult<i32>");
+		llvm::StructType::create(*codegen.Context, members, result_struct_name.c_str());
 
 	async_fn.llvm_send_return_type = llvm_struct_type;
 
@@ -248,12 +252,12 @@ cg_frame(CG& codegen, ir::GeneratorFn& fn, LLVMAsyncFn& async_fn)
 	llvm::Type* llvm_ret_ty = get_type(codegen, async_fn.sema_return_type).unwrap();
 	members.push_back(llvm_ret_ty);
 
-	llvm::StructType* llvm_struct_type =
-		llvm::StructType::create(*codegen.Context, members, "AsyncFn<i32, i32>");
+	std::string result_struct_name = "AsyncFn<";
+	result_struct_name += async_fn.sema_return_type.type->get_name();
+	result_struct_name += ">";
 
-	// LLVMFrameArg frame;
-	// frame.frame_type = llvm_struct_type;
-	// frame.locals = members;
+	llvm::StructType* llvm_struct_type =
+		llvm::StructType::create(*codegen.Context, members, result_struct_name.c_str());
 
 	async_fn.llvm_frame_type = llvm_struct_type;
 
@@ -283,8 +287,7 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 	//
 	codegen.async_context = build_context(codegen, ir_gen);
 	LLVMAsyncFn& async_fn = codegen.async_context.value();
-	llvm::StructType* llvm_send_return_type =
-		cg_send_result_struct(codegen, codegen.async_context.value());
+	llvm::StructType* llvm_send_return_type = cg_send_result_struct(codegen, async_fn);
 
 	codegen.types.emplace(
 		ir_gen->send_fn_name_ref.type().type->get_return_type().value().type,
@@ -296,6 +299,10 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 	codegen.types.emplace(ir_gen->proto->rt->type_instance.type, llvm_frame_type);
 
 	llvm::Type* llvm_send_ty = get_type(codegen, async_fn.sema_send_type).unwrap();
+	llvm::Type* llvm_send_opt_ty = llvm::StructType::create(
+		*codegen.Context, {llvm::Type::getInt1Ty(*codegen.Context), llvm_send_ty}, "Opt");
+	async_fn.llvm_send_type = llvm_send_ty;
+	async_fn.llvm_send_optional_type = llvm_send_opt_ty;
 
 	LLVMFnSigInfoBuilder send_sig_info_builder(
 		ir_gen->send_fn_name_ref, ir_gen->send_fn_name_ref.type().type);
@@ -305,12 +312,11 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 		ir_gen->send_fn_name_ref.lookup("frame").value(),
 		LLVMArgABIInfo::ByValue(llvm_frame_type->getPointerTo()));
 	send_sig_info_builder.add_arg_type(
-		ir_gen->send_fn_name_ref.lookup("send").value(), LLVMArgABIInfo::ByValue(llvm_send_ty));
+		ir_gen->send_fn_name_ref.lookup("send").value(),
+		LLVMArgABIInfo::ByValue(llvm_send_opt_ty->getPointerTo()));
 
 	LLVMFnSigInfo send_fn_sig = codegen_fn_sig_info(codegen, send_sig_info_builder);
-	codegen.add_function(ir_gen->send_fn_name_ref.type().type, send_fn_sig);
-
-	llvm::Function* llvm_fn = send_fn_sig.llvm_fn;
+	// codegen.add_function(ir_gen->send_fn_name_ref.type().type, send_fn_sig);
 
 	//
 	// Create the basic blocks, then once code is generated, we have all the info we need
@@ -318,23 +324,128 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 
 	LLVMFnInfo send_fn = codegen_function_entry(codegen, send_fn_sig).unwrap();
 
-	llvm::BasicBlock* llvm_entry_block = &llvm_fn->getEntryBlock();
+	llvm::Function* llvm_send_fn = send_fn_sig.llvm_fn;
+	llvm::BasicBlock* llvm_entry_block = &llvm_send_fn->getEntryBlock();
 
 	llvm::BasicBlock* llvm_jump_block =
-		llvm::BasicBlock::Create(*codegen.Context, "Jump", llvm_fn, llvm_entry_block);
+		llvm::BasicBlock::Create(*codegen.Context, "Jump", llvm_send_fn, llvm_entry_block);
 	codegen.async_context.value().entry_block = llvm_jump_block;
 
 	codegen.codegen_block(send_fn, ir_gen->block);
 
 	// Generate frame and function
 
-	cg_send_fn(codegen, llvm_fn, llvm_send_return_type, llvm_frame_type, llvm_entry_block);
+	cg_send_fn(codegen, llvm_send_fn, llvm_send_return_type, llvm_frame_type, llvm_entry_block);
 
-	LLVMFnSigInfoBuilder sig_info_builder(ir_gen->proto->name, ir_gen->proto->fn_type);
-	sig_info_builder.llvm_ret_ty = llvm::Type::getVoidTy(*codegen.Context);
-	sig_info_builder.add_arg_type(LLVMArgABIInfo::BySRet(llvm_frame_type));
+	codegen.async_context.reset();
 
-	LLVMFnSigInfo init_fn = codegen_fn_sig_info(codegen, sig_info_builder);
+	//
+	//
+	// Actual send fn.
+	//
+	//
+
+	{
+		LLVMFnSigInfoBuilder outer_send_sig_info_builder(
+			ir_gen->send_fn_name_ref, ir_gen->send_fn_name_ref.type().type);
+		outer_send_sig_info_builder.llvm_ret_ty = llvm::Type::getVoidTy(*codegen.Context);
+		outer_send_sig_info_builder.add_arg_type(LLVMArgABIInfo::BySRet(llvm_send_return_type));
+		outer_send_sig_info_builder.add_arg_type(
+			ir_gen->send_fn_name_ref.lookup("frame").value(),
+			LLVMArgABIInfo::ByValue(llvm_frame_type->getPointerTo()));
+		outer_send_sig_info_builder.add_arg_type(
+			ir_gen->send_fn_name_ref.lookup("send").value(), LLVMArgABIInfo::ByValue(llvm_send_ty));
+
+		LLVMFnSigInfo outer_send_fn_sig = codegen_fn_sig_info(codegen, outer_send_sig_info_builder);
+		codegen.add_function(ir_gen->send_fn_name_ref.type().type, outer_send_fn_sig);
+
+		llvm::BasicBlock* llvm_outer_send_entry_block =
+			llvm::BasicBlock::Create(*codegen.Context, "entry", outer_send_fn_sig.llvm_fn);
+		codegen.Builder->SetInsertPoint(llvm_outer_send_entry_block);
+
+		llvm::Value* llvm_send_opt_struct_val = codegen.Builder->CreateAlloca(llvm_send_opt_ty);
+
+		llvm::Value* llvm_send_opt_flag =
+			codegen.Builder->CreateStructGEP(llvm_send_opt_ty, llvm_send_opt_struct_val, 0);
+
+		llvm::ConstantInt* llvm_one_1bit =
+			llvm::ConstantInt::get(*codegen.Context, llvm::APInt(1, 1, true));
+
+		codegen.Builder->CreateStore(llvm_one_1bit, llvm_send_opt_flag);
+
+		llvm::Value* llvm_send_opt_val =
+			codegen.Builder->CreateStructGEP(llvm_send_opt_ty, llvm_send_opt_struct_val, 1);
+		if( outer_send_fn_sig.llvm_fn->getArg(2)->getType()->isPointerTy() )
+		{
+			LLVMAddress called_send_addr =
+				LLVMAddress(outer_send_fn_sig.llvm_fn->getArg(2), llvm_send_ty);
+			LLVMAddress called_dest_addr = LLVMAddress(llvm_send_opt_val, llvm_send_ty);
+			CGExpr copied = cg_copy(codegen, called_send_addr, called_dest_addr);
+		}
+		else
+		{
+			codegen.Builder->CreateStore(outer_send_fn_sig.llvm_fn->getArg(2), llvm_send_opt_val);
+		}
+
+		codegen.Builder->CreateCall(
+			llvm_send_fn,
+			{outer_send_fn_sig.llvm_fn->getArg(0),
+			 outer_send_fn_sig.llvm_fn->getArg(1),
+			 llvm_send_opt_struct_val});
+		codegen.Builder->CreateRetVoid();
+		codegen.add_function(ir_gen->send_fn_name_ref.type().type, outer_send_fn_sig);
+	}
+
+	//
+	//
+	// Begin fn.
+	//
+	//
+
+	{
+		LLVMFnSigInfoBuilder outer_send_sig_info_builder(
+			ir_gen->send_fn_name_ref, ir_gen->send_fn_name_ref.type().type);
+		outer_send_sig_info_builder.llvm_ret_ty = llvm::Type::getVoidTy(*codegen.Context);
+		outer_send_sig_info_builder.add_arg_type(LLVMArgABIInfo::BySRet(llvm_send_return_type));
+		outer_send_sig_info_builder.add_arg_type(
+			ir_gen->send_fn_name_ref.lookup("frame").value(),
+			LLVMArgABIInfo::ByValue(llvm_frame_type->getPointerTo()));
+
+		LLVMFnSigInfo outer_send_fn_sig = codegen_fn_sig_info(codegen, outer_send_sig_info_builder);
+		codegen.add_function(ir_gen->send_fn_name_ref.type().type, outer_send_fn_sig);
+
+		llvm::BasicBlock* llvm_outer_send_entry_block =
+			llvm::BasicBlock::Create(*codegen.Context, "entry", outer_send_fn_sig.llvm_fn);
+		codegen.Builder->SetInsertPoint(llvm_outer_send_entry_block);
+
+		llvm::Value* llvm_send_opt_struct_val = codegen.Builder->CreateAlloca(llvm_send_opt_ty);
+
+		llvm::Value* llvm_send_opt_flag =
+			codegen.Builder->CreateStructGEP(llvm_send_opt_ty, llvm_send_opt_struct_val, 0);
+
+		llvm::ConstantInt* llvm_zero_1bit =
+			llvm::ConstantInt::get(*codegen.Context, llvm::APInt(1, 0, true));
+
+		codegen.Builder->CreateStore(llvm_zero_1bit, llvm_send_opt_flag);
+
+		codegen.Builder->CreateCall(
+			llvm_send_fn,
+			{outer_send_fn_sig.llvm_fn->getArg(0),
+			 outer_send_fn_sig.llvm_fn->getArg(1),
+			 llvm_send_opt_struct_val});
+		codegen.Builder->CreateRetVoid();
+		codegen.add_function(ir_gen->begin_fn_name_ref.type().type, outer_send_fn_sig);
+	}
+	//
+	//
+	// Init Function
+	//
+	//
+	LLVMFnSigInfoBuilder constructor_sig_info_builder(ir_gen->proto->name, ir_gen->proto->fn_type);
+	constructor_sig_info_builder.llvm_ret_ty = llvm::Type::getVoidTy(*codegen.Context);
+	constructor_sig_info_builder.add_arg_type(LLVMArgABIInfo::BySRet(llvm_frame_type));
+
+	LLVMFnSigInfo init_fn = codegen_fn_sig_info(codegen, constructor_sig_info_builder);
 	codegen.add_function(ir_gen->proto->fn_type, init_fn);
 	llvm::BasicBlock* llvm_init_entry_block =
 		llvm::BasicBlock::Create(*codegen.Context, "entry", init_fn.llvm_fn);
@@ -345,8 +456,6 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 	cg_zero(codegen, frame_arg);
 
 	codegen.Builder->CreateRetVoid();
-
-	codegen.async_context.reset();
 
 	return CGExpr();
 }
@@ -387,6 +496,7 @@ cg::codegen_yield(CG& codegen, cg::LLVMFnInfo& fn, ir::IRYield* ir_yield)
 	// that fills the frame argument fields with the function args
 
 	// TODO: Need gotos until better flow control for dtors or defer.
+	LLVMAsyncFn& async_ctx = codegen.async_context.value();
 
 	// The suspend block is the current bb.
 	auto maybe_yield_expr = codegen.codegen_expr(fn, ir_yield->expr);
@@ -397,12 +507,14 @@ cg::codegen_yield(CG& codegen, cg::LLVMFnInfo& fn, ir::IRYield* ir_yield)
 	llvm::BasicBlock* llvm_resume_bb =
 		llvm::BasicBlock::Create(*codegen.Context, "resume", fn.sig_info.llvm_fn);
 
-	auto& async_ctx = codegen.async_context.value();
 	async_ctx.add_yield(LLVMYieldPoint(llvm_suspend_bb, llvm_resume_bb, yield_expr));
 
 	// We will insert the rehydration before this block
 	codegen.Builder->SetInsertPoint(llvm_resume_bb);
 
+	// TODO: Check that the value is present, crash otherwise.
+	llvm::Value* llvm_send_payload = codegen.Builder->CreateStructGEP(
+		async_ctx.llvm_send_optional_type, fn.sig_info.llvm_fn->getArg(2), 1);
 	// TODO: Return send argument.
-	return CGExpr::MakeRValue(RValue(fn.sig_info.llvm_fn->getArg(2)));
+	return CGExpr::MakeAddress(LLVMAddress(llvm_send_payload, async_ctx.llvm_send_type));
 }

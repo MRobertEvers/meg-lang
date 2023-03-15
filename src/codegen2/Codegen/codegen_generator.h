@@ -32,6 +32,10 @@ public:
 	std::vector<LLVMYieldPoint> yield_bbs;
 	std::vector<LLVMAddress> allocas;
 	llvm::Type* llvm_send_return_type;
+	llvm::Type* llvm_send_type;
+	// The argument to the send function is an Optional<T>
+	// this is that type.
+	llvm::Type* llvm_send_optional_type;
 	llvm::Type* llvm_frame_type;
 
 	sema::TypeInstance sema_send_type;
