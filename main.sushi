@@ -34,5 +34,8 @@ fn main(): i32
         t += 2;
     }
 
+    let final = iter_foo_close(&frame);
+    printf("%d\n", final);
+
     return 1;
 }

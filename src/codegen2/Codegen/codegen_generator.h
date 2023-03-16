@@ -37,6 +37,9 @@ public:
 	// this is that type.
 	llvm::Type* llvm_send_optional_type;
 	llvm::Type* llvm_frame_type;
+	llvm::Type* llvm_ret_type;
+
+	int return_val_idx;
 
 	sema::TypeInstance sema_send_type;
 	sema::TypeInstance sema_yield_type;

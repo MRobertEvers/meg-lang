@@ -182,15 +182,12 @@ cg_send_fn(
 			codegen.Builder->CreateStructGEP(llvm_send_return_type, llvm_fn->getArg(0), 0);
 		codegen.Builder->CreateStore(llvm_one_1bit, llvm_ret_done_ptr);
 
-		auto llvm_return_ptr =
-			codegen.Builder->CreateStructGEP(llvm_frame_type, llvm_fn->getArg(1), 2);
-
-		// TODO: Store return expr in frame.
+		auto llvm_return_ptr = codegen.Builder->CreateStructGEP(
+			llvm_frame_type, llvm_fn->getArg(1), async_fn.return_val_idx);
 
 		if( return_block.yield_expr.is_rvalue() )
 		{
 			auto llvm_yielded_value = codegen_operand_expr(codegen, return_block.yield_expr);
-			// TODO: Support complex return type.
 			codegen.Builder->CreateStore(llvm_yielded_value, llvm_return_ptr);
 		}
 		else
@@ -252,6 +249,8 @@ cg_frame(CG& codegen, ir::GeneratorFn& fn, LLVMAsyncFn& async_fn)
 	llvm::Type* llvm_ret_ty = get_type(codegen, async_fn.sema_return_type).unwrap();
 	members.push_back(llvm_ret_ty);
 
+	async_fn.return_val_idx = members.size() - 1;
+
 	std::string result_struct_name = "AsyncFn<";
 	result_struct_name += async_fn.sema_return_type.type->get_name();
 	result_struct_name += ">";
@@ -292,6 +291,9 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 	codegen.types.emplace(
 		ir_gen->send_fn_name_ref.type().type->get_return_type().value().type,
 		llvm_send_return_type);
+
+	llvm::Type* llvm_ret_ty = get_type(codegen, async_fn.sema_return_type).unwrap();
+	async_fn.llvm_ret_type = llvm_ret_ty;
 
 	llvm::StructType* llvm_frame_type =
 		cg_frame(codegen, ir_gen->fn, codegen.async_context.value());
@@ -436,6 +438,58 @@ cg::codegen_generator(CG& codegen, ir::IRGenerator* ir_gen)
 		codegen.Builder->CreateRetVoid();
 		codegen.add_function(ir_gen->begin_fn_name_ref.type().type, outer_send_fn_sig);
 	}
+
+	//
+	// Close Function
+	//
+	//
+	{
+		LLVMFnSigInfoBuilder close_sig_info_builder(
+			ir_gen->send_fn_name_ref, ir_gen->send_fn_name_ref.type().type);
+		int frame_idx = 0;
+		if( async_fn.llvm_ret_type->isAggregateType() )
+		{
+			frame_idx = 1;
+			close_sig_info_builder.llvm_ret_ty = llvm::Type::getVoidTy(*codegen.Context);
+			close_sig_info_builder.add_arg_type(LLVMArgABIInfo::BySRet(async_fn.llvm_ret_type));
+		}
+		else
+		{
+			close_sig_info_builder.llvm_ret_ty = async_fn.llvm_ret_type;
+		}
+
+		close_sig_info_builder.add_arg_type(
+			ir_gen->send_fn_name_ref.lookup("frame").value(),
+			LLVMArgABIInfo::ByValue(llvm_frame_type->getPointerTo()));
+
+		LLVMFnSigInfo close_fn_sig = codegen_fn_sig_info(codegen, close_sig_info_builder);
+		llvm::BasicBlock* llvm_close_entry_block =
+			llvm::BasicBlock::Create(*codegen.Context, "entry", close_fn_sig.llvm_fn);
+		codegen.Builder->SetInsertPoint(llvm_close_entry_block);
+
+		llvm::Value* llvm_frame_ret_val = codegen.Builder->CreateStructGEP(
+			async_fn.llvm_frame_type,
+			close_fn_sig.llvm_fn->getArg(frame_idx),
+			async_fn.return_val_idx);
+
+		if( async_fn.llvm_ret_type->isAggregateType() )
+		{
+			LLVMAddress ret_value = LLVMAddress(llvm_frame_ret_val, llvm_ret_ty);
+			LLVMAddress ret_dest = LLVMAddress(close_fn_sig.llvm_fn->getArg(0), llvm_ret_ty);
+
+			cg_copy(codegen, ret_value, ret_dest);
+			codegen.Builder->CreateRetVoid();
+		}
+		else
+		{
+			llvm::Value* llvm_retur_data =
+				codegen.Builder->CreateLoad(llvm_ret_ty, llvm_frame_ret_val);
+			codegen.Builder->CreateRet(llvm_retur_data);
+		}
+
+		codegen.add_function(ir_gen->close_fn_name_ref.type().type, close_fn_sig);
+	}
+
 	//
 	//
 	// Init Function
