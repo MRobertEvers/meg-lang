@@ -37,7 +37,7 @@ struct_initializer(
 		codegen.Builder->CreateStore(rhs, designator_lvalue.address().llvm_pointer());
 	}
 
-	return CGExpr();
+	return CGExpr::MakeAddress(lvalue.address());
 }
 
 static CGResult<CGExpr>
@@ -101,6 +101,22 @@ union_initializer(
 		codegen, fn, ir_initializer->type_instance, ir_initializer->initializers, bitcasted_lvalue);
 }
 
+LValue
+get_lval(CG& codegen, ir::IRInitializer* ir_initializer, std::optional<LValue> maybe_lvalue)
+{
+	if( maybe_lvalue.has_value() )
+	{
+		return maybe_lvalue.value();
+	}
+	else
+	{
+		llvm::Type* llvm_expr_type = get_type(codegen, ir_initializer->type_instance).unwrap();
+		llvm::Value* llvm_val = codegen.Builder->CreateAlloca(llvm_expr_type);
+
+		return LValue(llvm_val, llvm_expr_type);
+	}
+}
+
 CGResult<CGExpr>
 cg::codegen_initializer(
 	CG& codegen,
@@ -108,7 +124,8 @@ cg::codegen_initializer(
 	ir::IRInitializer* ir_initializer,
 	std::optional<LValue> maybe_lvalue)
 {
-	auto lvalue = maybe_lvalue.value();
+	LValue lvalue = get_lval(codegen, ir_initializer, maybe_lvalue);
+
 	// TODO: Allocate if not provided?
 
 	auto storage_type = ir_initializer->type_instance.storage_type();

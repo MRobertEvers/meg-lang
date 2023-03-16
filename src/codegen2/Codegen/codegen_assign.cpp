@@ -77,7 +77,9 @@ cg::codegen_assign(CG& codegen, cg::LLVMFnInfo& fn, ir::IRAssign* ir_assign)
 	auto rexpr = rhsr.unwrap();
 
 	// TODO: Later, insert a constructor call?
-	if( rexpr.is_empty() )
+	// TODO: HACKKKK
+	if( rexpr.is_empty() || (rexpr.is_address() && rexpr.address().llvm_pointer() ==
+													   __temp_replace.address().llvm_pointer()) )
 		return CGExpr();
 
 	auto lhs = lexpr.address().llvm_pointer();

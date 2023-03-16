@@ -7,7 +7,7 @@ struct Point {
 
 
 
-fn iter_foo(): impl generator<Point, i32, i32> {
+fn iter_foo(): impl generator<Point, i32, Point> {
     let p: Point = Point { .x = 0, .y = 0 };
     for (let i = 1; i < 5; i += 1)
     {
@@ -17,7 +17,10 @@ fn iter_foo(): impl generator<Point, i32, i32> {
         printf("recved %d\n", recved);
     }
 
-    return 3;
+    return Point {
+        .x = 5,
+        .y = 3
+    };
 }
 
 fn main(): i32 
@@ -35,7 +38,7 @@ fn main(): i32
     }
 
     let final = iter_foo_close(&frame);
-    printf("%d\n", final);
+    printf("%d\n", final.x);
 
     return 1;
 }
