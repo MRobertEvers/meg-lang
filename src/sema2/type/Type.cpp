@@ -150,6 +150,24 @@ Type::instantiate_template(std::vector<TypeInstance> concrete_types) const
 	return Type("template", concrete_types, template_cls, Kind::None);
 }
 
+void
+Type::_deprecate__add_member(std::string name, MemberTypeInstance member) const
+{
+	members.emplace(name, member);
+}
+
+Type
+Type::MemberFunction(
+	std::string const& name,
+	std::vector<MemberTypeInstance> args,
+	TypeInstance return_type,
+	bool is_var_arg)
+{
+	Type type = Type{name, args, return_type, is_var_arg};
+	type.is_this_call_ = true;
+
+	return type;
+}
 Type
 Type::Function(
 	std::string const& name,

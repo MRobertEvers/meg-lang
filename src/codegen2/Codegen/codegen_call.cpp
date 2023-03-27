@@ -19,17 +19,14 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 	assert(call_target_type.type->is_function_type() && call_target_type.indirection_level <= 1);
 
 	// TODO: EmitCallee like clang.
-	// auto exprr = codegen.codegen_expr(fn, ir_call->call_target);
-	// if( !exprr.ok() )
-	// 	return exprr;
-
-	// auto expr = exprr.unwrap();
+	CGExpr callee_expr = codegen.codegen_expr(fn, ir_call->call_target).unwrap();
+	llvm::Value* llvm_callee = callee_expr.address().llvm_pointer();
 	// auto llvm_function = static_cast<llvm::Function*>(expr.address().llvm_pointer());
 
 	auto iter_callee = codegen.Functions.find(ir_call->call_target->type_instance.type);
 	assert(iter_callee != codegen.Functions.end());
-	auto callee_sig_info = iter_callee->second;
-	auto llvm_function = callee_sig_info.llvm_fn;
+	LLVMFnSigInfo callee_sig_info = iter_callee->second;
+	llvm::Function* llvm_function = callee_sig_info.llvm_fn;
 
 	std::vector<llvm::Value*> llvm_arg_values;
 	int arg_ind = 0;
@@ -49,6 +46,11 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 			llvm_arg_values.push_back(llvm_sret_alloca);
 		}
 		arg_ind += 1;
+	}
+
+	if( callee_sig_info.sema_fn_ty->is_this_call() )
+	{
+		llvm_arg_values.push_back(llvm_callee);
 	}
 
 	for( auto arg_expr_node : ir_call->args->args )

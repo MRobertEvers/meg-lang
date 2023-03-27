@@ -43,5 +43,8 @@ cg::codegen_member_access(CG& codegen, cg::LLVMFnInfo& fn, ir::IRMemberAccess* i
 		return exprr;
 	auto expr = exprr.unwrap();
 
-	return cg_access(codegen, expr.address(), ir_ma->expr->type_instance, ir_ma->member);
+	if( ir_ma->member.type.is_function_type() && ir_ma->member.type.type->is_this_call() )
+		return expr;
+	else
+		return cg_access(codegen, expr.address(), ir_ma->expr->type_instance, ir_ma->member);
 }

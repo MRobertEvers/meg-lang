@@ -27,17 +27,17 @@ fn main(): i32
 {
     let frame = iter_foo();
 
-    let test = iter_foo_begin(&frame);
+    let test = frame.begin();
     printf("Hello");
     let t = 0;
     while (!test.done)
     {
         printf("%d\n", test.value.x);
-        test = iter_foo_send(&frame, t);
+        test = frame.send(t);
         t += 2;
     }
 
-    let final = iter_foo_close(&frame);
+    let final = frame.close();
     printf("%d\n", final.x);
 
     return 1;

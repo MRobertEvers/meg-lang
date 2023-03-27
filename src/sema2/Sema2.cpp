@@ -307,12 +307,9 @@ Sema2::ValueDecl(ast::AstNode* node, std::string simple_name, ir::IRTypeDeclarao
 }
 
 ir::IRTypeDeclaraor*
-Sema2::TypeDecl(ast::AstNode* node, sema::TypeInstance type)
+Sema2::TypeDecl(ast::AstNode* node, sema::NameRef name, sema::TypeInstance type)
 {
-	auto nod = new ir::IRTypeDeclaraor;
-
-	nod->node = node;
-	nod->type_instance = type;
+	auto nod = new ir::IRTypeDeclaraor(node, name, type);
 
 	return nod;
 }

@@ -216,7 +216,16 @@ struct IRParam
 struct IRTypeDeclaraor
 {
 	ast::AstNode* node;
+
+	// Only present for templates.
+	sema::NameRef type_name;
 	sema::TypeInstance type_instance;
+
+	IRTypeDeclaraor(ast::AstNode* node, sema::NameRef name, sema::TypeInstance type_instance)
+		: node(node)
+		, type_name(name)
+		, type_instance(type_instance)
+	{}
 };
 
 struct IRStruct

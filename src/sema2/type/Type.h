@@ -40,7 +40,8 @@ private:
 
 	Kind cls = Kind::Primitive;
 	Kind template_cls = Kind::None;
-	std::map<std::string, MemberTypeInstance> members;
+	// TODO: Not mutable once template instantiation is better.
+	mutable std::map<std::string, MemberTypeInstance> members;
 
 	std::vector<MemberTypeInstance> members_order;
 	std::vector<TypeInstance> type_parameters;
@@ -51,6 +52,8 @@ private:
 	// For functions return type
 	TypeInstance return_type;
 	bool is_var_arg_;
+	// For functions only
+	bool is_this_call_ = false;
 
 	// For enums
 	Type const* dependent_on_type_ = nullptr;
@@ -90,6 +93,7 @@ public:
 
 	// TODO: Assert we are a function.
 	bool is_var_arg() const { return is_var_arg_; }
+	bool is_this_call() const { return is_this_call_; }
 
 	std::optional<MemberTypeInstance> get_member(std::string const& name) const;
 	MemberTypeInstance get_member(int idx) const;
@@ -104,7 +108,12 @@ public:
 	void set_dependent_type(Type const* t) { this->dependent_on_type_ = t; };
 
 	Type instantiate_template(std::vector<TypeInstance> concrete_types) const;
+	// TODO: Deprecate this. Eventually, template members will be instantiated
+	// but right now we have to add template members manually.
+	void _deprecate__add_member(std::string name, MemberTypeInstance member) const;
 
+	static Type
+	MemberFunction(std::string const&, std::vector<MemberTypeInstance>, TypeInstance, bool);
 	static Type Function(std::string const&, std::vector<MemberTypeInstance>, TypeInstance, bool);
 	static Type Function(std::string const&, std::vector<MemberTypeInstance>, TypeInstance);
 	static Type Struct(std::string const& name, std::map<std::string, MemberTypeInstance> members);

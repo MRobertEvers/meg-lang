@@ -645,7 +645,11 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 
 	if( is_async )
 	{
-		auto payload_type = proto->rt->type_instance.type->get_type_parameter(0);
+		sema::NameRef frame_name = proto->rt->type_name;
+		sema::TypeInstance frame_type = proto->rt->type_instance;
+		sema::Type const* frame_type_type = frame_type.type;
+		sema::TypeInstance payload_type = frame_type.type->get_type_parameter(0);
+		sema.push_scope(frame_name);
 
 		std::map<std::string, MemberTypeInstance> members;
 		members.emplace("done", MemberTypeInstance(sema.types.BoolType(), 0));
@@ -657,38 +661,44 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 		name_ref.add_name(Name("done", sema.types.BoolType(), sema::Name::NameKind::Member));
 		name_ref.add_name(Name("value", payload_type, sema::Name::NameKind::Member));
 
-		sema::Type* begin_fn_type = sema.CreateType(Type::Function(
-			proto->name.to_fqn_string() + "_begin",
+		sema::Type* begin_fn_type = sema.CreateType(Type::MemberFunction(
+			"begin",
 			{
 				MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0),
 			},
 			TypeInstance::OfType(send_result_type),
 			false));
-		sema::NameRef begin_name_ref = sema.add_value_identifier(
-			proto->name.to_fqn_string() + "_begin", TypeInstance::OfType(begin_fn_type));
+		sema::NameRef begin_name_ref =
+			sema.add_value_identifier("begin", TypeInstance::OfType(begin_fn_type));
+		frame_type_type->_deprecate__add_member(
+			"begin", MemberTypeInstance(TypeInstance::OfType(begin_fn_type), 0));
 
 		auto send_type = proto->rt->type_instance.type->get_type_parameter(1);
-		sema::Type* send_fn_type = sema.CreateType(Type::Function(
-			proto->name.to_fqn_string() + "_send",
+		sema::Type* send_fn_type = sema.CreateType(Type::MemberFunction(
+			"send",
 			{
 				MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0),
 				MemberTypeInstance(send_type, 1) //
 			},
 			TypeInstance::OfType(send_result_type),
 			false));
-		sema::NameRef send_name_ref = sema.add_value_identifier(
-			proto->name.to_fqn_string() + "_send", TypeInstance::OfType(send_fn_type));
+		sema::NameRef send_name_ref =
+			sema.add_value_identifier("send", TypeInstance::OfType(send_fn_type));
+		frame_type_type->_deprecate__add_member(
+			"send", MemberTypeInstance(TypeInstance::OfType(send_fn_type), 1));
 
 		TypeInstance gen_return_type = proto->rt->type_instance.type->get_type_parameter(2);
-		sema::Type* close_fn_type = sema.CreateType(Type::Function(
-			proto->name.to_fqn_string() + "_close",
+		sema::Type* close_fn_type = sema.CreateType(Type::MemberFunction(
+			"close",
 			{
 				MemberTypeInstance(proto->rt->type_instance.PointerTo(1), 0),
 			},
 			gen_return_type,
 			false));
-		sema::NameRef close_name_ref = sema.add_value_identifier(
-			proto->name.to_fqn_string() + "_close", TypeInstance::OfType(close_fn_type));
+		sema::NameRef close_name_ref =
+			sema.add_value_identifier("close", TypeInstance::OfType(close_fn_type));
+		frame_type_type->_deprecate__add_member(
+			"close", MemberTypeInstance(TypeInstance::OfType(close_fn_type), 3));
 
 		send_name_ref.add_name(
 			Name("frame", proto->rt->type_instance.PointerTo(1), Name::NameKind::Member));
@@ -703,6 +713,8 @@ sema::sema_fn(Sema2& sema, ast::AstNode* ast)
 
 		sema.expected_yield_type.reset();
 		sema.async_fn_context_clear();
+
+		sema.pop_scope();
 		return ret;
 	}
 	else
@@ -719,6 +731,8 @@ sema::sema_fn_args(Sema2& sema, ast::AstNode* ast, sema::Type const& fn_type)
 
 	std::vector<ir::IRExpr*> argslist;
 	int arg_count = 0;
+	if( fn_type.is_this_call() )
+		arg_count += 1;
 	for( auto argexpr : args.exprs )
 	{
 		if( arg_count >= fn_type.get_member_count() && !fn_type.is_var_arg() )
@@ -1853,6 +1867,7 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 
 		NameRef type_name = lu_result.result();
 		Type const* type = type_name.name().type().type;
+		sema::NameRef symbol_name = type_name;
 
 		if( type->is_template() )
 		{
@@ -1879,7 +1894,7 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 			{
 				Type const* instantiated_type =
 					sema.types.define_type(type->instantiate_template(type_params));
-				type_name.add_name(Name(
+				symbol_name = type_name.add_name(Name(
 					longname,
 					type_name.id(),
 					TypeInstance::OfType(instantiated_type),
@@ -1889,6 +1904,7 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 			}
 			else
 			{
+				symbol_name = maybe_template_instance.value();
 				type = maybe_template_instance.value().name().type().type;
 			}
 		}
@@ -1898,11 +1914,11 @@ sema::sema_type_decl(Sema2& sema, ast::AstNode* ast)
 		if( type_decl.array_size > 0 )
 			type_instance = TypeInstance::ArrayOf(type_instance, type_decl.array_size);
 
-		return sema.TypeDecl(ast, type_instance);
+		return sema.TypeDecl(ast, symbol_name, type_instance);
 	}
 	else
 	{
-		return sema.TypeDecl(ast, TypeInstance::OfType(sema.types.infer_type()));
+		return sema.TypeDecl(ast, sema::NameRef(), TypeInstance::OfType(sema.types.infer_type()));
 	}
 }
 

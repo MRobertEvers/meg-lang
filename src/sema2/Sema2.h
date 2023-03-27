@@ -98,7 +98,7 @@ public:
 	ir::IRReturn* Return(ast::AstNode* node, ir::IRExpr* expr);
 	ir::IRValueDecl*
 	ValueDecl(ast::AstNode* node, std::string simple_name, ir::IRTypeDeclaraor* rt);
-	ir::IRTypeDeclaraor* TypeDecl(ast::AstNode* node, sema::TypeInstance type);
+	ir::IRTypeDeclaraor* TypeDecl(ast::AstNode* node, sema::NameRef name, sema::TypeInstance type);
 	ir::IRExpr* Expr(ir::IRCall*);
 	ir::IRExpr* Expr(ir::IRNumberLiteral*);
 	ir::IRExpr* Expr(ir::IRStringLiteral*);
