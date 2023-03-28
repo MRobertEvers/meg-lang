@@ -18,6 +18,25 @@ cg::codegen_call(CG& codegen, cg::LLVMFnInfo& fn, ir::IRCall* ir_call, std::opti
 	auto call_target_type = ir_call->call_target->type_instance;
 	assert(call_target_type.type->is_function_type() && call_target_type.indirection_level <= 1);
 
+	if( ir_call->call_target->type == ir::IRExprType::Id )
+	{
+		ir::IRId* id = ir_call->call_target->expr.id;
+		std::string name_str = id->name.name().name_str();
+		if( name_str == "@SizeOf" )
+		{
+			sema::TypeInstance sizeof_type = ir_call->args->args.at(0)->type_instance;
+
+			llvm::Type* llvm_sizeof_type = get_type(codegen, sizeof_type).unwrap();
+
+			auto llvm_size = codegen.Module->getDataLayout().getTypeAllocSize(llvm_sizeof_type);
+
+			llvm::Value* llvm_const_int = llvm::ConstantInt::get(
+				*codegen.Context, llvm::APInt(32, llvm_size.getFixedSize(), true));
+
+			return CGExpr::MakeRValue(RValue(llvm_const_int));
+		}
+	}
+
 	// TODO: EmitCallee like clang.
 	CGExpr callee_expr = codegen.codegen_expr(fn, ir_call->call_target).unwrap();
 	llvm::Value* llvm_callee = callee_expr.address().llvm_pointer();

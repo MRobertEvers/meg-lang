@@ -157,6 +157,14 @@ Type::_deprecate__add_member(std::string name, MemberTypeInstance member) const
 }
 
 Type
+Type::AnyType()
+{
+	Type type = Type("anytype");
+	type.cls = Kind::Type;
+	return type;
+}
+
+Type
 Type::MemberFunction(
 	std::string const& name,
 	std::vector<MemberTypeInstance> args,

@@ -98,6 +98,9 @@ Types::bool_type()
 bool
 Types::equal_types(TypeInstance l, TypeInstance r)
 {
+	if( l.type->is_any_type() || r.type->is_any_type() )
+		return true;
+
 	if( l.type == infer_type_ || r.type == infer_type_ )
 		return l.type != r.type;
 

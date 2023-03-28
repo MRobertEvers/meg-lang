@@ -14,6 +14,7 @@ Sema2::Sema2()
 		add_type_identifier(second);
 	}
 
+	Type const* any_type = types.define_type(Type::AnyType());
 	Type const* template_param_1 = types.define_type(Type::Generic("TYield"));
 	Type const* template_param_2 = types.define_type(Type::Generic("TSend"));
 	Type const* template_param_3 = types.define_type(Type::Generic("TRet"));
@@ -24,6 +25,15 @@ Sema2::Sema2()
 		 TypeInstance::OfType(template_param_3)}));
 
 	add_type_identifier(generator_type);
+
+	sema::Type* fn_type = CreateType(Type::Function(
+		"@SizeOf",
+		{
+			MemberTypeInstance(TypeInstance::OfType(any_type), 0) //
+		},
+		TypeInstance::OfType(types.i32_type()),
+		false));
+	add_value_identifier("@SizeOf", TypeInstance::OfType(fn_type));
 }
 
 Type*

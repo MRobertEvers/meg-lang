@@ -72,7 +72,8 @@
     case 'X': \
     case 'Y': \
     case 'Z': \
-    case '_'
+    case '_': \
+    case '@'
 
 #define CHAR_IDENTIFIER_CASES \
     CHAR_IDENTIFIER_START_CASES: \

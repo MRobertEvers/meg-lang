@@ -36,6 +36,9 @@ private:
 		Primitive,
 		Generic,
 		Template,
+		// For typechecking things that take types,
+		// e.g. @SizeOf(Vector)
+		Type
 	};
 
 	Kind cls = Kind::Primitive;
@@ -78,6 +81,7 @@ public:
 	~Type();
 
 	std::optional<TypeInstance> get_return_type() const;
+	bool is_any_type() const { return cls == Kind::Type; }
 	bool is_function_type() const { return cls == Kind::Function; }
 	bool is_struct_type() const { return cls == Kind::Struct; }
 	bool is_union_type() const { return cls == Kind::Union; }
@@ -112,6 +116,7 @@ public:
 	// but right now we have to add template members manually.
 	void _deprecate__add_member(std::string name, MemberTypeInstance member) const;
 
+	static Type AnyType();
 	static Type
 	MemberFunction(std::string const&, std::vector<MemberTypeInstance>, TypeInstance, bool);
 	static Type Function(std::string const&, std::vector<MemberTypeInstance>, TypeInstance, bool);

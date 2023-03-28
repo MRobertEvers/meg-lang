@@ -1,0 +1,21 @@
+
+extern fn printf(str: i8*, ...): void;
+extern fn malloc(size: i32): i8*;
+
+struct Vector {
+    data: i8*;
+    size: i32;
+    element_size: i32;
+}
+
+
+
+
+fn main(): i32 
+{
+    let vec_size = @SizeOf(Vector);
+
+    printf("%d\n", vec_size);
+
+    return 1;
+}
