@@ -56,11 +56,13 @@ widen(CG& codegen, llvm::Value* value, WidenSign sign, int size)
 	}
 }
 
-CGResult<CGExpr>
-cg::codegen_arithmetic_binop(CG& codegen, SemaTypedInt lhs, SemaTypedInt rhs, ast::BinOp op)
+CGExpr
+codegen_numeric_binop(CG& codegen, SemaTypedInt lhs, SemaTypedInt rhs, ast::BinOp op)
 {
-	auto left_width = lhs.value->getType()->getIntegerBitWidth();
-	auto right_width = rhs.value->getType()->getIntegerBitWidth();
+	llvm::Type* llvm_lhs_type = lhs.value->getType();
+	llvm::Type* llvm_rhs_type = rhs.value->getType();
+	auto left_width = llvm_lhs_type->getIntegerBitWidth();
+	auto right_width = llvm_rhs_type->getIntegerBitWidth();
 	auto max_width = left_width > right_width ? left_width : right_width;
 
 	lhs.value = widen(codegen, lhs.value, signof(codegen, lhs.type), max_width);
@@ -82,6 +84,39 @@ cg::codegen_arithmetic_binop(CG& codegen, SemaTypedInt lhs, SemaTypedInt rhs, as
 	default:
 		assert(0);
 	}
+}
+
+CGExpr
+codegen_pointer_binop(CG& codegen, SemaTypedInt lhs, SemaTypedInt rhs, ast::BinOp op)
+{
+	SemaTypedInt pointer = lhs.value->getType()->isPointerTy() ? lhs : rhs;
+	SemaTypedInt numeric = lhs.value->getType()->isPointerTy() ? rhs : lhs;
+
+	switch( op )
+	{
+	case ast::BinOp::plus:
+	{
+		llvm::Value* llvm_gep_arith = codegen.Builder->CreateGEP(
+			lhs.value->getType()->getPointerElementType(), pointer.value, numeric.value);
+		return CGExpr::MakeRValue(RValue(llvm_gep_arith));
+	}
+	case ast::BinOp::minus:
+		return CGExpr::MakeRValue(RValue(codegen.Builder->CreateSub(lhs.value, rhs.value)));
+	default:
+		assert(0);
+	}
+}
+
+CGResult<CGExpr>
+cg::codegen_arithmetic_binop(CG& codegen, SemaTypedInt lhs, SemaTypedInt rhs, ast::BinOp op)
+{
+	llvm::Type* llvm_lhs_type = lhs.value->getType();
+	llvm::Type* llvm_rhs_type = rhs.value->getType();
+
+	if( llvm_lhs_type->isPointerTy() || llvm_rhs_type->isPointerTy() )
+		return codegen_pointer_binop(codegen, lhs, rhs, op);
+	else
+		return codegen_numeric_binop(codegen, lhs, rhs, op);
 }
 
 CGResult<CGExpr>

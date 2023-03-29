@@ -15,6 +15,10 @@ fn main(): i32
 {
     let vec_size = @SizeOf(Vector);
 
+    let vec: Vector;
+
+    let second = vec.data + 1;
+
     printf("%d\n", vec_size);
 
     return 1;
