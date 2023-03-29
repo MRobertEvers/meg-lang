@@ -2,10 +2,14 @@
 extern fn printf(str: i8*, ...): void;
 extern fn malloc(size: i32): i8*;
 
+struct Point {
+    x: i32;
+    y: i32;
+}
+
 struct Vector {
-    data: i8*;
+    data: Point*;
     size: i32;
-    element_size: i32;
 }
 
 
@@ -15,9 +19,10 @@ fn main(): i32
 {
     let vec_size = @SizeOf(Vector);
 
-    let vec: Vector;
-
-    let second = vec.data + 1;
+    let vec = Vector {
+        .data = @BitCast<Point*>(malloc(@SizeOf(Vector) * 10)),
+        .size = 10
+    };
 
     printf("%d\n", vec_size);
 

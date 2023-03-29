@@ -147,7 +147,26 @@ Type::instantiate_template(std::vector<TypeInstance> concrete_types) const
 	assert(concrete_types.size() == type_parameters.size());
 
 	// TODO: template name
-	return Type("template", concrete_types, template_cls, Kind::None);
+	if( template_cls == Kind::Function )
+	{
+		Type type = Type("fn_template", concrete_types, template_cls, Kind::None);
+
+		// Find which template parameter corresponds
+		for( int i = 0; i < concrete_types.size(); i++ )
+		{
+			auto concrete_type = concrete_types[i];
+			auto param_type = type_parameters[i];
+			if( return_type.type == param_type.type )
+			{
+				type.return_type = concrete_type;
+				break;
+			}
+		}
+	}
+	else
+	{
+		return Type("template", concrete_types, template_cls, Kind::None);
+	}
 }
 
 void
@@ -231,6 +250,16 @@ Type::Template(std::string name, std::vector<TypeInstance> type_params)
 {
 	//
 	return Type{name, type_params, Kind::Template, Kind::Struct};
+}
+
+Type
+Type::TemplateFunction(
+	std::string name, std::vector<TypeInstance> type_params, TypeInstance return_type)
+{
+	//
+	Type type = Type{name, type_params, Kind::Template, Kind::Function};
+	type.return_type = return_type;
+	return type;
 }
 
 Type

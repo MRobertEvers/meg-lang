@@ -33,7 +33,15 @@ Sema2::Sema2()
 		},
 		TypeInstance::OfType(types.i32_type()),
 		false));
-	add_value_identifier("@SizeOf", TypeInstance::OfType(fn_type));
+
+	template_param_1 = types.define_type(Type::Generic("Type"));
+	fn_type = CreateType(Type::TemplateFunction(
+		"@BitCast",
+		{
+			TypeInstance::OfType(template_param_1), //
+		},
+		TypeInstance::OfType(template_param_1)));
+	add_value_identifier("@BitCast", TypeInstance::OfType(fn_type));
 }
 
 Type*

@@ -112,6 +112,7 @@ public:
 	void set_dependent_type(Type const* t) { this->dependent_on_type_ = t; };
 
 	Type instantiate_template(std::vector<TypeInstance> concrete_types) const;
+
 	// TODO: Deprecate this. Eventually, template members will be instantiated
 	// but right now we have to add template members manually.
 	void _deprecate__add_member(std::string name, MemberTypeInstance member) const;
@@ -128,6 +129,8 @@ public:
 	static Type EnumPartial(std::string const& name);
 	static Type Generic(std::string name);
 	static Type Template(std::string name, std::vector<TypeInstance> type_params);
+	static Type TemplateFunction(
+		std::string name, std::vector<TypeInstance> type_params, TypeInstance return_type);
 	static Type Primitive(std::string name);
 	static Type Primitive(std::string name, int bit_width);
 	static Type Primitive(std::string name, EnumNominal);
