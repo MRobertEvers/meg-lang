@@ -10,7 +10,7 @@
             "name": "Launch",
             "program": "${workspaceFolder}/build/sushi",
             "cwd": "${workspaceFolder}",
-            "args": ["vector.sushi"],
+            "args": ["main.sushi"],
         },
         
     ]
