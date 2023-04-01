@@ -38,6 +38,8 @@ add_executable(sushi
   src/lex3/Cursor.cpp
   src/lex3/keywords.cpp
   src/lex3/print_token.cpp
+  src/ast3/Ast.cpp
+  src/ast3/AstNode.cpp
 )
 
 # Now build our tools

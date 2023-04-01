@@ -1,3 +1,4 @@
+#include "ast3/Ast.h"
 #include "lex3/Lex.h"
 #include "lex3/Token.h"
 #include "lex3/print_token.h"
@@ -32,4 +33,6 @@ main(int argc, char* argv[])
 
 	for( Token tok = lex.next(); tok.kind != TokenKind::Eof; tok = lex.next() )
 		print_token(tok);
+
+	Ast ast;
 }
