@@ -17,10 +17,11 @@ public:
 
 	Token next();
 
+	bool is_done() const;
+
 private:
 	char current();
 	char const* head();
-	bool is_done();
 
 	TokenKind tok_start();
 	Token tok_identifier();

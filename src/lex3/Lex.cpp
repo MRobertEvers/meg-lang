@@ -55,7 +55,7 @@ Lex::head()
 }
 
 bool
-Lex::is_done()
+Lex::is_done() const
 {
 	return cursor_ >= input_len_;
 }

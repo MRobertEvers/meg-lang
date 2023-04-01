@@ -13,7 +13,7 @@
  */
 struct Span
 {
-	// The first token used to produce the AST node.
+	// The index of the first token used to produce the AST node.
 	int start = 0;
 	int size = 0;
 

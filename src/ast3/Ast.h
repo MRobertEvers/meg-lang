@@ -11,8 +11,9 @@ private:
 
 public:
 	Ast();
-	//   template<typename... Args>
-	//     B(Args&&... args) : A(std::forward<Args>(args)...) {}
+
+	AstNode* root();
+
 	template<typename Node, typename... Args>
 	AstNode* create(Span span, Args&&... args);
 

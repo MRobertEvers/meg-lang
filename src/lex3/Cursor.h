@@ -3,6 +3,9 @@
 #include "Lex.h"
 #include "Token.h"
 
+#include <deque>
+#include <vector>
+
 class ConsumeResult
 {
 	bool success = false;
@@ -25,13 +28,26 @@ public:
 	static ConsumeResult Fail(Token const* tok) { return ConsumeResult(tok, false); }
 };
 
-struct Cursor
+class Cursor
 {
-	Lex cursor;
+	Lex lex;
+	std::vector<Token> tokens;
 
+	// Tokens peeked.
+	std::deque<Token*> queue;
+
+public:
 	Cursor(char const* input);
 
-	ConsumeResult consume_if_expected(TokenType expected);
-	ConsumeResult consume(TokenType expected);
-	ConsumeResult consume(std::initializer_list<TokenType> expecteds);
-}
+	// TODO: Enforce only already seen tokens.
+	bool at_end() const;
+	Token token_at(int ind);
+
+	ConsumeResult consume_if_expected(TokenKind expected);
+	ConsumeResult consume(TokenKind expected);
+	ConsumeResult consume(std::initializer_list<TokenKind> expecteds);
+
+private:
+	Token* current();
+	Token* consume(bool consume);
+};

@@ -40,6 +40,9 @@ add_executable(sushi
   src/lex3/print_token.cpp
   src/ast3/Ast.cpp
   src/ast3/AstNode.cpp
+  src/ast3/parse.cpp
+  src/ast3/ParseResult.cpp
+  src/ast3/ParseTrail.cpp
 )
 
 # Now build our tools
