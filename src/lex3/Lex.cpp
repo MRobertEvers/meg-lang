@@ -30,7 +30,7 @@ Lex::next()
 		token = tok_identifier();
 		break;
 	case TokenKind::NumberLiteral:
-		token = tok_identifier();
+		token = tok_number_literal();
 		break;
 	default:
 		token = Token(tok_view, tok_kind);
@@ -134,7 +134,7 @@ Lex::tok_identifier()
 done:
 	TokenKind tok_kind = get_identifier_or_keyword_type(tok_view);
 
-	return Token(tok_view, TokenKind::Identifier);
+	return Token(tok_view, tok_kind);
 }
 
 Token

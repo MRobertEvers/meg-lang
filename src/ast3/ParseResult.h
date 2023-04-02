@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 
 class ParseError
@@ -37,7 +38,7 @@ template<typename T>
 class ParseResult
 {
 	std::unique_ptr<ParseError> error = nullptr;
-	T result = nullptr;
+	std::optional<T> result;
 
 public:
 	ParseResult<T>(T val)
@@ -59,8 +60,8 @@ public:
 	ParseResult<T>(ParseError err)
 		: error(std::make_unique<ParseError>(err)){};
 
-	T unwrap() { return result; }
+	T unwrap() { return result.value(); }
 	std::unique_ptr<ParseError> unwrap_error() { return std::move(error); }
 
-	bool ok() const { return error.get() == nullptr && result != nullptr; }
+	bool ok() const { return error.get() == nullptr && result.has_value(); }
 };

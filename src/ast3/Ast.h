@@ -12,8 +12,6 @@ private:
 public:
 	Ast();
 
-	AstNode* root();
-
 	template<typename Node, typename... Args>
 	AstNode* create(Span span, Args&&... args);
 
@@ -27,7 +25,7 @@ Ast::create(Span span, Args&&... args)
 {
 	AstNode* ast_node = &nodes.emplace_back();
 	ast_node->span = span;
-	ast_node->type = Node::nt;
+	ast_node->kind = Node::nt;
 
 	if constexpr( std::is_same_v<AstModule, Node> )
 		ast_node->data.ast_module = Node(std::forward<Args>(args)...);
@@ -45,6 +43,12 @@ Ast::create(Span span, Args&&... args)
 		ast_node->data.ast_type_declarator = Node(std::forward<Args>(args)...);
 	else if constexpr( std::is_same_v<AstReturn, Node> )
 		ast_node->data.ast_return = Node(std::forward<Args>(args)...);
+	else if constexpr( std::is_same_v<AstExpr, Node> )
+		ast_node->data.ast_expr = Node(std::forward<Args>(args)...);
+	else if constexpr( std::is_same_v<AstStmt, Node> )
+		ast_node->data.ast_stmt = Node(std::forward<Args>(args)...);
+	else if constexpr( std::is_same_v<AstNumberLiteral, Node> )
+		ast_node->data.ast_number_literal = Node(std::forward<Args>(args)...);
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 

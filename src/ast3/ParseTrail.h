@@ -31,7 +31,7 @@ public:
 	ParseTrail(Cursor& cursor, ParserMetaInformation& meta)
 		: cursor(cursor)
 		, meta(meta)
-		, start(cursor.get_index()){};
+		, start(0){};
 
 	Span mark();
 };

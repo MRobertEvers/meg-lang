@@ -1,4 +1,5 @@
 #include "ast3/Ast.h"
+#include "ast3/Parser.h"
 #include "lex3/Lex.h"
 #include "lex3/Token.h"
 #include "lex3/print_token.h"
@@ -6,6 +7,15 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+
+void
+print_tokens(char const* input)
+{
+	Lex lex{input};
+
+	for( Token tok = lex.next(); tok.kind != TokenKind::Eof; tok = lex.next() )
+		print_token(tok);
+}
 
 int
 main(int argc, char* argv[])
@@ -29,10 +39,13 @@ main(int argc, char* argv[])
 	buffer << file.rdbuf();
 	std::string filedata = buffer.str();
 
-	Lex lex{filedata.c_str()};
+	print_tokens(filedata.c_str());
 
-	for( Token tok = lex.next(); tok.kind != TokenKind::Eof; tok = lex.next() )
-		print_token(tok);
-
+	Cursor cursor(filedata.c_str());
 	Ast ast;
+	ParseResult<AstNode*> root = Parser::parse(ast, cursor);
+	if( !root.ok() )
+		root.unwrap_error()->print();
+
+	return 0;
 }

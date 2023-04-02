@@ -14,12 +14,14 @@ enum class TokenKind
 	LineComment,
 
 	OpenParen,
+	Comma,
 	CloseParen,
 	OpenCurly,
 	CloseCurly,
 
 	// :
 	Colon,
+	ColonColon,
 	SemiColon,
 
 	FnKw,
@@ -33,13 +35,13 @@ enum class TokenKind
 struct LineMarkers
 {
 	std::vector<char const*> lines;
-	unsigned int num_lines;
+	unsigned int num_lines = 0;
 };
 
 struct TokenNeighborhood
 {
 	LineMarkers lines;
-	int line_num;
+	int line_num = 0;
 };
 
 struct TokenView

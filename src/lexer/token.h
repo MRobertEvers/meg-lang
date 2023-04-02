@@ -93,13 +93,13 @@ enum class LiteralType
 struct LineMarkers
 {
 	Vec<char const*> lines;
-	unsigned int num_lines;
+	unsigned int num_lines = 0;
 };
 
 struct TokenNeighborhood
 {
 	LineMarkers lines;
-	int line_num;
+	int line_num = 0;
 };
 
 struct Token

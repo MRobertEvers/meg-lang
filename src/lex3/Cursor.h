@@ -43,6 +43,8 @@ public:
 	bool at_end() const;
 	Token token_at(int ind);
 
+	Token peek();
+
 	ConsumeResult consume_if_expected(TokenKind expected);
 	ConsumeResult consume(TokenKind expected);
 	ConsumeResult consume(std::initializer_list<TokenKind> expecteds);

@@ -1,11 +1,9 @@
 #include "ParseResult.h"
 
-#include "common/String.h"
-
 #include <iostream>
-#include <string.h>
+#include <string>
 
-static String
+static std::string
 get_line(char const* line, int line_num)
 {
 	if( line_num != 0 )
@@ -18,7 +16,7 @@ get_line(char const* line, int line_num)
 	unsigned int size = offset - line;
 	if( size == 1 )
 		return "";
-	return String(line, size);
+	return std::string(line, size);
 }
 
 void
@@ -50,14 +48,14 @@ ParseError::print() const
 
 		if( i == token.neighborhood.line_num )
 		{
-			auto sz = String{token.start, token.size};
-			int offset = token.start - token.neighborhood.lines.lines[i];
+			auto sz = std::string{token.view.start, token.view.size};
+			int offset = token.view.start - token.neighborhood.lines.lines[i];
 			if( i != 0 )
 				offset -= 1; // Skip passed '\n' character.
 			assert(offset > 0);
 
-			std::cout << String(ln_str.size(), ' ') << " | " << String(offset, ' ')
-					  << String(token.size, '^') << " here" << std::endl;
+			std::cout << std::string(ln_str.size(), ' ') << " | " << std::string(offset, ' ')
+					  << std::string(token.view.size, '^') << " here" << std::endl;
 		}
 	}
 }

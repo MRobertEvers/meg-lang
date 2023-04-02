@@ -16,6 +16,12 @@ Cursor::token_at(int ind)
 	return this->tokens.at(ind);
 }
 
+Token
+Cursor::peek()
+{
+	return *current();
+}
+
 ConsumeResult
 Cursor::consume_if_expected(TokenKind expected)
 {

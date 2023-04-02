@@ -12,6 +12,7 @@ enum class NodeKind
 	FuncProto,
 	Block,
 	Id,
+	NumberLiteral,
 	TypeDeclarator,
 	Return,
 	VarDecl,
@@ -68,6 +69,17 @@ struct AstId
 
 	AstId(std::vector<std::string> name_parts)
 		: name_parts(name_parts)
+	{}
+};
+
+struct AstNumberLiteral
+{
+	static constexpr NodeKind nt = NodeKind::NumberLiteral;
+
+	long long value;
+
+	AstNumberLiteral(long long value)
+		: value(value)
 	{}
 };
 
@@ -136,10 +148,34 @@ struct AstReturn
 	{}
 };
 
+struct AstExpr
+{
+	static constexpr NodeKind nt = NodeKind::Expr;
+
+	AstNode* expr;
+
+	AstExpr() = default;
+	AstExpr(AstNode* expr)
+		: expr(expr)
+	{}
+};
+
+struct AstStmt
+{
+	static constexpr NodeKind nt = NodeKind::Stmt;
+
+	AstNode* stmt;
+
+	AstStmt() = default;
+	AstStmt(AstNode* stmt)
+		: stmt(stmt)
+	{}
+};
+
 struct AstNode
 {
 	Span span;
-	NodeKind type = NodeKind::Invalid;
+	NodeKind kind = NodeKind::Invalid;
 	union NodeData
 	{
 		AstModule ast_module;
@@ -150,6 +186,9 @@ struct AstNode
 		AstReturn ast_return;
 		AstTypeDeclarator ast_type_declarator;
 		AstVarDecl ast_var_decl;
+		AstExpr ast_expr;
+		AstStmt ast_stmt;
+		AstNumberLiteral ast_number_literal;
 
 		// Attention! This leaks!
 		NodeData() {}
