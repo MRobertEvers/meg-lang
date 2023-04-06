@@ -1,8 +1,10 @@
 #pragma once
+#include "NameParts.h"
 #include "Span.h"
 #include "bin_op.h"
 
 #include <string>
+#include <vector>
 
 enum class NodeKind
 {
@@ -61,7 +63,7 @@ struct AstTypeDeclarator
 struct AstId
 {
 	static constexpr NodeKind nt = NodeKind::Id;
-	std::vector<std::string> name_parts;
+	NameParts name_parts;
 
 	AstId(std::string name)
 		: name_parts({name})

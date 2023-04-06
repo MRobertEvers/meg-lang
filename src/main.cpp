@@ -3,6 +3,8 @@
 #include "lex3/Lex.h"
 #include "lex3/Token.h"
 #include "lex3/print_token.h"
+#include "sema3/Hir.h"
+#include "sema3/Sema.h"
 
 #include <fstream>
 #include <iostream>
@@ -45,7 +47,21 @@ main(int argc, char* argv[])
 	Ast ast;
 	ParseResult<AstNode*> root = Parser::parse(ast, cursor);
 	if( !root.ok() )
+	{
 		root.unwrap_error()->print();
+		return -1;
+	}
 
+	Hir hir;
+	Types types;
+	SymTab sym_tab;
+	Sema sema(hir, types, sym_tab);
+
+	SemaResult<HirNode*> hir_root = sema.sema_module(root.unwrap());
+	if( !hir_root.ok() )
+	{
+		hir_root.unwrap_error()->print();
+		return -1;
+	}
 	return 0;
 }

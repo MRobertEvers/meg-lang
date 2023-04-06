@@ -43,6 +43,17 @@ add_executable(sushi
   src/ast3/Parser.cpp
   src/ast3/ParseResult.cpp
   src/ast3/ParseTrail.cpp
+  src/sema3/Hir.cpp
+  src/sema3/HirNode.cpp
+  src/sema3/Sema.cpp
+  src/sema3/SemaResult.cpp
+  src/sema3/Types.cpp
+  src/sema3/Ty.cpp
+  src/sema3/SymTab.cpp
+  src/sema3/Sym.cpp
+  src/sema3/SymScope.cpp
+  src/sema3/SymLookup.cpp
+  src/sema3/QualifiedTy.cpp
 )
 
 # Now build our tools

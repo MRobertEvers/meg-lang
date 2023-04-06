@@ -27,6 +27,8 @@ to_string(NodeKind type)
 		return "Expr";
 	case NodeKind::Stmt:
 		return "Stmt";
+	case NodeKind::NumberLiteral:
+		return "NumberLiteral";
 	}
 
 	return "Bad";
