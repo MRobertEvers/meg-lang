@@ -1,5 +1,7 @@
 #include "Sema.h"
 
+#include "ast3/Ast.h"
+
 #include <string>
 #include <vector>
 
@@ -21,7 +23,7 @@ Sema::sema_module(AstNode* ast_module)
 {
 	std::vector<HirNode*> statements;
 
-	AstModule& mod = ast_module->data.ast_module;
+	AstModule& mod = ast_cast<AstModule>(ast_module);
 
 	for( auto& stmt : mod.statements )
 	{
@@ -50,13 +52,14 @@ Sema::sema_module_stmt_any(AstNode* ast_stmt)
 SemaResult<HirNode*>
 Sema::sema_func(AstNode* ast_func)
 {
-	AstFunc& func = ast_func->data.ast_func;
+	AstFunc& func = ast_cast<AstFunc>(ast_func);
 	auto proto_result = sema_func_proto(func.proto);
 	if( !proto_result.ok() )
 		return proto_result;
 	auto proto = proto_result.unwrap();
 
-	sym_tab.push_scope(&proto->data.hir_func_proto.sym->data.sym_func.scope);
+	HirFuncProto& hir_proto = hir_cast<HirFuncProto>(proto);
+	sym_tab.push_scope(&sym_cast<SymFunc>(hir_proto.sym).scope);
 	auto body_result = sema_block(func.body);
 	if( !body_result.ok() )
 		return body_result;
@@ -80,12 +83,12 @@ translate_linkage(AstFuncProto::Linkage ast_linkage)
 SemaResult<HirNode*>
 Sema::sema_func_proto(AstNode* ast_func_proto)
 {
-	AstFuncProto& func_proto = ast_func_proto->data.ast_func_proto;
+	AstFuncProto& func_proto = ast_cast<AstFuncProto>(ast_func_proto);
 
 	HirFuncProto::Linkage linkage = translate_linkage(func_proto.linkage);
 
 	// TODO: Simple names only?
-	AstId& id = func_proto.id->data.ast_id;
+	AstId& id = ast_cast<AstId>(func_proto.id);
 
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
 	if( sym_lu.sym )
@@ -96,11 +99,11 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	std::vector<QualifiedTy> arg_qtys;
 	for( auto& param : func_proto.parameters )
 	{
-		AstVarDecl& var_decl = param->data.ast_var_decl;
+		AstVarDecl& var_decl = ast_cast<AstVarDecl>(param);
 		// TODO: Simple names
-		AstTypeDeclarator& ast_ty = var_decl.type_declarator->data.ast_type_declarator;
+		AstTypeDeclarator& ast_ty = ast_cast<AstTypeDeclarator>(var_decl.type_declarator);
 
-		SymLookupResult ty_lu = sym_tab.lookup(ast_ty.id->data.ast_id.name_parts);
+		SymLookupResult ty_lu = sym_tab.lookup(ast_cast<AstId>(ast_ty.id).name_parts);
 		if( !ty_lu.sym )
 			return SemaError("Unrecognized type.");
 
@@ -126,9 +129,9 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	for( int i = 0; i < func_proto.parameters.size(); i++ )
 	{
 		AstNode* param = func_proto.parameters.at(i);
-		AstVarDecl& var_decl = param->data.ast_var_decl;
+		AstVarDecl& var_decl = ast_cast<AstVarDecl>(param);
 		// TODO: Simple names
-		AstId& ast_id = var_decl.id->data.ast_id;
+		AstId& ast_id = ast_cast<AstId>(var_decl.id);
 
 		QualifiedTy qty = arg_qtys.at(i);
 		Sym* sym_var = sym_tab.create_named<SymVar>(ast_id.name_parts.parts[0], qty);
@@ -143,11 +146,10 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 SemaResult<HirNode*>
 Sema::sema_type_declarator(AstNode* ast_type_declarator)
 {
-	AstTypeDeclarator& type_declarator = ast_type_declarator->data.ast_type_declarator;
+	AstTypeDeclarator& type_declarator = ast_cast<AstTypeDeclarator>(ast_type_declarator);
 
 	AstId& id = type_declarator.id->data.ast_id;
 
-	// TODO:
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
 	if( !sym_lu.sym || sym_lu.sym->kind != SymKind::Type )
 		return SemaError("Could not find type '" + id.name_parts.parts[0] + "'");
@@ -159,7 +161,7 @@ Sema::sema_type_declarator(AstNode* ast_type_declarator)
 SemaResult<HirNode*>
 Sema::sema_block(AstNode* ast_block)
 {
-	AstBlock& block = ast_block->data.ast_block;
+	AstBlock& block = ast_cast<AstBlock>(ast_block);
 
 	std::vector<HirNode*> statements;
 
@@ -178,7 +180,7 @@ Sema::sema_block(AstNode* ast_block)
 SemaResult<HirNode*>
 Sema::sema_stmt(AstNode* ast_stmt)
 {
-	AstStmt& stmt = ast_stmt->data.ast_stmt;
+	AstStmt& stmt = ast_cast<AstStmt>(ast_stmt);
 
 	AstNode* any_stmt = stmt.stmt;
 
@@ -196,7 +198,7 @@ Sema::sema_stmt(AstNode* ast_stmt)
 SemaResult<HirNode*>
 Sema::sema_return(AstNode* ast_return)
 {
-	AstReturn& return_node = ast_return->data.ast_return;
+	AstReturn& return_node = ast_cast<AstReturn>(ast_return);
 
 	auto expr_result = sema_expr(return_node.expr);
 	if( !expr_result.ok() )
@@ -210,7 +212,7 @@ Sema::sema_return(AstNode* ast_return)
 SemaResult<HirNode*>
 Sema::sema_expr(AstNode* ast_expr)
 {
-	AstExpr& expr = ast_expr->data.ast_expr;
+	AstExpr& expr = ast_cast<AstExpr>(ast_expr);
 
 	AstNode* any_expr = expr.expr;
 
@@ -238,7 +240,7 @@ Sema::sema_expr_any(AstNode* ast_expr)
 SemaResult<HirNode*>
 Sema::sema_id(AstNode* ast_id)
 {
-	AstId& id = ast_id->data.ast_id;
+	AstId& id = ast_cast<AstId>(ast_id);
 
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
 	if( !sym_lu.sym )
@@ -250,7 +252,7 @@ Sema::sema_id(AstNode* ast_id)
 SemaResult<HirNode*>
 Sema::sema_func_call(AstNode* ast_func_call)
 {
-	AstFuncCall& func_call = ast_func_call->data.ast_func_call;
+	AstFuncCall& func_call = ast_cast<AstFuncCall>(ast_func_call);
 
 	std::vector<HirNode*> args;
 	for( AstNode* arg : func_call.args )
@@ -267,12 +269,25 @@ Sema::sema_func_call(AstNode* ast_func_call)
 	{
 	case NodeKind::Id:
 	{
-		AstId& id = callee->data.ast_id;
-		SymLookupResult sym = sym_tab.lookup(id.name_parts);
-		if( !sym.sym )
+		AstId& id = ast_cast<AstId>(callee);
+		SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+		if( !sym_lu.sym )
 			return SemaError("Unrecognized callee.");
 
-		return hir.create<HirCall>(QualifiedTy(builtins.i32_ty), sym.sym, args);
+		QualifiedTy qty = sym_qty(builtins, sym_lu.sym);
+		if( !qty.is_function() )
+			return SemaError("...is not a function.");
+
+		for( int i = 0; i < args.size(); i++ )
+		{
+			QualifiedTy const& arg_qty = args.at(i)->qty;
+			QualifiedTy const& expected_qty = ty_cast<TyFunc>(qty.ty).args_qtys.at(i);
+
+			if( !QualifiedTy::equals(arg_qty, expected_qty) )
+				return SemaError("Bad arg type.");
+		}
+
+		return hir.create<HirCall>(sym_qty(builtins, sym_lu.sym), sym_lu.sym, args);
 	}
 	default:
 		return NotImpl();
@@ -282,7 +297,7 @@ Sema::sema_func_call(AstNode* ast_func_call)
 SemaResult<HirNode*>
 Sema::sema_bin_op(AstNode* ast_bin_op)
 {
-	AstBinOp& bin_op = ast_bin_op->data.ast_bin_op;
+	AstBinOp& bin_op = ast_cast<AstBinOp>(ast_bin_op);
 
 	AstNode* lhs = bin_op.lhs;
 	AstNode* rhs = bin_op.rhs;
@@ -303,7 +318,7 @@ Sema::sema_bin_op(AstNode* ast_bin_op)
 SemaResult<HirNode*>
 Sema::sema_number_literal(AstNode* ast_number_literal)
 {
-	AstNumberLiteral& literal = ast_number_literal->data.ast_number_literal;
+	AstNumberLiteral& literal = ast_cast<AstNumberLiteral>(ast_number_literal);
 
 	return hir.create<HirNumberLiteral>(QualifiedTy(builtins.i32_ty), literal.value);
 }

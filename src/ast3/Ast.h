@@ -19,6 +19,42 @@ public:
 	// static void reset_node();
 };
 
+template<typename Node, typename AstTy>
+auto&
+ast_cast(AstTy* ast_node)
+{
+	assert(ast_node->kind == Node::nt && "Bad ast_cast");
+
+	if constexpr( std::is_same_v<AstModule, Node> )
+		return ast_node->data.ast_module;
+	else if constexpr( std::is_same_v<AstId, Node> )
+		return ast_node->data.ast_id;
+	else if constexpr( std::is_same_v<AstVarDecl, Node> )
+		return ast_node->data.ast_var_decl;
+	else if constexpr( std::is_same_v<AstBlock, Node> )
+		return ast_node->data.ast_block;
+	else if constexpr( std::is_same_v<AstFunc, Node> )
+		return ast_node->data.ast_func;
+	else if constexpr( std::is_same_v<AstFuncProto, Node> )
+		return ast_node->data.ast_func_proto;
+	else if constexpr( std::is_same_v<AstTypeDeclarator, Node> )
+		return ast_node->data.ast_type_declarator;
+	else if constexpr( std::is_same_v<AstReturn, Node> )
+		return ast_node->data.ast_return;
+	else if constexpr( std::is_same_v<AstExpr, Node> )
+		return ast_node->data.ast_expr;
+	else if constexpr( std::is_same_v<AstStmt, Node> )
+		return ast_node->data.ast_stmt;
+	else if constexpr( std::is_same_v<AstNumberLiteral, Node> )
+		return ast_node->data.ast_number_literal;
+	else if constexpr( std::is_same_v<AstFuncCall, Node> )
+		return ast_node->data.ast_func_call;
+	else if constexpr( std::is_same_v<AstBinOp, Node> )
+		return ast_node->data.ast_bin_op;
+	else
+		static_assert("Cannot create node of type " + to_string(Node::nt));
+}
+
 template<typename Node, typename... Args>
 AstNode*
 Ast::create(Span span, Args&&... args)
@@ -27,34 +63,7 @@ Ast::create(Span span, Args&&... args)
 	ast_node->span = span;
 	ast_node->kind = Node::nt;
 
-	if constexpr( std::is_same_v<AstModule, Node> )
-		ast_node->data.ast_module = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstId, Node> )
-		ast_node->data.ast_id = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstVarDecl, Node> )
-		ast_node->data.ast_var_decl = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstBlock, Node> )
-		ast_node->data.ast_block = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstFunc, Node> )
-		ast_node->data.ast_func = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstFuncProto, Node> )
-		ast_node->data.ast_func_proto = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstTypeDeclarator, Node> )
-		ast_node->data.ast_type_declarator = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstReturn, Node> )
-		ast_node->data.ast_return = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstExpr, Node> )
-		ast_node->data.ast_expr = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstStmt, Node> )
-		ast_node->data.ast_stmt = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstNumberLiteral, Node> )
-		ast_node->data.ast_number_literal = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstFuncCall, Node> )
-		ast_node->data.ast_func_call = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<AstBinOp, Node> )
-		ast_node->data.ast_bin_op = Node(std::forward<Args>(args)...);
-	else
-		static_assert("Cannot create node of type " + to_string(Node::nt));
+	ast_cast<Node>(ast_node) = Node(std::forward<Args>(args)...);
 
 	return ast_node;
 }

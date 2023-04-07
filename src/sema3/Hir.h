@@ -18,7 +18,7 @@ public:
 
 template<typename Node>
 auto&
-hir_data(HirNode* hir_node)
+hir_cast(HirNode* hir_node)
 {
 	if constexpr( std::is_same_v<HirModule, Node> )
 		return hir_node->data.hir_module;
@@ -50,7 +50,7 @@ Hir::create(QualifiedTy qty, Args&&... args)
 	hir_node->kind = Node::nt;
 	hir_node->qty = qty;
 
-	hir_data<Node>(hir_node) = Node(std::forward<Args>(args)...);
+	hir_cast<Node>(hir_node) = Node(std::forward<Args>(args)...);
 
 	return hir_node;
 }

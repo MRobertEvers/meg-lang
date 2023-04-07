@@ -14,6 +14,19 @@ public:
 	Ty const* create(Args&&... args);
 };
 
+template<typename Node, typename TyTy>
+auto&
+ty_cast(TyTy* ty)
+{
+	assert(ty->kind == Node::tk && "Invalid ty_cast");
+	if constexpr( std::is_same_v<TyPrimitive, Node> )
+		return ty->data.ty_primitive;
+	else if constexpr( std::is_same_v<TyFunc, Node> )
+		return ty->data.ty_func;
+	else
+		static_assert("Bad ty cast");
+}
+
 template<typename Type, typename... Args>
 Ty const*
 Types::create(Args&&... args)
@@ -21,12 +34,7 @@ Types::create(Args&&... args)
 	Ty* ty = &types.emplace_back();
 	ty->kind = Type::tk;
 
-	if constexpr( std::is_same_v<TyFunc, Type> )
-		ty->data.ty_func = Type(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<TyPrimitive, Type> )
-		ty->data.ty_primitive = Type(std::forward<Args>(args)...);
-	else
-		static_assert("Cannot create hir node of type " + to_string(Type::tk));
+	ty_cast<Type>(ty) = Type(std::forward<Args>(args)...);
 
 	return ty;
 }

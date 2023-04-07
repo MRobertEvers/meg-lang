@@ -30,6 +30,24 @@ private:
 	SymScope* current_scope();
 };
 
+template<typename Node, typename SymTy>
+auto&
+sym_cast(SymTy* sym)
+{
+	assert(sym->kind == Node::sk);
+
+	if constexpr( std::is_same_v<SymVar, Node> )
+		return sym->data.sym_var;
+	else if constexpr( std::is_same_v<SymFunc, Node> )
+		return sym->data.sym_func;
+	else if constexpr( std::is_same_v<SymNamespace, Node> )
+		return sym->data.sym_namespace;
+	else if constexpr( std::is_same_v<SymType, Node> )
+		return sym->data.sym_type;
+	else
+		static_assert("Cannot create symbol of type " + to_string(Node::sk));
+}
+
 template<typename Node, typename... Args>
 Sym*
 SymTab::create(Args&&... args)
@@ -37,16 +55,7 @@ SymTab::create(Args&&... args)
 	Sym* sym = &syms.emplace_back();
 	sym->kind = Node::sk;
 
-	if constexpr( std::is_same_v<SymVar, Node> )
-		sym->data.sym_var = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<SymFunc, Node> )
-		sym->data.sym_func = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<SymNamespace, Node> )
-		sym->data.sym_namespace = Node(std::forward<Args>(args)...);
-	else if constexpr( std::is_same_v<SymType, Node> )
-		sym->data.sym_type = Node(std::forward<Args>(args)...);
-	else
-		static_assert("Cannot create symbol of type " + to_string(Node::sk));
+	sym_cast<Node>(sym) = Node(std::forward<Args>(args)...);
 
 	return sym;
 }
