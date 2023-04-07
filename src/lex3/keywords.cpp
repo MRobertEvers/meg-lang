@@ -58,6 +58,14 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "Colon";
 	case TokenKind::SemiColon:
 		return "SemiColon";
+	case TokenKind::Star:
+		return "Star";
+	case TokenKind::Slash:
+		return "Slash";
+	case TokenKind::Plus:
+		return "Plus";
+	case TokenKind::Minus:
+		return "Minus";
 	case TokenKind::FnKw:
 		return "FnKw";
 	case TokenKind::ReturnKw:

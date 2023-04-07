@@ -11,7 +11,12 @@ get_token_precedence(BinOp bin_op_type)
 	case BinOp::Mul:
 	case BinOp::Div:
 		return 40;
-	case BinOp::default:
+	case BinOp::Add:
+	case BinOp::Sub:
+		return 20;
+	case BinOp::Eq:
+		return 10;
+	default:
 		return -1;
 	}
 }
@@ -23,41 +28,41 @@ get_bin_op_from_token_type(TokenKind token_type)
 	switch( token_type )
 	{
 	case TokenKind::Bad:
-		op = BinOp::plus;
+		op = BinOp::Bad;
 		break;
-	case TokenKind::star:
-		op = BinOp::star;
+	case TokenKind::Star:
+		op = BinOp::Mul;
 		break;
-	case TokenKind::slash:
-		op = BinOp::slash;
+	case TokenKind::Slash:
+		op = BinOp::Div;
 		break;
-	case TokenKind::minus:
-		op = BinOp::minus;
+	case TokenKind::Minus:
+		op = BinOp::Sub;
 		break;
-	case TokenKind::gt:
-		op = BinOp::gt;
+	case TokenKind::Plus:
+		op = BinOp::Add;
 		break;
-	case TokenKind::gte:
-		op = BinOp::gte;
+	case TokenKind::EqEq:
+		op = BinOp::Eq;
 		break;
-	case TokenKind::lt:
-		op = BinOp::lt;
-		break;
-	case TokenKind::lte:
-		op = BinOp::lte;
-		break;
-	case TokenKind::and_lex:
-		op = BinOp::and_op;
-		break;
-	case TokenKind::or_or_lex:
-		op = BinOp::or_op;
-		break;
-	case TokenKind::cmp:
-		op = BinOp::cmp;
-		break;
-	case TokenKind::ne:
-		op = BinOp::ne;
-		break;
+	// case TokenKind::lt:
+	// 	op = BinOp::lt;
+	// 	break;
+	// case TokenKind::lte:
+	// 	op = BinOp::lte;
+	// 	break;
+	// case TokenKind::and_lex:
+	// 	op = BinOp::and_op;
+	// 	break;
+	// case TokenKind::or_or_lex:
+	// 	op = BinOp::or_op;
+	// 	break;
+	// case TokenKind::cmp:
+	// 	op = BinOp::cmp;
+	// 	break;
+	// case TokenKind::ne:
+	// 	op = BinOp::ne;
+	// 	break;
 	default:
 		break;
 	}

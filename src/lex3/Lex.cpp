@@ -100,6 +100,22 @@ Lex::tok_start()
 		tok_kind = TokenKind::Colon;
 		cursor_ += 1;
 		break;
+	case '*':
+		tok_kind = TokenKind::Star;
+		cursor_ += 1;
+		break;
+	case '/':
+		tok_kind = TokenKind::Slash;
+		cursor_ += 1;
+		break;
+	case '+':
+		tok_kind = TokenKind::Plus;
+		cursor_ += 1;
+		break;
+	case '-':
+		tok_kind = TokenKind::Minus;
+		cursor_ += 1;
+		break;
 	default:
 		cursor_ += 1;
 		break;

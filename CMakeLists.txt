@@ -38,6 +38,7 @@ add_executable(sushi
   src/lex3/Cursor.cpp
   src/lex3/keywords.cpp
   src/lex3/print_token.cpp
+  src/ast3/bin_op.cpp
   src/ast3/Ast.cpp
   src/ast3/AstNode.cpp
   src/ast3/Parser.cpp
@@ -53,6 +54,7 @@ add_executable(sushi
   src/sema3/Sym.cpp
   src/sema3/SymScope.cpp
   src/sema3/SymLookup.cpp
+  src/sema3/SymBuiltins.cpp
   src/sema3/QualifiedTy.cpp
 )
 

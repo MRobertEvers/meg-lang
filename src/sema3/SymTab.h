@@ -14,14 +14,20 @@ class SymTab
 
 public:
 	SymTab();
+
 	SymLookupResult lookup(NameParts name);
 
-	SymScope* current_scope();
+	void push_scope(SymScope* scope);
+	void pop_scope();
 
 	template<typename Node, typename... Args>
 	Sym* create(Args&&... args);
+
 	template<typename Node, typename... Args>
 	Sym* create_named(std::string name, Args&&... args);
+
+private:
+	SymScope* current_scope();
 };
 
 template<typename Node, typename... Args>

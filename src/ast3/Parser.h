@@ -24,6 +24,7 @@ public:
 	ParseResult<AstNode*> parse_identifier();
 	ParseResult<AstNode*> parse_type_decl(bool allow_empty);
 	ParseResult<AstNode*> parse_var_decl(bool allow_untyped);
+	ParseResult<AstNode*> parse_call(AstNode* callee);
 	ParseResult<AstNode*> parse_function();
 	ParseResult<AstNode*> parse_function_proto();
 	ParseResult<AstNode*> parse_function_body();

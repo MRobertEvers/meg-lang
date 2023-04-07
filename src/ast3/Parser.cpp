@@ -159,6 +159,37 @@ Parser::parse_var_decl(bool allow_untyped)
 }
 
 ParseResult<AstNode*>
+Parser::parse_call(AstNode* callee)
+{
+	// auto trail = get_parse_trail();
+	std::vector<AstNode*> args;
+
+	ConsumeResult tok = cursor.consume(TokenKind::OpenParen);
+	if( !tok.ok() )
+		return ParseError("Expected '('", tok.token());
+
+	Token curr_tok = cursor.peek();
+	while( curr_tok.kind != TokenKind::CloseParen )
+	{
+		auto expr_result = parse_expr();
+		if( !expr_result.ok() )
+			return expr_result;
+
+		args.push_back(expr_result.unwrap());
+
+		// Also catches trailing comma.
+		cursor.consume_if_expected(TokenKind::Comma);
+		curr_tok = cursor.peek();
+	}
+
+	tok = cursor.consume(TokenKind::CloseParen);
+	if( !tok.ok() )
+		return ParseError("Expected ')'", tok.token());
+
+	return ast.create<AstFuncCall>(Span(), callee, args);
+}
+
+ParseResult<AstNode*>
 Parser::parse_function()
 {
 	// auto trail = get_parse_trail();
@@ -283,7 +314,19 @@ Parser::parse_number_literal()
 ParseResult<AstNode*>
 Parser::parse_postfix_expr()
 {
-	return parse_simple_expr();
+	auto simple_expr_result = parse_simple_expr();
+	if( !simple_expr_result.ok() )
+		return simple_expr_result;
+
+	Token tok = cursor.peek();
+
+	switch( tok.kind )
+	{
+	case TokenKind::OpenParen:
+		return parse_call(simple_expr_result.unwrap());
+	default:
+		return simple_expr_result.unwrap();
+	}
 	// 	auto trail = get_parse_trail();
 
 	// 	auto expr = parse_simple_expr();
@@ -346,96 +389,96 @@ Parser::parse_simple_expr()
 {
 	// auto trail = get_parse_trail();
 	AstNode* result = nullptr;
-	auto tok = cursor.peek();
+	Token tok = cursor.peek();
 	switch( tok.kind )
 	{
 	case TokenKind::NumberLiteral:
 	{
-		auto expr = parse_number_literal();
-		if( !expr.ok() )
-			return expr;
-		result = expr.unwrap();
+		auto expr_result = parse_number_literal();
+		if( !expr_result.ok() )
+			return expr_result;
+		result = expr_result.unwrap();
+		break;
+	}
+	case TokenKind::Identifier:
+	{
+		cursor.consume(TokenKind::Identifier);
+		result = ast.create<AstId>(Span(), to_string(tok));
 		break;
 	}
 	default:
 		return NotImpl();
 	}
 
-	return ast.create<AstExpr>(Span(), result);
+	return result;
 }
 
 ParseResult<AstNode*>
 Parser::parse_bin_op(int expr_precidence, AstNode* lhs)
 {
-	return NotImpl();
 	// auto trail = get_parse_trail();
-	// // If this is a binop, find its precedence.
-	// while( true )
-	// {
-	// 	// This is a binary operation because TokPrec would be less than ExprPrec if
-	// 	// the next token was not a bin op (e.g. if statement or so.)
+	// If this is a binop, find its precedence.
+	while( true )
+	{
+		// This is a binary operation because TokPrec would be less than ExprPrec if
+		// the next token was not a bin op (e.g. if statement or so.)
 
-	// 	// TODO: Consume bin op
-	// 	auto tok = cursor.consume(
-	// 		{TokenKind::plus,
-	// 		 TokenKind::star,
-	// 		 TokenKind::slash,
-	// 		 TokenKind::minus,
-	// 		 TokenKind::gt,
-	// 		 TokenKind::gte,
-	// 		 TokenKind::lt,
-	// 		 TokenKind::lte,
-	// 		 TokenKind::and_and_lex,
-	// 		 TokenKind::or_or_lex,
-	// 		 TokenKind::cmp,
-	// 		 TokenKind::ne}); // TODO: Other assignment exprs.
-	// 	if( !tok.ok() )
-	// 		return lhs;
+		ConsumeResult consume = cursor.consume(
+			{TokenKind::Star,
+			 TokenKind::Slash,
+			 TokenKind::Plus,
+			 TokenKind::Minus,
+			 TokenKind::EqEq}); // TODO: Other assignment exprs.
+		if( !consume.ok() )
+			return lhs;
 
-	// 	auto token_type = tok.as().type;
-	// 	auto op = get_bin_op_from_token_type(token_type);
-	// 	int tok_precidence = get_token_precedence(op);
+		Token tok = consume.token();
 
-	// 	// If this is a binop that binds at least as tightly as the current binop,
-	// 	// consume it, otherwise we are done.
-	// 	if( tok_precidence < expr_precidence )
-	// 		return lhs;
+		TokenKind token_type = tok.kind;
+		BinOp op = get_bin_op_from_token_type(token_type);
+		int tok_precidence = get_token_precedence(op);
 
-	// 	// Parse the primary expression after the binary operator.
-	// 	auto rhs = parse_postfix_expr();
-	// 	if( !rhs.ok() )
-	// 		return rhs;
+		// If this is a binop that binds at least as tightly as the current binop,
+		// consume it, otherwise we are done.
+		if( tok_precidence < expr_precidence )
+			return lhs;
 
-	// 	// If BinOp binds less tightly with RHS than the operator after RHS, let
-	// 	// the pending operator take RHS as its LHS.
-	// 	auto cur = cursor.peek();
-	// 	token_type = cur.type;
-	// 	auto next_op = get_bin_op_from_token_type(token_type);
-	// 	int next_precidence = get_token_precedence(next_op);
-	// 	if( tok_precidence < next_precidence )
-	// 	{
-	// 		rhs = parse_bin_op(tok_precidence + 1, rhs.unwrap());
-	// 		if( !rhs.ok() )
-	// 			return rhs;
-	// 	}
+		// Parse the primary expression after the binary operator.
+		auto rhs_result = parse_postfix_expr();
+		if( !rhs_result.ok() )
+			return rhs_result;
 
-	// 	// Merge LHS/RHS.
-	// 	lhs = ast.Expr(trail.mark(), ast.BinOp(trail.mark(), op, lhs, rhs.unwrap()));
-	// }
+		// If BinOp binds less tightly with RHS than the operator after RHS, let
+		// the pending operator take RHS as its LHS.
+		Token next_tok = cursor.peek();
+		token_type = next_tok.kind;
+		BinOp next_op = get_bin_op_from_token_type(token_type);
+		int next_precidence = get_token_precedence(next_op);
+		if( tok_precidence < next_precidence )
+		{
+			rhs_result = parse_bin_op(tok_precidence + 1, rhs_result.unwrap());
+			if( !rhs_result.ok() )
+				return rhs_result;
+		}
+
+		// Merge LHS/RHS.
+		lhs = ast.create<AstBinOp>(Span(), op, lhs, rhs_result.unwrap());
+	}
 }
 
 ParseResult<AstNode*>
 Parser::parse_expr()
 {
 	// auto trail = get_parse_trail();
-	auto lhs = parse_postfix_expr();
-	if( !lhs.ok() )
-		return lhs;
+	auto lhs_result = parse_postfix_expr();
+	if( !lhs_result.ok() )
+		return lhs_result;
 
-	return lhs;
-	// auto op = parse_bin_op(0, lhs.unwrap());
-	// if( !op.ok() )
-	// 	return op;
+	auto bin_op_result = parse_bin_op(0, lhs_result.unwrap());
+	if( !bin_op_result.ok() )
+		return bin_op_result;
+
+	return ast.create<AstExpr>(Span(), bin_op_result.unwrap());
 
 	// if( cursor.peek().type == TokenType::is )
 	// {

@@ -1,16 +1,17 @@
 #pragma once
 
-#include "Ty.h"
+class Ty;
 
 class QualifiedTy
 {
-	Ty const* ty;
+	Ty const* ty = nullptr;
 
-	bool is_array;
-	int array_size;
+	bool is_array = false;
+	int array_size = 0;
 
-	int indirection;
+	int indirection = 0;
 
 public:
+	QualifiedTy();
 	QualifiedTy(Ty const* ty);
 };

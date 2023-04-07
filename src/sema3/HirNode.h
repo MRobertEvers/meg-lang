@@ -1,7 +1,9 @@
 #pragma once
 #include "QualifiedTy.h"
+#include "Sym.h"
 #include "Ty.h"
 #include "ast3/NameParts.h"
+#include "ast3/bin_op.h"
 
 #include <vector>
 
@@ -10,6 +12,7 @@ enum class HirNodeKind
 	Invalid,
 	Module,
 	Block,
+	Call,
 	Func,
 	FuncProto,
 	Id,
@@ -69,25 +72,16 @@ struct HirFuncProto
 	};
 
 	Linkage linkage = Linkage::None;
-	HirNode* id;
 	std::vector<HirNode*> parameters;
-	HirNode* rt_type_declarator;
 
-	Ty const* ty;
+	Sym* sym;
 
 	// TODO: I'm not entirely sure we need to keep track of the rt_type_declarator
 	// Maybe for some template things?
-	HirFuncProto(
-		Linkage linkage,
-		HirNode* id,
-		std::vector<HirNode*> parameters,
-		HirNode* rt_type_declarator,
-		Ty const* ty)
+	HirFuncProto(Linkage linkage, Sym* sym, std::vector<HirNode*> parameters)
 		: linkage(linkage)
 		, parameters(parameters)
-		, id(id)
-		, rt_type_declarator(rt_type_declarator)
-		, ty(ty)
+		, sym(sym)
 	{}
 };
 
@@ -106,10 +100,54 @@ struct HirId
 {
 	static constexpr HirNodeKind nt = HirNodeKind::Id;
 
-	NameParts name_parts;
+	Sym* sym;
 
-	HirId(NameParts name_parts)
-		: name_parts(name_parts)
+	HirId(Sym* sym)
+		: sym(sym)
+	{}
+};
+
+struct HirCall
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Call;
+
+	enum class CallKind
+	{
+		Invalid,
+		Static,
+		PtrCall,
+
+		// For Builtin Functions that do special things
+		// during codegen.
+		BuiltIn
+	} kind = CallKind::Invalid;
+
+	// Only one is populated
+	union
+	{
+		Sym* callee;
+		HirNode* callee_expr;
+		BinOp op;
+	};
+
+	std::vector<HirNode*> args;
+
+	HirCall(Sym* callee, std::vector<HirNode*> args)
+		: callee(callee)
+		, args(args)
+		, kind(CallKind::Static)
+	{}
+
+	HirCall(BinOp op, std::vector<HirNode*> args)
+		: op(op)
+		, args(args)
+		, kind(CallKind::BuiltIn)
+	{}
+
+	HirCall(HirNode* callee_expr, std::vector<HirNode*> args)
+		: callee_expr(callee_expr)
+		, args(args)
+		, kind(CallKind::PtrCall)
 	{}
 };
 
@@ -128,7 +166,7 @@ struct HirNumberLiteral
 {
 	static constexpr HirNodeKind nt = HirNodeKind::NumberLiteral;
 
-	long long value;
+	long long value = 0;
 
 	HirNumberLiteral(long long value)
 		: value(value)
@@ -138,6 +176,9 @@ struct HirNumberLiteral
 struct HirNode
 {
 	HirNodeKind kind = HirNodeKind::Invalid;
+
+	QualifiedTy qty;
+
 	union NodeData
 	{
 		HirModule hir_module;
@@ -148,6 +189,7 @@ struct HirNode
 		HirId hir_id;
 		HirTypeDeclarator hir_type_declarator;
 		HirNumberLiteral hir_number_literal;
+		HirCall hir_call;
 
 		// Attention! This leaks!
 		NodeData() {}

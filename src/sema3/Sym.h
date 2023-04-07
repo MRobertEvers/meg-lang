@@ -23,6 +23,10 @@ struct SymVar
 struct SymFunc
 {
 	static constexpr SymKind sk = SymKind::Func;
+	// Right now this contains parameters.
+	// Eventually, this wont be here as we
+	// will have to perform overload resolution first.
+	SymScope scope;
 	Ty const* ty;
 
 	SymFunc(Ty const* ty);

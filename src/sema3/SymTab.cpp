@@ -26,6 +26,18 @@ SymTab::lookup(NameParts name)
 	return SymLookupResult(nullptr);
 }
 
+void
+SymTab::push_scope(SymScope* scope)
+{
+	stack.push_back(scope);
+}
+
+void
+SymTab::pop_scope()
+{
+	stack.pop_back();
+}
+
 SymScope*
 SymTab::current_scope()
 {

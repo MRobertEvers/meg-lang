@@ -49,6 +49,10 @@ Ast::create(Span span, Args&&... args)
 		ast_node->data.ast_stmt = Node(std::forward<Args>(args)...);
 	else if constexpr( std::is_same_v<AstNumberLiteral, Node> )
 		ast_node->data.ast_number_literal = Node(std::forward<Args>(args)...);
+	else if constexpr( std::is_same_v<AstFuncCall, Node> )
+		ast_node->data.ast_func_call = Node(std::forward<Args>(args)...);
+	else if constexpr( std::is_same_v<AstBinOp, Node> )
+		ast_node->data.ast_bin_op = Node(std::forward<Args>(args)...);
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 

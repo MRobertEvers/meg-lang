@@ -12,8 +12,10 @@ enum class NodeKind
 	Module,
 	Func,
 	FuncProto,
+	FuncCall,
 	Block,
 	Id,
+	BinOp,
 	NumberLiteral,
 	TypeDeclarator,
 	Return,
@@ -125,6 +127,18 @@ struct AstFuncProto
 		, rt_type_declarator(rt_type_declarator)
 	{}
 };
+struct AstFuncCall
+{
+	static constexpr NodeKind nt = NodeKind::FuncCall;
+
+	AstNode* callee;
+	std::vector<AstNode*> args;
+
+	AstFuncCall(AstNode* callee, std::vector<AstNode*> args)
+		: args(args)
+		, callee(callee)
+	{}
+};
 
 struct AstFunc
 {
@@ -174,6 +188,20 @@ struct AstStmt
 	{}
 };
 
+struct AstBinOp
+{
+	static constexpr NodeKind nt = NodeKind::BinOp;
+
+	BinOp op;
+	AstNode* lhs;
+	AstNode* rhs;
+
+	AstBinOp(BinOp op, AstNode* lhs, AstNode* rhs)
+		: lhs(lhs)
+		, rhs(rhs)
+	{}
+};
+
 struct AstNode
 {
 	Span span;
@@ -191,6 +219,8 @@ struct AstNode
 		AstExpr ast_expr;
 		AstStmt ast_stmt;
 		AstNumberLiteral ast_number_literal;
+		AstFuncCall ast_func_call;
+		AstBinOp ast_bin_op;
 
 		// Attention! This leaks!
 		NodeData() {}

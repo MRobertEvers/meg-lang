@@ -1,5 +1,9 @@
 #pragma once
+
+#include "QualifiedTy.h"
+
 #include <string>
+#include <vector>
 
 enum class TyKind
 {
@@ -10,13 +14,18 @@ enum class TyKind
 	Struct,
 };
 
+class Ty;
+
 struct TyPrimitive
 {
 	static constexpr TyKind tk = TyKind::Primitive;
 	std::string name;
 
-	TyPrimitive(std::string name)
-		: name(name){};
+	int width = 0;
+
+	TyPrimitive(std::string name, int width)
+		: name(name)
+		, width(width){};
 };
 
 struct TyFunc
@@ -24,8 +33,13 @@ struct TyFunc
 	static constexpr TyKind tk = TyKind::Func;
 	std::string name;
 
-	TyFunc(std::string name)
-		: name(name){};
+	std::vector<QualifiedTy> args_qtys;
+	QualifiedTy rt_qty;
+
+	TyFunc(std::string name, std::vector<QualifiedTy> args_qtys, QualifiedTy rt_qty)
+		: name(name)
+		, args_qtys(args_qtys)
+		, rt_qty(rt_qty){};
 };
 
 struct Ty

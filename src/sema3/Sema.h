@@ -3,17 +3,16 @@
 #include "Hir.h"
 #include "HirNode.h"
 #include "SemaResult.h"
-#include "SymLookup.h"
+#include "SymBuiltins.h"
 #include "SymTab.h"
 #include "Types.h"
-
 class Sema
 {
 	Hir& hir;
 	Types& types;
 	SymTab& sym_tab;
 
-	SymLookup lookup;
+	SymBuiltins builtins;
 
 public:
 	Sema(Hir& hir, Types& types, SymTab& sym_tab);
@@ -27,6 +26,10 @@ public:
 	SemaResult<HirNode*> sema_stmt(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_return(AstNode* ast_return);
 	SemaResult<HirNode*> sema_expr(AstNode* ast_expr);
+	SemaResult<HirNode*> sema_expr_any(AstNode* ast_expr);
+	SemaResult<HirNode*> sema_id(AstNode* ast_id);
+	SemaResult<HirNode*> sema_func_call(AstNode* ast_func_call);
+	SemaResult<HirNode*> sema_bin_op(AstNode* ast_bin_op);
 	SemaResult<HirNode*> sema_number_literal(AstNode* ast_number_literal);
 
 private:

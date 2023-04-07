@@ -27,6 +27,10 @@ to_string(NodeKind type)
 		return "Expr";
 	case NodeKind::Stmt:
 		return "Stmt";
+	case NodeKind::FuncCall:
+		return "FuncCall";
+	case NodeKind::BinOp:
+		return "BinOp";
 	case NodeKind::NumberLiteral:
 		return "NumberLiteral";
 	}

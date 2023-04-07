@@ -24,6 +24,12 @@ enum class TokenKind
 	ColonColon,
 	SemiColon,
 
+	Star,
+	Slash,
+	Plus,
+	Minus,
+	EqEq,
+
 	FnKw,
 	ReturnKw,
 
