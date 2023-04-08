@@ -345,12 +345,18 @@ Sema::sema_if(AstNode* ast_if)
 		if( !cond_result.ok() )
 			return cond_result;
 
+		HirNode* cond = cond_result.unwrap();
+		auto bool_coerce_result = equal_coercion(QualifiedTy(builtins.bool_ty), cond);
+		if( !bool_coerce_result.ok() )
+			return bool_coerce_result;
+
+		cond = bool_coerce_result.unwrap();
+
 		auto body_result = sema_stmt(if_nod.then_stmt);
 		if( !body_result.ok() )
 			return body_result;
 
-		elsifs.push_back(
-			(HirIf::CondThen){.cond = cond_result.unwrap(), .then = body_result.unwrap()});
+		elsifs.push_back((HirIf::CondThen){.cond = cond, .then = body_result.unwrap()});
 
 		if( if_nod.else_stmt )
 			ast_if = ast_cast<AstStmt>(if_nod.else_stmt).stmt;
@@ -461,6 +467,28 @@ Sema::sema_func_call(AstNode* ast_func_call)
 	}
 }
 
+static QualifiedTy
+bin_op_qty(SymBuiltins& builtins, BinOp op, HirNode* lhs)
+{
+	switch( op )
+	{
+	case BinOp::Lt:
+	case BinOp::Lte:
+	case BinOp::Gt:
+	case BinOp::Gte:
+	case BinOp::AndOp:
+	case BinOp::OrOp:
+		return QualifiedTy(builtins.bool_ty);
+	case BinOp::Mul:
+	case BinOp::Div:
+	case BinOp::Add:
+	case BinOp::Sub:
+		return lhs->qty;
+	default:
+		return QualifiedTy(builtins.void_ty);
+	}
+}
+
 SemaResult<HirNode*>
 Sema::sema_bin_op(AstNode* ast_bin_op)
 {
@@ -486,7 +514,7 @@ Sema::sema_bin_op(AstNode* ast_bin_op)
 
 	args[1] = coercion_result.unwrap();
 
-	return hir.create<HirCall>(args[0]->qty, bin_op.op, args);
+	return hir.create<HirCall>(bin_op_qty(builtins, bin_op.op, args[0]), bin_op.op, args);
 }
 
 SemaResult<HirNode*>

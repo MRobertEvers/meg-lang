@@ -33,6 +33,8 @@ to_string(NodeKind type)
 		return "Let";
 	case NodeKind::If:
 		return "If";
+	case NodeKind::BoolLiteral:
+		return "BoolLiteral";
 	case NodeKind::BinOp:
 		return "BinOp";
 	case NodeKind::NumberLiteral:

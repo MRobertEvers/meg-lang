@@ -17,6 +17,7 @@ enum class NodeKind
 	Id,
 	BinOp,
 	NumberLiteral,
+	BoolLiteral,
 	TypeDeclarator,
 	Let,
 	If,
@@ -85,6 +86,17 @@ struct AstNumberLiteral
 	long long value;
 
 	AstNumberLiteral(long long value)
+		: value(value)
+	{}
+};
+
+struct AstBoolLiteral
+{
+	static constexpr NodeKind nt = NodeKind::BoolLiteral;
+
+	bool value;
+
+	AstBoolLiteral(bool value)
 		: value(value)
 	{}
 };
@@ -227,7 +239,8 @@ struct AstBinOp
 	AstNode* rhs;
 
 	AstBinOp(BinOp op, AstNode* lhs, AstNode* rhs)
-		: lhs(lhs)
+		: op(op)
+		, lhs(lhs)
 		, rhs(rhs)
 	{}
 };
@@ -249,6 +262,7 @@ struct AstNode
 		AstExpr ast_expr;
 		AstStmt ast_stmt;
 		AstNumberLiteral ast_number_literal;
+		AstBoolLiteral ast_bool_literal;
 		AstFuncCall ast_func_call;
 		AstBinOp ast_bin_op;
 		AstLet ast_let;

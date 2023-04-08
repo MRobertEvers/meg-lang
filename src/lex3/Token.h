@@ -37,6 +37,8 @@ enum class TokenKind
 
 	FnKw,
 	IfKw,
+	TrueKw,
+	FalseKw,
 	ElseKw,
 	ReturnKw,
 	LetKw,

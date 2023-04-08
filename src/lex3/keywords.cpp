@@ -18,6 +18,8 @@ KeywordIdentifierTuple keywords[] =
 	{"let", TokenKind::LetKw},
 	{"if", TokenKind::IfKw},
 	{"else", TokenKind::ElseKw},
+	{"true", TokenKind::TrueKw},
+	{"false", TokenKind::FalseKw},
 	// clang-format off
 };
 // clang-format on
@@ -95,6 +97,10 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "Comma";
 	case TokenKind::ColonColon:
 		return "ColonColon";
+	case TokenKind::TrueKw:
+		return "TrueKw";
+	case TokenKind::FalseKw:
+		return "FalseKw";
 	case TokenKind::EqEq:
 		return "EqEq";
 	case TokenKind::Eof:
