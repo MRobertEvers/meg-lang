@@ -29,6 +29,10 @@ to_string(NodeKind type)
 		return "Stmt";
 	case NodeKind::FuncCall:
 		return "FuncCall";
+	case NodeKind::Let:
+		return "Let";
+	case NodeKind::If:
+		return "If";
 	case NodeKind::BinOp:
 		return "BinOp";
 	case NodeKind::NumberLiteral:

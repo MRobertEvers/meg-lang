@@ -51,6 +51,10 @@ ast_cast(AstTy* ast_node)
 		return ast_node->data.ast_func_call;
 	else if constexpr( std::is_same_v<AstBinOp, Node> )
 		return ast_node->data.ast_bin_op;
+	else if constexpr( std::is_same_v<AstLet, Node> )
+		return ast_node->data.ast_let;
+	else if constexpr( std::is_same_v<AstIf, Node> )
+		return ast_node->data.ast_if;
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 }

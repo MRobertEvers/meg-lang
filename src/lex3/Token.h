@@ -29,9 +29,17 @@ enum class TokenKind
 	Plus,
 	Minus,
 	EqEq,
+	Eq,
+	Gt,
+	Lt,
+	GtEq,
+	LtEq,
 
 	FnKw,
+	IfKw,
+	ElseKw,
 	ReturnKw,
+	LetKw,
 
 	Bad,
 

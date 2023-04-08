@@ -26,6 +26,16 @@ SymTab::lookup(NameParts name)
 	return SymLookupResult(nullptr);
 }
 
+SymLookupResult
+SymTab::lookup(Ty const* ty)
+{
+	auto iter_find = ty_lookup.find(ty);
+	if( iter_find != ty_lookup.end() )
+		return SymLookupResult(iter_find->second);
+
+	return SymLookupResult(nullptr);
+}
+
 void
 SymTab::push_scope(SymScope* scope)
 {

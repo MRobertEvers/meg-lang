@@ -18,6 +18,8 @@ enum class NodeKind
 	BinOp,
 	NumberLiteral,
 	TypeDeclarator,
+	Let,
+	If,
 	Return,
 	VarDecl,
 	Expr,
@@ -164,6 +166,34 @@ struct AstReturn
 	{}
 };
 
+struct AstLet
+{
+	static constexpr NodeKind nt = NodeKind::Let;
+
+	AstNode* var_decl;
+	AstNode* rhs;
+
+	AstLet(AstNode* var_decl, AstNode* rhs)
+		: var_decl(var_decl)
+		, rhs(rhs)
+	{}
+};
+
+struct AstIf
+{
+	static constexpr NodeKind nt = NodeKind::If;
+
+	AstNode* condition;
+	AstNode* then_stmt;
+	AstNode* else_stmt;
+
+	AstIf(AstNode* condition, AstNode* then_stmt, AstNode* else_stmt)
+		: condition(condition)
+		, then_stmt(then_stmt)
+		, else_stmt(else_stmt)
+	{}
+};
+
 struct AstExpr
 {
 	static constexpr NodeKind nt = NodeKind::Expr;
@@ -221,6 +251,8 @@ struct AstNode
 		AstNumberLiteral ast_number_literal;
 		AstFuncCall ast_func_call;
 		AstBinOp ast_bin_op;
+		AstLet ast_let;
+		AstIf ast_if;
 
 		// Attention! This leaks!
 		NodeData() {}

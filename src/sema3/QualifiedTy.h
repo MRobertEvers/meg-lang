@@ -15,6 +15,7 @@ public:
 	QualifiedTy(Ty const* ty);
 
 	bool is_function() const;
+	bool is_primitive() const;
 
 	// TODO: compatible function not equals
 	static bool equals(QualifiedTy lqty, QualifiedTy rqty);

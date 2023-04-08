@@ -38,6 +38,10 @@ hir_cast(HirNode* hir_node)
 		return hir_node->data.hir_type_declarator;
 	else if constexpr( std::is_same_v<HirCall, Node> )
 		return hir_node->data.hir_call;
+	else if constexpr( std::is_same_v<HirLet, Node> )
+		return hir_node->data.hir_let;
+	else if constexpr( std::is_same_v<HirIf, Node> )
+		return hir_node->data.hir_if;
 	else
 		static_assert("Cannot create hir node of type ");
 }

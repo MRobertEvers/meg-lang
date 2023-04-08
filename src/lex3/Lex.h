@@ -24,6 +24,7 @@ private:
 	char const* head();
 
 	TokenKind tok_start();
+	Token tok_ambiguous(TokenKind unmatched, char const* matcher, TokenKind matched);
 	Token tok_identifier();
 	Token tok_number_literal();
 

@@ -13,6 +13,12 @@ QualifiedTy::is_function() const
 }
 
 bool
+QualifiedTy::is_primitive() const
+{
+	return ty->kind == TyKind::Primitive && indirection == 0 && !is_array;
+}
+
+bool
 QualifiedTy::equals(QualifiedTy lqty, QualifiedTy rqty)
 {
 	if( lqty.indirection == rqty.indirection && lqty.ty == rqty.ty )

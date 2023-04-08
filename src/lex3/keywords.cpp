@@ -15,6 +15,9 @@ KeywordIdentifierTuple keywords[] =
 	// clang-format on
 	{"fn", TokenKind::FnKw},
 	{"return", TokenKind::ReturnKw},
+	{"let", TokenKind::LetKw},
+	{"if", TokenKind::IfKw},
+	{"else", TokenKind::ElseKw},
 	// clang-format off
 };
 // clang-format on
@@ -66,12 +69,34 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "Plus";
 	case TokenKind::Minus:
 		return "Minus";
+	case TokenKind::Eq:
+		return "Eq";
 	case TokenKind::FnKw:
 		return "FnKw";
 	case TokenKind::ReturnKw:
 		return "ReturnKw";
+	case TokenKind::LetKw:
+		return "LetKw";
+	case TokenKind::IfKw:
+		return "IfKw";
+	case TokenKind::ElseKw:
+		return "ElseKw";
+	case TokenKind::Gt:
+		return "Gt";
+	case TokenKind::Lt:
+		return "Lt";
+	case TokenKind::GtEq:
+		return "GtEq";
+	case TokenKind::LtEq:
+		return "LtEq";
 	case TokenKind::Bad:
 		return "Bad";
+	case TokenKind::Comma:
+		return "Comma";
+	case TokenKind::ColonColon:
+		return "ColonColon";
+	case TokenKind::EqEq:
+		return "EqEq";
 	case TokenKind::Eof:
 		return "Eof";
 	}

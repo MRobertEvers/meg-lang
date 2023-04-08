@@ -300,6 +300,59 @@ Parser::parse_block()
 }
 
 ParseResult<AstNode*>
+Parser::parse_let()
+{
+	// auto trail = get_parse_trail();
+
+	std::vector<AstNode*> statements;
+
+	auto tok = cursor.consume(TokenKind::LetKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'let'", tok.token());
+
+	auto ast_result = parse_var_decl(true);
+	if( !ast_result.ok() )
+		return ast_result;
+
+	tok = cursor.consume_if_expected(TokenKind::Eq);
+	if( !tok.ok() )
+		return ast.create<AstLet>(Span(), ast_result.unwrap(), nullptr);
+
+	auto rhs_result = parse_expr();
+	if( !rhs_result.ok() )
+		return rhs_result;
+
+	return ast.create<AstLet>(Span(), ast_result.unwrap(), rhs_result.unwrap());
+}
+
+ParseResult<AstNode*>
+Parser::parse_if()
+{
+	auto tok = cursor.consume(TokenKind::IfKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'if'", tok.token());
+
+	auto expr_result = parse_expr();
+	if( !expr_result.ok() )
+		return expr_result;
+
+	auto then_result = parse_statement();
+	if( !then_result.ok() )
+		return then_result;
+
+	tok = cursor.consume_if_expected(TokenKind::ElseKw);
+	if( !tok.ok() )
+		return ast.create<AstIf>(Span(), expr_result.unwrap(), then_result.unwrap(), nullptr);
+
+	auto else_result = parse_statement();
+	if( !else_result.ok() )
+		return else_result;
+
+	return ast.create<AstIf>(
+		Span(), expr_result.unwrap(), then_result.unwrap(), else_result.unwrap());
+}
+
+ParseResult<AstNode*>
 Parser::parse_number_literal()
 {
 	auto tok = cursor.consume(TokenKind::NumberLiteral);
@@ -406,6 +459,20 @@ Parser::parse_simple_expr()
 		result = ast.create<AstId>(Span(), to_string(tok));
 		break;
 	}
+	case TokenKind::OpenParen:
+	{
+		cursor.consume(TokenKind::OpenParen);
+		auto expr_result = parse_expr();
+		if( !expr_result.ok() )
+			return expr_result;
+
+		auto cons = cursor.consume(TokenKind::CloseParen);
+		if( !cons.ok() )
+			return ParseError("Expected ')'", cons.token());
+
+		result = expr_result.unwrap();
+		break;
+	}
 	default:
 		return NotImpl();
 	}
@@ -423,12 +490,18 @@ Parser::parse_bin_op(int expr_precidence, AstNode* lhs)
 		// This is a binary operation because TokPrec would be less than ExprPrec if
 		// the next token was not a bin op (e.g. if statement or so.)
 
-		ConsumeResult consume = cursor.consume(
-			{TokenKind::Star,
-			 TokenKind::Slash,
-			 TokenKind::Plus,
-			 TokenKind::Minus,
-			 TokenKind::EqEq}); // TODO: Other assignment exprs.
+		ConsumeResult consume = cursor.consume({
+			TokenKind::Star,
+			TokenKind::Slash,
+			TokenKind::Plus,
+			TokenKind::Minus,
+			TokenKind::EqEq,
+			TokenKind::Gt,
+			TokenKind::GtEq,
+			TokenKind::Lt,
+			TokenKind::LtEq,
+		});
+		// TODO: Other assignment exprs.
 		if( !consume.ok() )
 			return lhs;
 
@@ -514,13 +587,42 @@ Parser::parse_statement()
 	{
 	case TokenKind::ReturnKw:
 	{
-		cursor.consume_if_expected(TokenKind::ReturnKw);
+		cursor.consume(TokenKind::ReturnKw);
 
 		auto return_expr = parse_expr();
 		if( !return_expr.ok() )
 			return return_expr;
 
 		stmt = ast.create<AstReturn>(Span(), return_expr.unwrap());
+		break;
+	}
+	case TokenKind::LetKw:
+	{
+		auto let_stmt = parse_let();
+		if( !let_stmt.ok() )
+			return let_stmt;
+
+		stmt = let_stmt.unwrap();
+		break;
+	}
+	case TokenKind::IfKw:
+	{
+		auto if_stmt = parse_if();
+		if( !if_stmt.ok() )
+			return if_stmt;
+
+		stmt = if_stmt.unwrap();
+		goto no_semi;
+		break;
+	}
+	case TokenKind::OpenCurly:
+	{
+		auto block_stmt = parse_block();
+		if( !block_stmt.ok() )
+			return block_stmt;
+
+		stmt = block_stmt.unwrap();
+		goto no_semi;
 		break;
 	}
 	default:

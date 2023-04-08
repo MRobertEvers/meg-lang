@@ -3,5 +3,16 @@ fn func(a: i32): i32 {
 }
 
 fn main(): i32 {
-    return func(1) * 4;
+    let a: i8 = 5;
+    let b: i32 = a;
+
+    if (a > 8) {
+        return 11;
+    } else if (b > a) {
+        return 8;
+    } else {
+        return 0;
+    }
+
+    return func(b) * 4;
 }

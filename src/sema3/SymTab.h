@@ -4,18 +4,22 @@
 #include "SymScope.h"
 
 #include <deque>
+#include <map>
 #include <string>
+
 class SymTab
 {
 	std::deque<Sym> syms;
 
 	SymScope root;
 	std::vector<SymScope*> stack;
+	std::map<Ty const*, Sym*> ty_lookup;
 
 public:
 	SymTab();
 
 	SymLookupResult lookup(NameParts name);
+	SymLookupResult lookup(Ty const* ty);
 
 	void push_scope(SymScope* scope);
 	void pop_scope();
@@ -56,6 +60,11 @@ SymTab::create(Args&&... args)
 	sym->kind = Node::sk;
 
 	sym_cast<Node>(sym) = Node(std::forward<Args>(args)...);
+
+	if constexpr( std::is_same_v<SymType, Node> )
+		ty_lookup.emplace(sym_cast<SymType>(sym).ty, sym);
+	else if constexpr( std::is_same_v<SymFunc, Node> )
+		ty_lookup.emplace(sym_cast<SymFunc>(sym).ty, sym);
 
 	return sym;
 }

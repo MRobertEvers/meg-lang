@@ -17,6 +17,8 @@ enum class HirNodeKind
 	FuncProto,
 	Id,
 	Return,
+	Let,
+	If,
 	TypeDeclarator,
 	VarDecl,
 	Expr,
@@ -41,10 +43,17 @@ struct HirBlock
 {
 	static constexpr HirNodeKind nt = HirNodeKind::Block;
 
+	enum class Scoping
+	{
+		Scoped,
+		Inherit
+	} scoping = Scoping::Scoped;
+
 	std::vector<HirNode*> statements;
 
-	HirBlock(std::vector<HirNode*> statements)
+	HirBlock(std::vector<HirNode*> statements, Scoping scoping)
 		: statements(statements)
+		, scoping(scoping)
 	{}
 };
 
@@ -111,6 +120,13 @@ struct HirCall
 {
 	static constexpr HirNodeKind nt = HirNodeKind::Call;
 
+	enum class BuiltinKind
+	{
+		Invalid,
+		Cast,
+		SizeOf,
+	};
+
 	enum class CallKind
 	{
 		Invalid,
@@ -119,6 +135,7 @@ struct HirCall
 
 		// For Builtin Functions that do special things
 		// during codegen.
+		BinOp,
 		BuiltIn
 	} kind = CallKind::Invalid;
 
@@ -128,6 +145,7 @@ struct HirCall
 		Sym* callee;
 		HirNode* callee_expr;
 		BinOp op;
+		BuiltinKind builtin;
 	};
 
 	std::vector<HirNode*> args;
@@ -140,6 +158,12 @@ struct HirCall
 
 	HirCall(BinOp op, std::vector<HirNode*> args)
 		: op(op)
+		, args(args)
+		, kind(CallKind::BinOp)
+	{}
+
+	HirCall(BuiltinKind builtin, std::vector<HirNode*> args)
+		: builtin(builtin)
 		, args(args)
 		, kind(CallKind::BuiltIn)
 	{}
@@ -173,6 +197,36 @@ struct HirNumberLiteral
 	{}
 };
 
+struct HirLet
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Let;
+
+	Sym* sym;
+
+	HirLet(Sym* sym)
+		: sym(sym)
+	{}
+};
+
+struct HirIf
+{
+	static constexpr HirNodeKind nt = HirNodeKind::If;
+
+	struct CondThen
+	{
+		HirNode* cond;
+		HirNode* then;
+	};
+
+	std::vector<CondThen> elsifs;
+	HirNode* else_node;
+
+	HirIf(std::vector<CondThen> elsifs, HirNode* else_node)
+		: elsifs(elsifs)
+		, else_node(else_node)
+	{}
+};
+
 struct HirNode
 {
 	HirNodeKind kind = HirNodeKind::Invalid;
@@ -190,6 +244,8 @@ struct HirNode
 		HirTypeDeclarator hir_type_declarator;
 		HirNumberLiteral hir_number_literal;
 		HirCall hir_call;
+		HirLet hir_let;
+		HirIf hir_if;
 
 		// Attention! This leaks!
 		NodeData() {}

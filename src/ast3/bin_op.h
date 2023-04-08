@@ -15,6 +15,7 @@ enum class BinOp
 	AndOp,
 	OrOp,
 	Eq,
+	Assign,
 	Neq,
 	Bad
 };

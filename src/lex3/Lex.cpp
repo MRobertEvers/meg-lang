@@ -32,6 +32,15 @@ Lex::next()
 	case TokenKind::NumberLiteral:
 		token = tok_number_literal();
 		break;
+	case TokenKind::Eq:
+		token = tok_ambiguous(tok_kind, "==", TokenKind::EqEq);
+		break;
+	case TokenKind::Lt:
+		token = tok_ambiguous(tok_kind, "<=", TokenKind::LtEq);
+		break;
+	case TokenKind::Gt:
+		token = tok_ambiguous(tok_kind, ">=", TokenKind::GtEq);
+		break;
 	default:
 		token = Token(tok_view, tok_kind);
 		break;
@@ -116,12 +125,50 @@ Lex::tok_start()
 		tok_kind = TokenKind::Minus;
 		cursor_ += 1;
 		break;
+	case '=':
+		tok_kind = TokenKind::Eq;
+		break;
+	case '<':
+		tok_kind = TokenKind::Lt;
+		break;
+	case '>':
+		tok_kind = TokenKind::Gt;
+		break;
 	default:
 		cursor_ += 1;
 		break;
 	}
 
 	return tok_kind;
+}
+
+Token
+Lex::tok_ambiguous(TokenKind unmatched, char const* matcher, TokenKind matched)
+{
+	TokenView tok_view(head());
+	int start = cursor_;
+	int match_len = strlen(matcher);
+	int i;
+	for( i = 0; i < match_len && !is_done(); i++ )
+	{
+		char test = matcher[i];
+
+		if( test != current() )
+			goto reset;
+
+		cursor_ += 1;
+		tok_view.size += 1;
+	}
+
+	if( match_len != i )
+		goto reset;
+
+	return Token(tok_view, matched);
+
+reset:
+	tok_view.size = 1;
+	cursor_ = start + 1;
+	return Token(tok_view, unmatched);
 }
 
 Token
