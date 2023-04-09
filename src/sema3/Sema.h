@@ -21,11 +21,14 @@ public:
 	SemaResult<HirNode*> sema_module_stmt_any(AstNode* ast_module_stmt);
 	SemaResult<HirNode*> sema_func(AstNode* ast_func);
 	SemaResult<HirNode*> sema_func_proto(AstNode* ast_func_proto);
-	SemaResult<HirNode*> sema_type_declarator(AstNode* ast_type_declarator);
+
 	SemaResult<HirNode*> sema_block(AstNode* ast_func);
+	SemaResult<HirNode*> sema_struct(AstNode* ast_struct);
+	SemaResult<HirNode*> sema_union(AstNode* ast_union);
 	SemaResult<HirNode*> sema_stmt(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_stmt_any(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_return(AstNode* ast_return);
+	SemaResult<HirNode*> sema_sizeof(AstNode* ast_sizeof);
 	SemaResult<HirNode*> sema_let(AstNode* ast_let);
 	SemaResult<HirNode*> sema_if(AstNode* ast_let);
 	SemaResult<HirNode*> sema_expr(AstNode* ast_expr);
@@ -37,5 +40,6 @@ public:
 
 private:
 	// Checks if two types can be equal after coercing the subject type.
+	SemaResult<QualifiedTy> type_declarator(AstNode* ast_type_declarator);
 	SemaResult<HirNode*> equal_coercion(QualifiedTy target, HirNode* node);
 };

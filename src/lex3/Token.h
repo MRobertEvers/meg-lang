@@ -42,6 +42,10 @@ enum class TokenKind
 	ElseKw,
 	ReturnKw,
 	LetKw,
+	StructKw,
+	UnionKw,
+	EnumKw,
+	SizeOfKw,
 
 	Bad,
 

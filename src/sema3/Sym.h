@@ -7,6 +7,7 @@ enum class SymKind
 {
 	Invalid,
 	Var,
+	Member,
 	Type,
 	Func,
 	Namespace
@@ -18,6 +19,14 @@ struct SymVar
 	QualifiedTy qty;
 
 	SymVar(QualifiedTy qty);
+};
+
+struct SymMember
+{
+	static constexpr SymKind sk = SymKind::Member;
+	QualifiedTy qty;
+
+	SymMember(QualifiedTy qty);
 };
 
 struct SymFunc
@@ -35,6 +44,7 @@ struct SymFunc
 struct SymType
 {
 	static constexpr SymKind sk = SymKind::Type;
+	SymScope scope;
 	Ty const* ty;
 
 	SymType(Ty const* ty);
@@ -57,6 +67,7 @@ struct Sym
 		SymFunc sym_func;
 		SymNamespace sym_namespace;
 		SymType sym_type;
+		SymMember sym_member;
 
 		// Attention! This leaks!
 		SymData() {}

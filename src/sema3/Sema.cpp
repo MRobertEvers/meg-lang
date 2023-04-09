@@ -11,6 +11,13 @@ NotImpl()
 	return SemaError("Not Implemented.");
 }
 
+template<typename T>
+static SemaError
+MoveError(SemaResult<T>& err)
+{
+	return SemaError(*err.unwrap_error().get());
+}
+
 // Checks if two types can be equal after coercing the subject type.
 SemaResult<HirNode*>
 Sema::equal_coercion(QualifiedTy target, HirNode* node)
@@ -86,6 +93,10 @@ Sema::sema_module_stmt_any(AstNode* ast_stmt)
 	{
 	case NodeKind::Func:
 		return sema_func(ast_stmt);
+	case NodeKind::Struct:
+		return sema_struct(ast_stmt);
+	case NodeKind::Union:
+	case NodeKind::Enum:
 	default:
 		return NotImpl();
 	}
@@ -152,19 +163,18 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 		arg_qtys.push_back(sym_qty(builtins, ty_lu.sym));
 	}
 
-	auto rt_type_declarator_result = sema_type_declarator(func_proto.rt_type_declarator);
+	auto rt_type_declarator_result = type_declarator(func_proto.rt_type_declarator);
 	if( !rt_type_declarator_result.ok() )
-		return rt_type_declarator_result;
+		return MoveError(rt_type_declarator_result);
 
-	HirNode* rt_type_declarator = rt_type_declarator_result.unwrap();
+	QualifiedTy rt_type_declarator = rt_type_declarator_result.unwrap();
 
 	// The function type does not need to go into the symbol table.
 	// Presumably we just look up the function symbol and get the type
 	// from that??
 	// TODO: Enter the function in the symbol table
 	// The function in the symbol table acts as an overload set
-	Ty const* func_ty =
-		types.create<TyFunc>(id.name_parts.parts[0], arg_qtys, rt_type_declarator->qty);
+	Ty const* func_ty = types.create<TyFunc>(id.name_parts.parts[0], arg_qtys, rt_type_declarator);
 	Sym* sym = sym_tab.create_named<SymFunc>(id.name_parts.parts[0], func_ty);
 
 	std::vector<HirNode*> parameters;
@@ -185,8 +195,8 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, sym, parameters);
 }
 
-SemaResult<HirNode*>
-Sema::sema_type_declarator(AstNode* ast_type_declarator)
+SemaResult<QualifiedTy>
+Sema::type_declarator(AstNode* ast_type_declarator)
 {
 	AstTypeDeclarator& type_declarator = ast_cast<AstTypeDeclarator>(ast_type_declarator);
 
@@ -197,7 +207,7 @@ Sema::sema_type_declarator(AstNode* ast_type_declarator)
 		return SemaError("Could not find type '" + id.name_parts.parts[0] + "'");
 
 	QualifiedTy qty = sym_qty(builtins, sym_lu.sym);
-	return hir.create<HirTypeDeclarator>(qty, qty);
+	return qty;
 }
 
 SemaResult<HirNode*>
@@ -218,6 +228,51 @@ Sema::sema_block(AstNode* ast_block)
 
 	return hir.create<HirBlock>(
 		QualifiedTy(builtins.void_ty), statements, HirBlock::Scoping::Scoped);
+}
+
+SemaResult<HirNode*>
+Sema::sema_struct(AstNode* ast_struct)
+{
+	AstStruct& struct_nod = ast_cast<AstStruct>(ast_struct);
+
+	// TODO: Simple name
+	AstId& id = ast_cast<AstId>(struct_nod.id);
+	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	if( sym_lu.sym )
+		return SemaError("Redefinition");
+
+	std::map<std::string, QualifiedTy> members;
+
+	for( auto& ast_var_decl : struct_nod.var_decls )
+	{
+		AstVarDecl& var_decl = ast_cast<AstVarDecl>(ast_var_decl);
+
+		auto type_declarator_result = type_declarator(var_decl.type_declarator);
+		if( !type_declarator_result.ok() )
+			return MoveError(type_declarator_result);
+
+		// TODO: Simple name
+		AstId& member_id = ast_cast<AstId>(var_decl.id);
+
+		members.emplace(member_id.name_parts.parts[0], type_declarator_result.unwrap());
+	}
+
+	Ty const* struct_ty = types.create<TyStruct>(id.name_parts.parts[0], members);
+	Sym* struct_sym = sym_tab.create_named<SymType>(id.name_parts.parts[0], struct_ty);
+
+	SymType& sym = sym_cast<SymType>(struct_sym);
+	sym_tab.push_scope(&sym.scope);
+	for( auto& member : members )
+		sym_tab.create_named<SymMember>(member.first, member.second);
+
+	return hir.create<HirStruct>(QualifiedTy(builtins.void_ty), struct_sym);
+}
+
+SemaResult<HirNode*>
+Sema::sema_union(AstNode* ast_union)
+{
+	//
+	return NotImpl();
 }
 
 SemaResult<HirNode*>
@@ -264,6 +319,44 @@ Sema::sema_return(AstNode* ast_return)
 	HirNode* expr = expr_result.unwrap();
 
 	return hir.create<HirReturn>(expr->qty, expr);
+}
+
+SemaResult<HirNode*>
+Sema::sema_sizeof(AstNode* ast_sizeof)
+{
+	AstSizeOf& sizeof_nod = ast_cast<AstSizeOf>(ast_sizeof);
+
+	AstNode* sizeof_expr = sizeof_nod.expr;
+
+	HirNode* hir_expr = nullptr;
+	switch( sizeof_expr->kind )
+	{
+	case NodeKind::Id:
+	{
+		// Type Name
+		AstId& id = ast_cast<AstId>(sizeof_expr);
+
+		SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+		if( !sym_lu.sym )
+			return SemaError("Unrecognized id.");
+
+		hir_expr = hir.create<HirId>(sym_qty(builtins, sym_lu.sym), sym_lu.sym);
+	}
+	break;
+	default:
+	{
+		auto expr_result = sema_expr_any(sizeof_expr);
+		if( !expr_result.ok() )
+			return expr_result;
+
+		hir_expr = expr_result.unwrap();
+	}
+	break;
+	}
+
+	std::vector<HirNode*> args{hir_expr};
+
+	return hir.create<HirCall>(QualifiedTy(builtins.i32_ty), HirCall::BuiltinKind::SizeOf, args);
 }
 
 SemaResult<HirNode*>
@@ -398,6 +491,9 @@ Sema::sema_expr_any(AstNode* ast_expr)
 		return sema_func_call(ast_expr);
 	case NodeKind::BinOp:
 		return sema_bin_op(ast_expr);
+	case NodeKind::SizeOf:
+		return sema_sizeof(ast_expr);
+	// We can end up with next expr->expr->expr due to parens.
 	case NodeKind::Expr:
 		return sema_expr(ast_expr);
 	default:

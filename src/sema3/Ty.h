@@ -2,6 +2,7 @@
 
 #include "QualifiedTy.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,7 @@ enum class TyKind
 	Func,
 	Enum,
 	Struct,
+	Union
 };
 
 class Ty;
@@ -42,6 +44,30 @@ struct TyFunc
 		, rt_qty(rt_qty){};
 };
 
+struct TyStruct
+{
+	static constexpr TyKind tk = TyKind::Struct;
+	std::string name;
+
+	std::map<std::string, QualifiedTy> members;
+
+	TyStruct(std::string name, std::map<std::string, QualifiedTy> members)
+		: name(name)
+		, members(members){};
+};
+
+struct TyUnion
+{
+	static constexpr TyKind tk = TyKind::Union;
+	std::string name;
+
+	std::map<std::string, QualifiedTy> members;
+
+	TyUnion(std::string name, std::map<std::string, QualifiedTy> members)
+		: name(name)
+		, members(members){};
+};
+
 struct Ty
 {
 	TyKind kind = TyKind::Invalid;
@@ -49,6 +75,8 @@ struct Ty
 	{
 		TyPrimitive ty_primitive;
 		TyFunc ty_func;
+		TyStruct ty_struct;
+		TyUnion ty_union;
 
 		// Attention! This leaks!
 		TyData() {}

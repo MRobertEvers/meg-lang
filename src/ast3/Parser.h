@@ -29,6 +29,9 @@ public:
 	ParseResult<AstNode*> parse_function_proto();
 	ParseResult<AstNode*> parse_function_body();
 	ParseResult<AstNode*> parse_block();
+	ParseResult<AstNode*> parse_struct();
+	ParseResult<AstNode*> parse_union();
+	ParseResult<AstNode*> parse_enum();
 	ParseResult<AstNode*> parse_let();
 	ParseResult<AstNode*> parse_if();
 	ParseResult<AstNode*> parse_number_literal();

@@ -33,10 +33,18 @@ to_string(NodeKind type)
 		return "Let";
 	case NodeKind::If:
 		return "If";
+	case NodeKind::SizeOf:
+		return "SizeOf";
 	case NodeKind::BoolLiteral:
 		return "BoolLiteral";
 	case NodeKind::BinOp:
 		return "BinOp";
+	case NodeKind::Struct:
+		return "Struct";
+	case NodeKind::Union:
+		return "Union";
+	case NodeKind::Enum:
+		return "Enum";
 	case NodeKind::NumberLiteral:
 		return "NumberLiteral";
 	}

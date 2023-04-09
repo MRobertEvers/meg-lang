@@ -15,7 +15,11 @@ enum class NodeKind
 	FuncCall,
 	Block,
 	Id,
+	SizeOf,
 	BinOp,
+	Struct,
+	Union,
+	Enum,
 	NumberLiteral,
 	BoolLiteral,
 	TypeDeclarator,
@@ -76,6 +80,16 @@ struct AstId
 
 	AstId(std::vector<std::string> name_parts)
 		: name_parts(name_parts)
+	{}
+};
+
+struct AstSizeOf
+{
+	static constexpr NodeKind nt = NodeKind::SizeOf;
+	AstNode* expr;
+
+	AstSizeOf(AstNode* expr)
+		: expr(expr)
 	{}
 };
 
@@ -230,6 +244,48 @@ struct AstStmt
 	{}
 };
 
+struct AstStruct
+{
+	static constexpr NodeKind nt = NodeKind::Struct;
+
+	AstNode* id;
+	std::vector<AstNode*> var_decls;
+
+	AstStruct() = default;
+	AstStruct(AstNode* id, std::vector<AstNode*> var_decls)
+		: id(id)
+		, var_decls(var_decls)
+	{}
+};
+
+struct AstUnion
+{
+	static constexpr NodeKind nt = NodeKind::Union;
+
+	AstNode* id;
+	std::vector<AstNode*> var_decls;
+
+	AstUnion() = default;
+	AstUnion(AstNode* id, std::vector<AstNode*> var_decls)
+		: id(id)
+		, var_decls(var_decls)
+	{}
+};
+
+struct AstEnum
+{
+	static constexpr NodeKind nt = NodeKind::Enum;
+
+	AstNode* id;
+	std::vector<AstNode*> enum_member_decls;
+
+	AstEnum() = default;
+	AstEnum(AstNode* id, std::vector<AstNode*> enum_member_decls)
+		: id(id)
+		, enum_member_decls(enum_member_decls)
+	{}
+};
+
 struct AstBinOp
 {
 	static constexpr NodeKind nt = NodeKind::BinOp;
@@ -267,6 +323,10 @@ struct AstNode
 		AstBinOp ast_bin_op;
 		AstLet ast_let;
 		AstIf ast_if;
+		AstStruct ast_struct;
+		AstUnion ast_union;
+		AstEnum ast_enum;
+		AstSizeOf ast_sizeof;
 
 		// Attention! This leaks!
 		NodeData() {}

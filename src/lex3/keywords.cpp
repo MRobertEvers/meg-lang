@@ -20,6 +20,10 @@ KeywordIdentifierTuple keywords[] =
 	{"else", TokenKind::ElseKw},
 	{"true", TokenKind::TrueKw},
 	{"false", TokenKind::FalseKw},
+	{"struct", TokenKind::StructKw},
+	{"union", TokenKind::UnionKw},
+	{"enum", TokenKind::EnumKw},
+	{"sizeof", TokenKind::SizeOfKw},
 	// clang-format off
 };
 // clang-format on
@@ -101,6 +105,14 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "TrueKw";
 	case TokenKind::FalseKw:
 		return "FalseKw";
+	case TokenKind::StructKw:
+		return "StructKw";
+	case TokenKind::UnionKw:
+		return "UnionKw";
+	case TokenKind::EnumKw:
+		return "EnumKw";
+	case TokenKind::SizeOfKw:
+		return "SizeOf";
 	case TokenKind::EqEq:
 		return "EqEq";
 	case TokenKind::Eof:

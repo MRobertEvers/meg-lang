@@ -17,9 +17,11 @@ enum class HirNodeKind
 	FuncProto,
 	Id,
 	Return,
+	Struct,
+	Union,
+	Enum,
 	Let,
 	If,
-	TypeDeclarator,
 	VarDecl,
 	Expr,
 	Stmt,
@@ -175,17 +177,6 @@ struct HirCall
 	{}
 };
 
-struct HirTypeDeclarator
-{
-	static constexpr HirNodeKind nt = HirNodeKind::TypeDeclarator;
-
-	QualifiedTy qty;
-
-	HirTypeDeclarator(QualifiedTy qty)
-		: qty(qty)
-	{}
-};
-
 struct HirNumberLiteral
 {
 	static constexpr HirNodeKind nt = HirNodeKind::NumberLiteral;
@@ -194,6 +185,39 @@ struct HirNumberLiteral
 
 	HirNumberLiteral(long long value)
 		: value(value)
+	{}
+};
+
+struct HirStruct
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Let;
+
+	Sym* sym;
+
+	HirStruct(Sym* sym)
+		: sym(sym)
+	{}
+};
+
+struct HirUnion
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Let;
+
+	Sym* sym;
+
+	HirUnion(Sym* sym)
+		: sym(sym)
+	{}
+};
+
+struct HirEnum
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Let;
+
+	Sym* sym;
+
+	HirEnum(Sym* sym)
+		: sym(sym)
 	{}
 };
 
@@ -241,11 +265,13 @@ struct HirNode
 		HirFuncProto hir_func_proto;
 		HirReturn hir_return;
 		HirId hir_id;
-		HirTypeDeclarator hir_type_declarator;
 		HirNumberLiteral hir_number_literal;
 		HirCall hir_call;
 		HirLet hir_let;
 		HirIf hir_if;
+		HirStruct hir_struct;
+		HirUnion hir_union;
+		HirEnum hir_enum;
 
 		// Attention! This leaks!
 		NodeData() {}

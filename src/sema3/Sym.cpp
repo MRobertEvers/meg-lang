@@ -9,4 +9,7 @@ SymFunc::SymFunc(Ty const* ty)
 SymType::SymType(Ty const* ty)
 	: ty(ty){};
 
+SymMember::SymMember(QualifiedTy qty)
+	: qty(qty){};
+
 SymNamespace::SymNamespace(){};

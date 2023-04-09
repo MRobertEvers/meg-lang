@@ -1,4 +1,11 @@
+
+struct Point {
+    x: i8;
+    y: i8;
+}
+
 fn func(a: i32): i32 {
+    let p: Point;
     return a;
 }
 

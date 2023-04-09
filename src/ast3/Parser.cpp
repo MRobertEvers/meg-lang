@@ -100,6 +100,12 @@ Parser::parse_module_statement()
 	{
 	case TokenKind::FnKw:
 		return parse_function();
+	case TokenKind::StructKw:
+		return parse_struct();
+	case TokenKind::UnionKw:
+		return parse_union();
+	case TokenKind::EnumKw:
+		return parse_enum();
 	default:
 		return ParseError("Expected top level 'fn' or 'struct' declaration.");
 	}
@@ -300,6 +306,90 @@ Parser::parse_block()
 }
 
 ParseResult<AstNode*>
+Parser::parse_struct()
+{
+	std::vector<AstNode*> members;
+
+	auto tok = cursor.consume(TokenKind::StructKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'struct'", tok.token());
+
+	auto id_result = parse_identifier();
+	if( !id_result.ok() )
+		return id_result;
+
+	tok = cursor.consume(TokenKind::OpenCurly);
+	if( !tok.ok() )
+		return ParseError("Expected '{'", tok.token());
+
+	auto curr_tok = cursor.peek();
+	while( curr_tok.kind != TokenKind::CloseCurly )
+	{
+		auto var_decl_result = parse_var_decl(false);
+		if( !var_decl_result.ok() )
+			return var_decl_result;
+
+		members.push_back(var_decl_result.unwrap());
+
+		// Optional semicolon
+		cursor.consume_if_expected(TokenKind::SemiColon);
+
+		curr_tok = cursor.peek();
+	}
+
+	tok = cursor.consume(TokenKind::CloseCurly);
+	if( !tok.ok() )
+		return ParseError("Expected '}'", tok.token());
+
+	return ast.create<AstStruct>(Span(), id_result.unwrap(), members);
+}
+
+ParseResult<AstNode*>
+Parser::parse_union()
+{
+	std::vector<AstNode*> members;
+
+	auto tok = cursor.consume(TokenKind::UnionKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'union'", tok.token());
+
+	auto id_result = parse_identifier();
+	if( !id_result.ok() )
+		return id_result;
+
+	tok = cursor.consume(TokenKind::OpenCurly);
+	if( !tok.ok() )
+		return ParseError("Expected '{'", tok.token());
+
+	auto curr_tok = cursor.peek();
+	while( curr_tok.kind != TokenKind::CloseCurly )
+	{
+		auto var_decl_result = parse_var_decl(false);
+		if( !var_decl_result.ok() )
+			return var_decl_result;
+
+		members.push_back(var_decl_result.unwrap());
+
+		// Optional semicolon
+		cursor.consume_if_expected(TokenKind::SemiColon);
+
+		curr_tok = cursor.peek();
+	}
+
+	tok = cursor.consume(TokenKind::CloseCurly);
+	if( !tok.ok() )
+		return ParseError("Expected '}'", tok.token());
+
+	return ast.create<AstUnion>(Span(), id_result.unwrap(), members);
+}
+
+ParseResult<AstNode*>
+Parser::parse_enum()
+{
+	return NotImpl();
+}
+
+ParseResult<AstNode*>
 Parser::parse_let()
 {
 	// auto trail = get_parse_trail();
@@ -457,6 +547,17 @@ Parser::parse_simple_expr()
 	{
 		cursor.consume(TokenKind::Identifier);
 		result = ast.create<AstId>(Span(), to_string(tok));
+		break;
+	}
+	case TokenKind::SizeOfKw:
+	{
+		cursor.consume(TokenKind::SizeOfKw);
+
+		auto expr_result = parse_expr();
+		if( !expr_result.ok() )
+			return expr_result;
+
+		result = ast.create<AstSizeOf>(Span(), expr_result.unwrap());
 		break;
 	}
 	case TokenKind::OpenParen:
