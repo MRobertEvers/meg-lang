@@ -13,13 +13,16 @@ enum class TokenKind
 	// //
 	LineComment,
 
-	OpenParen,
 	Comma,
+	OpenSquare,
+	CloseSquare,
+	OpenParen,
 	CloseParen,
 	OpenCurly,
 	CloseCurly,
 
-	// :
+	Ampersand,
+	Dot,
 	Colon,
 	ColonColon,
 	SemiColon,
@@ -46,6 +49,13 @@ enum class TokenKind
 	UnionKw,
 	EnumKw,
 	SizeOfKw,
+	IsKw,
+	ForKw,
+	WhileKw,
+	ExternKw,
+	BreakKw,
+	ContinueKw,
+	DefaultKw,
 
 	Bad,
 

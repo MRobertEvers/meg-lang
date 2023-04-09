@@ -85,6 +85,14 @@ Lex::tok_start()
 	case CHAR_IDENTIFIER_START_CASES:
 		tok_kind = TokenKind::Identifier;
 		break;
+	case '[':
+		tok_kind = TokenKind::OpenSquare;
+		cursor_ += 1;
+		break;
+	case ']':
+		tok_kind = TokenKind::CloseSquare;
+		cursor_ += 1;
+		break;
 	case '(':
 		tok_kind = TokenKind::OpenParen;
 		cursor_ += 1;
@@ -107,6 +115,14 @@ Lex::tok_start()
 		break;
 	case ':':
 		tok_kind = TokenKind::Colon;
+		cursor_ += 1;
+		break;
+	case '&':
+		tok_kind = TokenKind::Ampersand;
+		cursor_ += 1;
+		break;
+	case '.':
+		tok_kind = TokenKind::Dot;
 		cursor_ += 1;
 		break;
 	case '*':

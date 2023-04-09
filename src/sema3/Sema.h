@@ -44,7 +44,6 @@ public:
 
 private:
 	// Checks if two types can be equal after coercing the subject type.
-	Sym* define_struct(std::string name, std::map<std::string, QualifiedTy> members);
 	SemaResult<QualifiedTy> type_declarator(AstNode* ast_type_declarator);
 	SemaResult<std::map<std::string, QualifiedTy>> decl_list(std::vector<AstNode*>& ast_decls);
 	SemaResult<HirNode*> equal_coercion(QualifiedTy target, HirNode* node);

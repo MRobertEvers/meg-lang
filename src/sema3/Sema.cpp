@@ -197,21 +197,6 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, sym, parameters);
 }
 
-Sym*
-Sema::define_struct(std::string simple_name, std::map<std::string, QualifiedTy> members)
-{
-	Ty const* struct_ty = types.create<TyStruct>(simple_name, members);
-	Sym* struct_sym = sym_tab.create_named<SymType>(simple_name, struct_ty);
-
-	SymType& sym = sym_cast<SymType>(struct_sym);
-	sym_tab.push_scope(&sym.scope);
-	for( auto& member : members )
-		sym_tab.create_named<SymMember>(member.first, member.second);
-	sym_tab.pop_scope();
-
-	return struct_sym;
-}
-
 SemaResult<QualifiedTy>
 Sema::type_declarator(AstNode* ast_type_declarator)
 {
@@ -402,7 +387,7 @@ Sema::sema_stmt_any(AstNode* ast_stmt)
 	case NodeKind::Block:
 		return sema_block(any_stmt);
 	default:
-		return NotImpl();
+		return sema_expr(any_stmt);
 	}
 
 	return NotImpl();

@@ -63,8 +63,16 @@ ast_cast(AstTy* ast_node)
 		return ast_node->data.ast_enum;
 	else if constexpr( std::is_same_v<AstSizeOf, Node> )
 		return ast_node->data.ast_sizeof;
+	else if constexpr( std::is_same_v<AstAddressOf, Node> )
+		return ast_node->data.ast_addressof;
 	else if constexpr( std::is_same_v<AstEnumMember, Node> )
 		return ast_node->data.ast_enum_member;
+	else if constexpr( std::is_same_v<AstArrayAccess, Node> )
+		return ast_node->data.ast_array_access;
+	else if constexpr( std::is_same_v<AstMemberAccess, Node> )
+		return ast_node->data.ast_member_access;
+	else if constexpr( std::is_same_v<AstDeref, Node> )
+		return ast_node->data.ast_deref;
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 }

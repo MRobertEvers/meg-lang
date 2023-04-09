@@ -13,9 +13,13 @@ enum class NodeKind
 	Func,
 	FuncProto,
 	FuncCall,
+	ArrayAccess,
+	MemberAccess,
+	Deref,
 	Block,
 	Id,
 	SizeOf,
+	AddressOf,
 	BinOp,
 	Struct,
 	Union,
@@ -94,6 +98,16 @@ struct AstSizeOf
 	{}
 };
 
+struct AstAddressOf
+{
+	static constexpr NodeKind nt = NodeKind::AddressOf;
+	AstNode* expr;
+
+	AstAddressOf(AstNode* expr)
+		: expr(expr)
+	{}
+};
+
 struct AstNumberLiteral
 {
 	static constexpr NodeKind nt = NodeKind::NumberLiteral;
@@ -165,6 +179,49 @@ struct AstFuncCall
 
 	AstFuncCall(AstNode* callee, std::vector<AstNode*> args)
 		: args(args)
+		, callee(callee)
+	{}
+};
+
+struct AstArrayAccess
+{
+	static constexpr NodeKind nt = NodeKind::ArrayAccess;
+
+	AstNode* callee;
+	AstNode* expr;
+
+	AstArrayAccess(AstNode* callee, AstNode* expr)
+		: expr(expr)
+		, callee(callee)
+	{}
+};
+
+struct AstDeref
+{
+	static constexpr NodeKind nt = NodeKind::Deref;
+
+	AstNode* expr;
+
+	AstDeref(AstNode* expr)
+		: expr(expr)
+	{}
+};
+
+struct AstMemberAccess
+{
+	static constexpr NodeKind nt = NodeKind::MemberAccess;
+
+	enum class AccessKind
+	{
+		Direct,
+		Indirect
+	} kind = AccessKind::Direct;
+
+	AstNode* callee;
+	AstNode* expr;
+
+	AstMemberAccess(AstNode* callee, AstNode* expr)
+		: expr(expr)
 		, callee(callee)
 	{}
 };
@@ -355,7 +412,11 @@ struct AstNode
 		AstUnion ast_union;
 		AstEnum ast_enum;
 		AstSizeOf ast_sizeof;
+		AstAddressOf ast_addressof;
 		AstEnumMember ast_enum_member;
+		AstArrayAccess ast_array_access;
+		AstMemberAccess ast_member_access;
+		AstDeref ast_deref;
 
 		// Attention! This leaks!
 		NodeData() {}

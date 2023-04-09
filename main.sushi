@@ -9,8 +9,13 @@ enum AstNode {
     Func { id: i32 }
 }
 
+fn P(p: Point): Point {
+    return p;
+}
+
 fn func(a: i32): i32 {
     let p: Point;
+    P(p);
     return a;
 }
 

@@ -47,6 +47,16 @@ to_string(NodeKind type)
 		return "Enum";
 	case NodeKind::NumberLiteral:
 		return "NumberLiteral";
+	case NodeKind::ArrayAccess:
+		return "ArrayAccess";
+	case NodeKind::AddressOf:
+		return "AddressOf";
+	case NodeKind::EnumMember:
+		return "EnumMember";
+	case NodeKind::MemberAccess:
+		return "MemberAccess";
+	case NodeKind::Deref:
+		return "Deref";
 	}
 
 	return "Bad";

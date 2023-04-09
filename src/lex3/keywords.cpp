@@ -24,6 +24,13 @@ KeywordIdentifierTuple keywords[] =
 	{"union", TokenKind::UnionKw},
 	{"enum", TokenKind::EnumKw},
 	{"sizeof", TokenKind::SizeOfKw},
+	{"is", TokenKind::IsKw},
+	{"for", TokenKind::ForKw},
+	{"while", TokenKind::WhileKw},
+	{"extern", TokenKind::ExternKw},
+	{"break", TokenKind::BreakKw},
+	{"default", TokenKind::DefaultKw},
+	{"continue", TokenKind::ContinueKw},
 	// clang-format off
 };
 // clang-format on
@@ -55,6 +62,10 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "StringLiteral";
 	case TokenKind::LineComment:
 		return "LineComment";
+	case TokenKind::OpenSquare:
+		return "OpenSquare";
+	case TokenKind::CloseSquare:
+		return "CloseSquare";
 	case TokenKind::OpenParen:
 		return "OpenParen";
 	case TokenKind::CloseParen:
@@ -115,6 +126,24 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "SizeOf";
 	case TokenKind::EqEq:
 		return "EqEq";
+	case TokenKind::Ampersand:
+		return "Ampersand";
+	case TokenKind::Dot:
+		return "Dot";
+	case TokenKind::IsKw:
+		return "IsKw";
+	case TokenKind::ForKw:
+		return "ForKw";
+	case TokenKind::WhileKw:
+		return "WhileKw";
+	case TokenKind::ExternKw:
+		return "ExternKw";
+	case TokenKind::BreakKw:
+		return "BreakKw";
+	case TokenKind::DefaultKw:
+		return "DefaultKw";
+	case TokenKind::ContinueKw:
+		return "ContinueKw";
 	case TokenKind::Eof:
 		return "Eof";
 	}

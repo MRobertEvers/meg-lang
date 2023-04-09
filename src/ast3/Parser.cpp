@@ -227,6 +227,54 @@ Parser::parse_call(AstNode* callee)
 }
 
 ParseResult<AstNode*>
+Parser::parse_member_access(AstNode* base)
+{
+	ConsumeResult tok = cursor.consume(TokenKind::Dot);
+	if( !tok.ok() )
+		return ParseError("Expected '.'", tok.token());
+
+	auto identifier_result = parse_identifier();
+	if( !identifier_result.ok() )
+		return identifier_result;
+
+	return ast.create<AstMemberAccess>(Span(), base, identifier_result.unwrap());
+}
+
+ParseResult<AstNode*>
+Parser::parse_array_access(AstNode* array)
+{
+	// auto trail = get_parse_trail();
+
+	ConsumeResult tok = cursor.consume(TokenKind::OpenSquare);
+	if( !tok.ok() )
+		return ParseError("Expected '['", tok.token());
+
+	auto expr_result = parse_expr();
+	if( !expr_result.ok() )
+		return expr_result;
+
+	tok = cursor.consume(TokenKind::CloseSquare);
+	if( !tok.ok() )
+		return ParseError("Expected ']'", tok.token());
+
+	return ast.create<AstArrayAccess>(Span(), array, expr_result.unwrap());
+}
+
+ParseResult<AstNode*>
+Parser::parse_deref()
+{
+	ConsumeResult tok = cursor.consume(TokenKind::Star);
+	if( !tok.ok() )
+		return ParseError("Expected '*'", tok.token());
+
+	auto expr_result = parse_postfix_expr();
+	if( !expr_result.ok() )
+		return expr_result;
+
+	return ast.create<AstDeref>(Span(), expr_result.unwrap());
+}
+
+ParseResult<AstNode*>
 Parser::parse_function()
 {
 	// auto trail = get_parse_trail();
@@ -509,8 +557,10 @@ Parser::parse_postfix_expr()
 
 	switch( tok.kind )
 	{
-	case TokenKind::OpenParen:
+	case TokenKind::OpenSquare:
 		return parse_call(simple_expr_result.unwrap());
+	case TokenKind::OpenParen:
+		return parse_array_access(simple_expr_result.unwrap());
 	default:
 		return simple_expr_result.unwrap();
 	}
@@ -614,6 +664,25 @@ Parser::parse_simple_expr()
 		auto cons = cursor.consume(TokenKind::CloseParen);
 		if( !cons.ok() )
 			return ParseError("Expected ')'", cons.token());
+
+		result = expr_result.unwrap();
+		break;
+	}
+	case TokenKind::Ampersand:
+	{
+		cursor.consume(TokenKind::Ampersand);
+		auto expr_result = parse_postfix_expr();
+		if( !expr_result.ok() )
+			return expr_result;
+
+		result = ast.create<AstAddressOf>(Span(), expr_result.unwrap());
+		break;
+	}
+	case TokenKind::Star:
+	{
+		auto expr_result = parse_deref();
+		if( !expr_result.ok() )
+			return expr_result;
 
 		result = expr_result.unwrap();
 		break;
@@ -771,7 +840,14 @@ Parser::parse_statement()
 		break;
 	}
 	default:
-		return NotImpl();
+	{
+		auto expr_stmt = parse_expr();
+		if( !expr_stmt.ok() )
+			return expr_stmt;
+
+		stmt = expr_stmt.unwrap();
+		break;
+	}
 	}
 
 	{
