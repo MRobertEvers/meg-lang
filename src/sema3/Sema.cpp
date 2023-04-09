@@ -264,6 +264,7 @@ Sema::sema_struct(AstNode* ast_struct)
 	sym_tab.push_scope(&sym.scope);
 	for( auto& member : members )
 		sym_tab.create_named<SymMember>(member.first, member.second);
+	sym_tab.pop_scope();
 
 	return hir.create<HirStruct>(QualifiedTy(builtins.void_ty), struct_sym);
 }
