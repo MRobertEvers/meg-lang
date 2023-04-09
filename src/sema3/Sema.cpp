@@ -18,6 +18,20 @@ MoveError(SemaResult<T>& err)
 	return SemaError(*err.unwrap_error().get());
 }
 
+// @deprecated
+// Due to parsing and parents ( expr ), we may have exprs pointing to exprs and so on.
+// Get the innermost expr.
+static AstNode*
+innermost_expr(AstNode* expr)
+{
+	do
+	{
+		expr = ast_cast<AstExpr>(expr).expr;
+	} while( expr->kind == NodeKind::Expr );
+
+	return expr;
+}
+
 // Checks if two types can be equal after coercing the subject type.
 SemaResult<HirNode*>
 Sema::equal_coercion(QualifiedTy target, HirNode* node)
@@ -412,7 +426,7 @@ Sema::sema_sizeof(AstNode* ast_sizeof)
 {
 	AstSizeOf& sizeof_nod = ast_cast<AstSizeOf>(ast_sizeof);
 
-	AstNode* sizeof_expr = ast_cast<AstExpr>(sizeof_nod.expr).expr;
+	AstNode* sizeof_expr = innermost_expr(sizeof_nod.expr);
 
 	HirNode* hir_expr = nullptr;
 	switch( sizeof_expr->kind )
@@ -654,6 +668,7 @@ bin_op_qty(SymBuiltins& builtins, BinOp op, HirNode* lhs)
 {
 	switch( op )
 	{
+	case BinOp::Eq:
 	case BinOp::Lt:
 	case BinOp::Lte:
 	case BinOp::Gt:

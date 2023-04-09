@@ -21,11 +21,11 @@ fn func(a: i32): i32 {
 
 fn main(): i32 {
     let a: i8 = 5;
-    let b: i32 = sizeof Point;
+    let b: i32 = sizeof (Point);
 
-    if (a > 8) {
+    if (a >= 8) {
         return 11;
-    } else if (b > a) {
+    } else if (b == a) {
         return 8;
     } else {
         return 0;

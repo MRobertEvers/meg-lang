@@ -558,9 +558,11 @@ Parser::parse_postfix_expr()
 	switch( tok.kind )
 	{
 	case TokenKind::OpenSquare:
-		return parse_call(simple_expr_result.unwrap());
-	case TokenKind::OpenParen:
 		return parse_array_access(simple_expr_result.unwrap());
+	case TokenKind::OpenParen:
+		return parse_call(simple_expr_result.unwrap());
+	case TokenKind::Dot:
+		return parse_member_access(simple_expr_result.unwrap());
 	default:
 		return simple_expr_result.unwrap();
 	}
@@ -656,14 +658,24 @@ Parser::parse_simple_expr()
 	}
 	case TokenKind::OpenParen:
 	{
-		cursor.consume(TokenKind::OpenParen);
-		auto expr_result = parse_expr();
+		// Eat ALL unnecessary parens.
+		int open_count = 0;
+		do
+		{
+			cursor.consume(TokenKind::OpenParen);
+			open_count += 1;
+		} while( cursor.peek().kind == TokenKind::OpenParen );
+
+		auto expr_result = parse_expr_any();
 		if( !expr_result.ok() )
 			return expr_result;
 
-		auto cons = cursor.consume(TokenKind::CloseParen);
-		if( !cons.ok() )
-			return ParseError("Expected ')'", cons.token());
+		for( int i = 0; i < open_count; i++ )
+		{
+			auto cons = cursor.consume(TokenKind::CloseParen);
+			if( !cons.ok() )
+				return ParseError("Expected ')'", cons.token());
+		}
 
 		result = expr_result.unwrap();
 		break;
@@ -754,7 +766,7 @@ Parser::parse_bin_op(int expr_precidence, AstNode* lhs)
 }
 
 ParseResult<AstNode*>
-Parser::parse_expr()
+Parser::parse_expr_any()
 {
 	// auto trail = get_parse_trail();
 	auto lhs_result = parse_postfix_expr();
@@ -765,7 +777,18 @@ Parser::parse_expr()
 	if( !bin_op_result.ok() )
 		return bin_op_result;
 
-	return ast.create<AstExpr>(Span(), bin_op_result.unwrap());
+	return bin_op_result;
+}
+
+ParseResult<AstNode*>
+Parser::parse_expr()
+{
+	// auto trail = get_parse_trail();
+	auto expr_any_result = parse_expr_any();
+	if( !expr_any_result.ok() )
+		return expr_any_result;
+
+	return ast.create<AstExpr>(Span(), expr_any_result.unwrap());
 
 	// if( cursor.peek().type == TokenType::is )
 	// {

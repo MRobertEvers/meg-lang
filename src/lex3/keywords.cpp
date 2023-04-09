@@ -19,7 +19,7 @@ KeywordIdentifierTuple keywords[] =
 	{"if", TokenKind::IfKw},
 	{"else", TokenKind::ElseKw},
 	{"true", TokenKind::TrueKw},
-	{"false", TokenKind::FalseKw},
+	{"false", TokenKind::FalseKw}, //
 	{"struct", TokenKind::StructKw},
 	{"union", TokenKind::UnionKw},
 	{"enum", TokenKind::EnumKw},
@@ -31,6 +31,7 @@ KeywordIdentifierTuple keywords[] =
 	{"break", TokenKind::BreakKw},
 	{"default", TokenKind::DefaultKw},
 	{"continue", TokenKind::ContinueKw},
+	{"case", TokenKind::CaseKw},
 	// clang-format off
 };
 // clang-format on
@@ -144,6 +145,12 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "DefaultKw";
 	case TokenKind::ContinueKw:
 		return "ContinueKw";
+	case TokenKind::CaseKw:
+		return "CaseKw";
+	case TokenKind::SkinnyArrow:
+		return "SkinnyArrow";
+	case TokenKind::FatArrow:
+		return "FatArrow";
 	case TokenKind::Eof:
 		return "Eof";
 	}

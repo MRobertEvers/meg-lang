@@ -32,15 +32,24 @@ Lex::next()
 	case TokenKind::NumberLiteral:
 		token = tok_number_literal();
 		break;
+	case TokenKind::Minus:
 	case TokenKind::Eq:
-		token = tok_ambiguous(tok_kind, "==", TokenKind::EqEq);
-		break;
 	case TokenKind::Lt:
-		token = tok_ambiguous(tok_kind, "<=", TokenKind::LtEq);
-		break;
 	case TokenKind::Gt:
-		token = tok_ambiguous(tok_kind, ">=", TokenKind::GtEq);
+		token = tok_ambiguous(tok_kind);
 		break;
+	// case TokenKind::Minus:
+	// 	token = tok_ambiguous(tok_kind, "==", TokenKind::EqEq);
+	// 	break;
+	// case TokenKind::Eq:
+	// 	token = tok_ambiguous(tok_kind, "==", TokenKind::EqEq);
+	// 	break;
+	// case TokenKind::Lt:
+	// 	token = tok_ambiguous(tok_kind, "<=", TokenKind::LtEq);
+	// 	break;
+	// case TokenKind::Gt:
+	// 	token = tok_ambiguous(tok_kind, ">=", TokenKind::GtEq);
+	// 	break;
 	default:
 		token = Token(tok_view, tok_kind);
 		break;
@@ -139,7 +148,6 @@ Lex::tok_start()
 		break;
 	case '-':
 		tok_kind = TokenKind::Minus;
-		cursor_ += 1;
 		break;
 	case ',':
 		tok_kind = TokenKind::Comma;
@@ -163,9 +171,40 @@ Lex::tok_start()
 }
 
 Token
-Lex::tok_ambiguous(TokenKind unmatched, char const* matcher, TokenKind matched)
+Lex::tok_ambiguous(TokenKind kind)
 {
-	TokenView tok_view(head());
+	TokenView view(head());
+
+	switch( kind )
+	{
+	case TokenKind::Minus:
+		if( match(view, "->") )
+			kind = TokenKind::SkinnyArrow;
+		break;
+	case TokenKind::Eq:
+		if( match(view, "==") )
+			kind = TokenKind::EqEq;
+		else if( match(view, "=>") )
+			kind = TokenKind::FatArrow;
+		break;
+	case TokenKind::Lt:
+		if( match(view, "<=") )
+			kind = TokenKind::LtEq;
+		break;
+	case TokenKind::Gt:
+		if( match(view, ">=") )
+			kind = TokenKind::GtEq;
+		break;
+	default:
+		break;
+	}
+
+	return Token(view, kind);
+}
+
+bool
+Lex::match(TokenView& tok_view, char const* matcher)
+{
 	int start = cursor_;
 	int match_len = strlen(matcher);
 	int i;
@@ -183,12 +222,12 @@ Lex::tok_ambiguous(TokenKind unmatched, char const* matcher, TokenKind matched)
 	if( match_len != i )
 		goto reset;
 
-	return Token(tok_view, matched);
+	return true;
 
 reset:
 	tok_view.size = 1;
 	cursor_ = start + 1;
-	return Token(tok_view, unmatched);
+	return false;
 }
 
 Token

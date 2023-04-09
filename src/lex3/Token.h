@@ -22,6 +22,8 @@ enum class TokenKind
 	CloseCurly,
 
 	Ampersand,
+	SkinnyArrow,
+	FatArrow,
 	Dot,
 	Colon,
 	ColonColon,
@@ -56,6 +58,7 @@ enum class TokenKind
 	BreakKw,
 	ContinueKw,
 	DefaultKw,
+	CaseKw,
 
 	Bad,
 

@@ -43,6 +43,7 @@ public:
 	ParseResult<AstNode*> parse_simple_expr();
 	ParseResult<AstNode*> parse_bin_op(int precidence, AstNode* lhs);
 	ParseResult<AstNode*> parse_expr();
+	ParseResult<AstNode*> parse_expr_any();
 	ParseResult<AstNode*> parse_statement();
 
 	static ParseResult<AstNode*> parse(Ast& ast, Cursor& cursor);
