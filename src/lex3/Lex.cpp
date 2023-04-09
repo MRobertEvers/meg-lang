@@ -125,6 +125,10 @@ Lex::tok_start()
 		tok_kind = TokenKind::Minus;
 		cursor_ += 1;
 		break;
+	case ',':
+		tok_kind = TokenKind::Comma;
+		cursor_ += 1;
+		break;
 	case '=':
 		tok_kind = TokenKind::Eq;
 		break;

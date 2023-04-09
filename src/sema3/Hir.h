@@ -42,6 +42,10 @@ hir_cast(HirNode* hir_node)
 		return hir_node->data.hir_if;
 	else if constexpr( std::is_same_v<HirStruct, Node> )
 		return hir_node->data.hir_struct;
+	else if constexpr( std::is_same_v<HirUnion, Node> )
+		return hir_node->data.hir_union;
+	else if constexpr( std::is_same_v<HirEnum, Node> )
+		return hir_node->data.hir_enum;
 	else
 		static_assert("Cannot create hir node of type ");
 }

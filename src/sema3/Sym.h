@@ -8,6 +8,7 @@ enum class SymKind
 	Invalid,
 	Var,
 	Member,
+	EnumMember,
 	Type,
 	Func,
 	Namespace
@@ -27,6 +28,27 @@ struct SymMember
 	QualifiedTy qty;
 
 	SymMember(QualifiedTy qty);
+};
+
+struct SymEnumMember
+{
+	static constexpr SymKind sk = SymKind::EnumMember;
+
+	enum class MemberKind
+	{
+		Simple,
+		Struct
+	} kind = MemberKind::Simple;
+
+	union
+	{
+		Ty const* struct_ty;
+	};
+
+	long long value;
+
+	SymEnumMember(long long value, Ty const* struct_ty);
+	SymEnumMember(long long value);
 };
 
 struct SymFunc
@@ -68,6 +90,7 @@ struct Sym
 		SymNamespace sym_namespace;
 		SymType sym_type;
 		SymMember sym_member;
+		SymEnumMember sym_enum_member;
 
 		// Attention! This leaks!
 		SymData() {}

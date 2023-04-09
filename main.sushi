@@ -4,6 +4,11 @@ struct Point {
     y: i8;
 }
 
+enum AstNode {
+    None,
+    Func { id: i32 }
+}
+
 fn func(a: i32): i32 {
     let p: Point;
     return a;
@@ -11,7 +16,7 @@ fn func(a: i32): i32 {
 
 fn main(): i32 {
     let a: i8 = 5;
-    let b: i32 = a;
+    let b: i32 = sizeof Point;
 
     if (a > 8) {
         return 11;

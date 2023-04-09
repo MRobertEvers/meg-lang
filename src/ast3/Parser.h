@@ -32,6 +32,7 @@ public:
 	ParseResult<AstNode*> parse_struct();
 	ParseResult<AstNode*> parse_union();
 	ParseResult<AstNode*> parse_enum();
+	ParseResult<AstNode*> parse_enum_member();
 	ParseResult<AstNode*> parse_let();
 	ParseResult<AstNode*> parse_if();
 	ParseResult<AstNode*> parse_number_literal();
@@ -44,6 +45,7 @@ public:
 	static ParseResult<AstNode*> parse(Ast& ast, Cursor& cursor);
 
 private:
+	ParseResult<std::vector<AstNode*>> parse_struct_body();
 	ParseResult<std::vector<std::string>> parse_name_parts();
 	ParseResult<std::vector<AstNode*>> parse_func_params();
 };

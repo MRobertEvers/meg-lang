@@ -68,6 +68,15 @@ struct TyUnion
 		, members(members){};
 };
 
+struct TyEnum
+{
+	static constexpr TyKind tk = TyKind::Enum;
+	std::string name;
+
+	TyEnum(std::string name)
+		: name(name){};
+};
+
 struct Ty
 {
 	TyKind kind = TyKind::Invalid;
@@ -77,6 +86,7 @@ struct Ty
 		TyFunc ty_func;
 		TyStruct ty_struct;
 		TyUnion ty_union;
+		TyEnum ty_enum;
 
 		// Attention! This leaks!
 		TyData() {}

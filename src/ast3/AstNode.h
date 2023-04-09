@@ -20,6 +20,7 @@ enum class NodeKind
 	Struct,
 	Union,
 	Enum,
+	EnumMember,
 	NumberLiteral,
 	BoolLiteral,
 	TypeDeclarator,
@@ -286,6 +287,33 @@ struct AstEnum
 	{}
 };
 
+struct AstEnumMember
+{
+	static constexpr NodeKind nt = NodeKind::EnumMember;
+
+	enum class MemberKind
+	{
+		Simple,
+		Struct,
+	} kind = MemberKind::Simple;
+
+	AstNode* id;
+
+	// Optional
+	std::vector<AstNode*> var_decls;
+
+	AstEnumMember() = default;
+	AstEnumMember(AstNode* id)
+		: id(id)
+		, kind(MemberKind::Simple)
+	{}
+	AstEnumMember(AstNode* id, std::vector<AstNode*> var_decls)
+		: id(id)
+		, var_decls(var_decls)
+		, kind(MemberKind::Struct)
+	{}
+};
+
 struct AstBinOp
 {
 	static constexpr NodeKind nt = NodeKind::BinOp;
@@ -327,6 +355,7 @@ struct AstNode
 		AstUnion ast_union;
 		AstEnum ast_enum;
 		AstSizeOf ast_sizeof;
+		AstEnumMember ast_enum_member;
 
 		// Attention! This leaks!
 		NodeData() {}

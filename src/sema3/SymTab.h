@@ -50,6 +50,8 @@ sym_cast(SymTy* sym)
 		return sym->data.sym_type;
 	else if constexpr( std::is_same_v<SymMember, Node> )
 		return sym->data.sym_member;
+	else if constexpr( std::is_same_v<SymEnumMember, Node> )
+		return sym->data.sym_enum_member;
 	else
 		static_assert("Cannot create symbol of type " + to_string(Node::sk));
 }
@@ -67,6 +69,11 @@ SymTab::create(Args&&... args)
 		ty_lookup.emplace(sym_cast<SymType>(sym).ty, sym);
 	else if constexpr( std::is_same_v<SymFunc, Node> )
 		ty_lookup.emplace(sym_cast<SymFunc>(sym).ty, sym);
+	else if constexpr( std::is_same_v<SymEnumMember, Node> )
+	{
+		SymEnumMember& member = sym_cast<SymEnumMember>(sym);
+		ty_lookup.emplace(member.struct_ty, sym);
+	}
 
 	return sym;
 }

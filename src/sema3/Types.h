@@ -27,8 +27,8 @@ ty_cast(TyTy* ty)
 		return ty->data.ty_struct;
 	else if constexpr( std::is_same_v<TyUnion, Node> )
 		return ty->data.ty_union;
-	// else if constexpr( std::is_same_v<TyEnum, Node> )
-	// 	return ty->data.ty_enum;
+	else if constexpr( std::is_same_v<TyEnum, Node> )
+		return ty->data.ty_enum;
 	else
 		static_assert("Bad ty cast");
 }

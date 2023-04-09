@@ -21,6 +21,37 @@ to_string(Token token)
 	return std::string(token.view.start, token.view.size);
 }
 
+ParseResult<std::vector<AstNode*>>
+Parser::parse_struct_body()
+{
+	std::vector<AstNode*> members;
+
+	auto tok = cursor.consume(TokenKind::OpenCurly);
+	if( !tok.ok() )
+		return ParseError("Expected '{'", tok.token());
+
+	auto curr_tok = cursor.peek();
+	while( curr_tok.kind != TokenKind::CloseCurly )
+	{
+		auto var_decl_result = parse_var_decl(false);
+		if( !var_decl_result.ok() )
+			return MoveError(var_decl_result);
+
+		members.push_back(var_decl_result.unwrap());
+
+		// Optional semicolon
+		cursor.consume_if_expected(TokenKind::SemiColon);
+
+		curr_tok = cursor.peek();
+	}
+
+	tok = cursor.consume(TokenKind::CloseCurly);
+	if( !tok.ok() )
+		return ParseError("Expected '}'", tok.token());
+
+	return members;
+}
+
 ParseResult<std::vector<std::string>>
 Parser::parse_name_parts()
 {
@@ -318,40 +349,39 @@ Parser::parse_struct()
 	if( !id_result.ok() )
 		return id_result;
 
-	tok = cursor.consume(TokenKind::OpenCurly);
-	if( !tok.ok() )
-		return ParseError("Expected '{'", tok.token());
+	auto body_result = parse_struct_body();
+	if( !body_result.ok() )
+		return MoveError(body_result);
 
-	auto curr_tok = cursor.peek();
-	while( curr_tok.kind != TokenKind::CloseCurly )
-	{
-		auto var_decl_result = parse_var_decl(false);
-		if( !var_decl_result.ok() )
-			return var_decl_result;
-
-		members.push_back(var_decl_result.unwrap());
-
-		// Optional semicolon
-		cursor.consume_if_expected(TokenKind::SemiColon);
-
-		curr_tok = cursor.peek();
-	}
-
-	tok = cursor.consume(TokenKind::CloseCurly);
-	if( !tok.ok() )
-		return ParseError("Expected '}'", tok.token());
-
-	return ast.create<AstStruct>(Span(), id_result.unwrap(), members);
+	return ast.create<AstStruct>(Span(), id_result.unwrap(), body_result.unwrap());
 }
 
 ParseResult<AstNode*>
 Parser::parse_union()
 {
-	std::vector<AstNode*> members;
-
 	auto tok = cursor.consume(TokenKind::UnionKw);
 	if( !tok.ok() )
 		return ParseError("Expected 'union'", tok.token());
+
+	auto id_result = parse_identifier();
+	if( !id_result.ok() )
+		return id_result;
+
+	auto body_result = parse_struct_body();
+	if( !body_result.ok() )
+		return MoveError(body_result);
+
+	return ast.create<AstUnion>(Span(), id_result.unwrap(), body_result.unwrap());
+}
+
+ParseResult<AstNode*>
+Parser::parse_enum()
+{
+	std::vector<AstNode*> members;
+
+	auto tok = cursor.consume(TokenKind::EnumKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'enum'", tok.token());
 
 	auto id_result = parse_identifier();
 	if( !id_result.ok() )
@@ -364,14 +394,14 @@ Parser::parse_union()
 	auto curr_tok = cursor.peek();
 	while( curr_tok.kind != TokenKind::CloseCurly )
 	{
-		auto var_decl_result = parse_var_decl(false);
-		if( !var_decl_result.ok() )
-			return var_decl_result;
+		auto enum_member_result = parse_enum_member();
+		if( !enum_member_result.ok() )
+			return MoveError(enum_member_result);
 
-		members.push_back(var_decl_result.unwrap());
+		members.push_back(enum_member_result.unwrap());
 
-		// Optional semicolon
-		cursor.consume_if_expected(TokenKind::SemiColon);
+		// Optional comma
+		cursor.consume_if_expected(TokenKind::Comma);
 
 		curr_tok = cursor.peek();
 	}
@@ -380,13 +410,27 @@ Parser::parse_union()
 	if( !tok.ok() )
 		return ParseError("Expected '}'", tok.token());
 
-	return ast.create<AstUnion>(Span(), id_result.unwrap(), members);
+	return ast.create<AstEnum>(Span(), id_result.unwrap(), members);
 }
 
 ParseResult<AstNode*>
-Parser::parse_enum()
+Parser::parse_enum_member()
 {
-	return NotImpl();
+	auto id_result = parse_identifier();
+	if( !id_result.ok() )
+		return id_result;
+
+	auto tok = cursor.peek();
+	if( tok.kind == TokenKind::OpenCurly )
+	{
+		auto body_result = parse_struct_body();
+		if( !body_result.ok() )
+			return MoveError(body_result);
+
+		return ast.create<AstEnumMember>(Span(), id_result.unwrap(), body_result.unwrap());
+	}
+	else
+		return ast.create<AstEnumMember>(Span(), id_result.unwrap());
 }
 
 ParseResult<AstNode*>

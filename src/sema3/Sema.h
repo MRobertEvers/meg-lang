@@ -6,6 +6,9 @@
 #include "SymBuiltins.h"
 #include "SymTab.h"
 #include "Types.h"
+
+#include <map>
+
 class Sema
 {
 	Hir& hir;
@@ -25,6 +28,7 @@ public:
 	SemaResult<HirNode*> sema_block(AstNode* ast_func);
 	SemaResult<HirNode*> sema_struct(AstNode* ast_struct);
 	SemaResult<HirNode*> sema_union(AstNode* ast_union);
+	SemaResult<HirNode*> sema_enum(AstNode* ast_enum);
 	SemaResult<HirNode*> sema_stmt(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_stmt_any(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_return(AstNode* ast_return);
@@ -40,6 +44,8 @@ public:
 
 private:
 	// Checks if two types can be equal after coercing the subject type.
+	Sym* define_struct(std::string name, std::map<std::string, QualifiedTy> members);
 	SemaResult<QualifiedTy> type_declarator(AstNode* ast_type_declarator);
+	SemaResult<std::map<std::string, QualifiedTy>> decl_list(std::vector<AstNode*>& ast_decls);
 	SemaResult<HirNode*> equal_coercion(QualifiedTy target, HirNode* node);
 };

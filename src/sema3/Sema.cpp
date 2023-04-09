@@ -96,7 +96,9 @@ Sema::sema_module_stmt_any(AstNode* ast_stmt)
 	case NodeKind::Struct:
 		return sema_struct(ast_stmt);
 	case NodeKind::Union:
+		return sema_union(ast_stmt);
 	case NodeKind::Enum:
+		return sema_enum(ast_stmt);
 	default:
 		return NotImpl();
 	}
@@ -195,6 +197,21 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, sym, parameters);
 }
 
+Sym*
+Sema::define_struct(std::string simple_name, std::map<std::string, QualifiedTy> members)
+{
+	Ty const* struct_ty = types.create<TyStruct>(simple_name, members);
+	Sym* struct_sym = sym_tab.create_named<SymType>(simple_name, struct_ty);
+
+	SymType& sym = sym_cast<SymType>(struct_sym);
+	sym_tab.push_scope(&sym.scope);
+	for( auto& member : members )
+		sym_tab.create_named<SymMember>(member.first, member.second);
+	sym_tab.pop_scope();
+
+	return struct_sym;
+}
+
 SemaResult<QualifiedTy>
 Sema::type_declarator(AstNode* ast_type_declarator)
 {
@@ -208,6 +225,29 @@ Sema::type_declarator(AstNode* ast_type_declarator)
 
 	QualifiedTy qty = sym_qty(builtins, sym_lu.sym);
 	return qty;
+}
+
+SemaResult<std::map<std::string, QualifiedTy>>
+Sema::decl_list(std::vector<AstNode*>& ast_decls)
+{
+	std::map<std::string, QualifiedTy> members;
+
+	for( auto& ast_var_decl : ast_decls )
+	{
+		AstVarDecl& var_decl = ast_cast<AstVarDecl>(ast_var_decl);
+
+		auto type_declarator_result = type_declarator(var_decl.type_declarator);
+		if( !type_declarator_result.ok() )
+			return MoveError(type_declarator_result);
+
+		// TODO: Simple name
+		AstId& member_id = ast_cast<AstId>(var_decl.id);
+		std::string simple_name = member_id.name_parts.parts[0];
+
+		members.emplace(simple_name, type_declarator_result.unwrap());
+	}
+
+	return members;
 }
 
 SemaResult<HirNode*>
@@ -241,21 +281,11 @@ Sema::sema_struct(AstNode* ast_struct)
 	if( sym_lu.sym )
 		return SemaError("Redefinition");
 
-	std::map<std::string, QualifiedTy> members;
+	auto decl_list_result = decl_list(struct_nod.var_decls);
+	if( !decl_list_result.ok() )
+		return MoveError(decl_list_result);
 
-	for( auto& ast_var_decl : struct_nod.var_decls )
-	{
-		AstVarDecl& var_decl = ast_cast<AstVarDecl>(ast_var_decl);
-
-		auto type_declarator_result = type_declarator(var_decl.type_declarator);
-		if( !type_declarator_result.ok() )
-			return MoveError(type_declarator_result);
-
-		// TODO: Simple name
-		AstId& member_id = ast_cast<AstId>(var_decl.id);
-
-		members.emplace(member_id.name_parts.parts[0], type_declarator_result.unwrap());
-	}
+	std::map<std::string, QualifiedTy> members = decl_list_result.unwrap();
 
 	Ty const* struct_ty = types.create<TyStruct>(id.name_parts.parts[0], members);
 	Sym* struct_sym = sym_tab.create_named<SymType>(id.name_parts.parts[0], struct_ty);
@@ -272,8 +302,78 @@ Sema::sema_struct(AstNode* ast_struct)
 SemaResult<HirNode*>
 Sema::sema_union(AstNode* ast_union)
 {
-	//
-	return NotImpl();
+	AstStruct& union_nod = ast_cast<AstStruct>(ast_union);
+
+	// TODO: Simple name
+	AstId& id = ast_cast<AstId>(union_nod.id);
+	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	if( sym_lu.sym )
+		return SemaError("Redefinition");
+
+	auto decl_list_result = decl_list(union_nod.var_decls);
+	if( !decl_list_result.ok() )
+		return MoveError(decl_list_result);
+
+	std::map<std::string, QualifiedTy> members = decl_list_result.unwrap();
+
+	Ty const* union_ty = types.create<TyUnion>(id.name_parts.parts[0], members);
+	Sym* union_sym = sym_tab.create_named<SymType>(id.name_parts.parts[0], union_ty);
+
+	SymType& sym = sym_cast<SymType>(union_sym);
+	sym_tab.push_scope(&sym.scope);
+	for( auto& member : members )
+		sym_tab.create_named<SymMember>(member.first, member.second);
+	sym_tab.pop_scope();
+
+	return hir.create<HirStruct>(QualifiedTy(builtins.void_ty), union_sym);
+}
+
+SemaResult<HirNode*>
+Sema::sema_enum(AstNode* ast_enum)
+{
+	AstEnum& enum_nod = ast_cast<AstEnum>(ast_enum);
+
+	// TODO: Simple name
+	AstId& id = ast_cast<AstId>(enum_nod.id);
+	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	if( sym_lu.sym )
+		return SemaError("Redefinition");
+
+	Ty const* enum_ty = types.create<TyEnum>(id.name_parts.parts[0]);
+	Sym* enum_sym = sym_tab.create_named<SymType>(id.name_parts.parts[0], enum_ty);
+	SymType& sym = sym_cast<SymType>(enum_sym);
+	sym_tab.push_scope(&sym.scope);
+
+	int member_ind = 0;
+	for( auto& ast_enum_member : enum_nod.enum_member_decls )
+	{
+		AstEnumMember& enum_member = ast_cast<AstEnumMember>(ast_enum_member);
+		AstId& member_id = ast_cast<AstId>(enum_member.id);
+		std::string simple_name = member_id.name_parts.parts[0];
+
+		switch( enum_member.kind )
+		{
+		case AstEnumMember::MemberKind::Simple:
+			sym_tab.create_named<SymEnumMember>(simple_name, member_ind);
+			break;
+		case AstEnumMember::MemberKind::Struct:
+		{
+			auto decl_list_result = decl_list(enum_member.var_decls);
+			if( !decl_list_result.ok() )
+				return MoveError(decl_list_result);
+
+			Ty const* struct_ty = types.create<TyStruct>(simple_name, decl_list_result.unwrap());
+			sym_tab.create_named<SymEnumMember>(simple_name, member_ind, struct_ty);
+		}
+		break;
+		}
+
+		member_ind += 1;
+	}
+
+	sym_tab.pop_scope();
+
+	return hir.create<HirEnum>(QualifiedTy(builtins.void_ty), enum_sym);
 }
 
 SemaResult<HirNode*>
@@ -327,7 +427,7 @@ Sema::sema_sizeof(AstNode* ast_sizeof)
 {
 	AstSizeOf& sizeof_nod = ast_cast<AstSizeOf>(ast_sizeof);
 
-	AstNode* sizeof_expr = sizeof_nod.expr;
+	AstNode* sizeof_expr = ast_cast<AstExpr>(sizeof_nod.expr).expr;
 
 	HirNode* hir_expr = nullptr;
 	switch( sizeof_expr->kind )
