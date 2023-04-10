@@ -13,9 +13,14 @@ public:
 
 	QualifiedTy();
 	QualifiedTy(Ty const* ty);
+	QualifiedTy(Ty const* ty, int indirection);
 
+	// bool is_array() const;
+	bool is_pointer() const;
 	bool is_function() const;
 	bool is_primitive() const;
+
+	QualifiedTy deref() const;
 
 	// TODO: compatible function not equals
 	static bool equals(QualifiedTy lqty, QualifiedTy rqty);

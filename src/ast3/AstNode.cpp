@@ -55,6 +55,8 @@ to_string(NodeKind type)
 		return "EnumMember";
 	case NodeKind::MemberAccess:
 		return "MemberAccess";
+	case NodeKind::BoolNot:
+		return "BoolNot";
 	case NodeKind::Deref:
 		return "Deref";
 	}

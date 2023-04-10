@@ -5,6 +5,22 @@
 QualifiedTy::QualifiedTy(){};
 QualifiedTy::QualifiedTy(Ty const* ty)
 	: ty(ty){};
+QualifiedTy::QualifiedTy(Ty const* ty, int indirection)
+	: ty(ty)
+	, indirection(indirection)
+{}
+
+// bool
+// QualifiedTy::is_array() const
+// {
+// 	return is_array;
+// }
+
+bool
+QualifiedTy::is_pointer() const
+{
+	return indirection != 1;
+}
 
 bool
 QualifiedTy::is_function() const
@@ -16,6 +32,13 @@ bool
 QualifiedTy::is_primitive() const
 {
 	return ty->kind == TyKind::Primitive && indirection == 0 && !is_array;
+}
+
+QualifiedTy
+QualifiedTy::deref() const
+{
+	assert(indirection != 0);
+	return QualifiedTy(ty, indirection - 1);
 }
 
 bool

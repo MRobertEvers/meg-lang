@@ -151,6 +151,10 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "SkinnyArrow";
 	case TokenKind::FatArrow:
 		return "FatArrow";
+	case TokenKind::Exclam:
+		return "Exclam";
+	case TokenKind::ExclamEq:
+		return "ExclamEq";
 	case TokenKind::Eof:
 		return "Eof";
 	}

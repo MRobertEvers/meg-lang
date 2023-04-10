@@ -73,6 +73,8 @@ ast_cast(AstTy* ast_node)
 		return ast_node->data.ast_member_access;
 	else if constexpr( std::is_same_v<AstDeref, Node> )
 		return ast_node->data.ast_deref;
+	else if constexpr( std::is_same_v<AstBoolNot, Node> )
+		return ast_node->data.ast_boolnot;
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 }

@@ -20,6 +20,7 @@ enum class NodeKind
 	Id,
 	SizeOf,
 	AddressOf,
+	BoolNot,
 	BinOp,
 	Struct,
 	Union,
@@ -104,6 +105,16 @@ struct AstAddressOf
 	AstNode* expr;
 
 	AstAddressOf(AstNode* expr)
+		: expr(expr)
+	{}
+};
+
+struct AstBoolNot
+{
+	static constexpr NodeKind nt = NodeKind::BoolNot;
+	AstNode* expr;
+
+	AstBoolNot(AstNode* expr)
 		: expr(expr)
 	{}
 };
@@ -218,11 +229,12 @@ struct AstMemberAccess
 	} kind = AccessKind::Direct;
 
 	AstNode* callee;
-	AstNode* expr;
+	AstNode* id;
 
-	AstMemberAccess(AstNode* callee, AstNode* expr)
-		: expr(expr)
+	AstMemberAccess(AstNode* callee, AstNode* id, AccessKind kind)
+		: id(id)
 		, callee(callee)
+		, kind(kind)
 	{}
 };
 
@@ -417,6 +429,7 @@ struct AstNode
 		AstArrayAccess ast_array_access;
 		AstMemberAccess ast_member_access;
 		AstDeref ast_deref;
+		AstBoolNot ast_boolnot;
 
 		// Attention! This leaks!
 		NodeData() {}

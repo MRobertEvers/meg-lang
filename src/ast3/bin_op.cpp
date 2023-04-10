@@ -48,6 +48,9 @@ get_bin_op_from_token_type(TokenKind token_type)
 	case TokenKind::Plus:
 		op = BinOp::Add;
 		break;
+	case TokenKind::ExclamEq:
+		op = BinOp::Neq;
+		break;
 	case TokenKind::EqEq:
 		op = BinOp::Eq;
 		break;

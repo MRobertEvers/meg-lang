@@ -16,6 +16,8 @@ enum class HirNodeKind
 	Func,
 	FuncProto,
 	Id,
+	Subscript, // arr[]
+	Member,	   // a.b or a->b
 	Return,
 	Struct,
 	Union,
@@ -127,6 +129,9 @@ struct HirCall
 		Invalid,
 		Cast,
 		SizeOf,
+		AddressOf,
+		BoolNot,
+		Deref
 	};
 
 	enum class CallKind
@@ -190,7 +195,7 @@ struct HirNumberLiteral
 
 struct HirStruct
 {
-	static constexpr HirNodeKind nt = HirNodeKind::Let;
+	static constexpr HirNodeKind nt = HirNodeKind::Struct;
 
 	Sym* sym;
 
@@ -201,7 +206,7 @@ struct HirStruct
 
 struct HirUnion
 {
-	static constexpr HirNodeKind nt = HirNodeKind::Let;
+	static constexpr HirNodeKind nt = HirNodeKind::Union;
 
 	Sym* sym;
 
@@ -212,7 +217,7 @@ struct HirUnion
 
 struct HirEnum
 {
-	static constexpr HirNodeKind nt = HirNodeKind::Let;
+	static constexpr HirNodeKind nt = HirNodeKind::Enum;
 
 	Sym* sym;
 
@@ -232,6 +237,19 @@ struct HirLet
 	{}
 };
 
+struct HirSubscript
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Subscript;
+
+	HirNode* elem;
+	HirNode* subscript;
+
+	HirSubscript(HirNode* elem, HirNode* subscript)
+		: elem(elem)
+		, subscript(subscript)
+	{}
+};
+
 struct HirIf
 {
 	static constexpr HirNodeKind nt = HirNodeKind::If;
@@ -248,6 +266,26 @@ struct HirIf
 	HirIf(std::vector<CondThen> elsifs, HirNode* else_node)
 		: elsifs(elsifs)
 		, else_node(else_node)
+	{}
+};
+
+struct HirMember
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Member;
+
+	enum AccessKind
+	{
+		Direct,
+		Indirect
+	} kind;
+
+	HirNode* self;
+	Sym* member;
+
+	HirIf(HirNode* self, Sym* member, AccessKind kind)
+		: self(self)
+		, member(member)
+		, kind(kind)
 	{}
 };
 
@@ -272,6 +310,7 @@ struct HirNode
 		HirStruct hir_struct;
 		HirUnion hir_union;
 		HirEnum hir_enum;
+		HirSubscript hir_subscript;
 
 		// Attention! This leaks!
 		NodeData() {}

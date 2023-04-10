@@ -227,17 +227,33 @@ Parser::parse_call(AstNode* callee)
 }
 
 ParseResult<AstNode*>
+Parser::parse_indirect_member_access(AstNode* base)
+{
+	ConsumeResult tok = cursor.consume(TokenKind::SkinnyArrow);
+	if( !tok.ok() )
+		return ParseError("Expected '->'", tok.token());
+
+	auto expr_result = parse_identifier();
+	if( !expr_result.ok() )
+		return expr_result;
+
+	return ast.create<AstMemberAccess>(
+		Span(), base, expr_result.unwrap(), AstMemberAccess::AccessKind::Indirect);
+}
+
+ParseResult<AstNode*>
 Parser::parse_member_access(AstNode* base)
 {
 	ConsumeResult tok = cursor.consume(TokenKind::Dot);
 	if( !tok.ok() )
 		return ParseError("Expected '.'", tok.token());
 
-	auto identifier_result = parse_identifier();
-	if( !identifier_result.ok() )
-		return identifier_result;
+	auto expr_result = parse_identifier();
+	if( !expr_result.ok() )
+		return expr_result;
 
-	return ast.create<AstMemberAccess>(Span(), base, identifier_result.unwrap());
+	return ast.create<AstMemberAccess>(
+		Span(), base, expr_result.unwrap(), AstMemberAccess::AccessKind::Direct);
 }
 
 ParseResult<AstNode*>
@@ -561,6 +577,8 @@ Parser::parse_postfix_expr()
 		return parse_array_access(simple_expr_result.unwrap());
 	case TokenKind::OpenParen:
 		return parse_call(simple_expr_result.unwrap());
+	case TokenKind::SkinnyArrow:
+		return parse_indirect_member_access(simple_expr_result.unwrap());
 	case TokenKind::Dot:
 		return parse_member_access(simple_expr_result.unwrap());
 	default:
@@ -690,6 +708,16 @@ Parser::parse_simple_expr()
 		result = ast.create<AstAddressOf>(Span(), expr_result.unwrap());
 		break;
 	}
+	case TokenKind::Exclam:
+	{
+		cursor.consume(TokenKind::Exclam);
+		auto expr_result = parse_postfix_expr();
+		if( !expr_result.ok() )
+			return expr_result;
+
+		result = ast.create<AstBoolNot>(Span(), expr_result.unwrap());
+		break;
+	}
 	case TokenKind::Star:
 	{
 		auto expr_result = parse_deref();
@@ -726,6 +754,7 @@ Parser::parse_bin_op(int expr_precidence, AstNode* lhs)
 			TokenKind::GtEq,
 			TokenKind::Lt,
 			TokenKind::LtEq,
+			TokenKind::ExclamEq,
 		});
 		// TODO: Other assignment exprs.
 		if( !consume.ok() )

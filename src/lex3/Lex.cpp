@@ -36,20 +36,9 @@ Lex::next()
 	case TokenKind::Eq:
 	case TokenKind::Lt:
 	case TokenKind::Gt:
+	case TokenKind::Exclam:
 		token = tok_ambiguous(tok_kind);
 		break;
-	// case TokenKind::Minus:
-	// 	token = tok_ambiguous(tok_kind, "==", TokenKind::EqEq);
-	// 	break;
-	// case TokenKind::Eq:
-	// 	token = tok_ambiguous(tok_kind, "==", TokenKind::EqEq);
-	// 	break;
-	// case TokenKind::Lt:
-	// 	token = tok_ambiguous(tok_kind, "<=", TokenKind::LtEq);
-	// 	break;
-	// case TokenKind::Gt:
-	// 	token = tok_ambiguous(tok_kind, ">=", TokenKind::GtEq);
-	// 	break;
 	default:
 		token = Token(tok_view, tok_kind);
 		break;
@@ -162,6 +151,9 @@ Lex::tok_start()
 	case '>':
 		tok_kind = TokenKind::Gt;
 		break;
+	case '!':
+		tok_kind = TokenKind::Exclam;
+		break;
 	default:
 		cursor_ += 1;
 		break;
@@ -194,6 +186,10 @@ Lex::tok_ambiguous(TokenKind kind)
 	case TokenKind::Gt:
 		if( match(view, ">=") )
 			kind = TokenKind::GtEq;
+		break;
+	case TokenKind::Exclam:
+		if( match(view, "!=") )
+			kind = TokenKind::ExclamEq;
 		break;
 	default:
 		break;

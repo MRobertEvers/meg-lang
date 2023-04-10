@@ -163,7 +163,7 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	if( sym_lu.sym )
 		return SemaError("Redeclaration");
 
-	// TODO: We add the vars to the scope below, but we need to look up the arg types
+	//  We add the vars to the scope below, but we need to look up the arg types
 	// here so we can include them in the func ty.
 	std::vector<QualifiedTy> arg_qtys;
 	for( auto& param : func_proto.parameters )
@@ -291,8 +291,9 @@ Sema::sema_struct(AstNode* ast_struct)
 
 	SymType& sym = sym_cast<SymType>(struct_sym);
 	sym_tab.push_scope(&sym.scope);
+	int member_layout_ind = 0;
 	for( auto& member : members )
-		sym_tab.create_named<SymMember>(member.first, member.second);
+		sym_tab.create_named<SymMember>(member.first, member.second, member_layout_ind++);
 	sym_tab.pop_scope();
 
 	return hir.create<HirStruct>(QualifiedTy(builtins.void_ty), struct_sym);
@@ -321,7 +322,7 @@ Sema::sema_union(AstNode* ast_union)
 	SymType& sym = sym_cast<SymType>(union_sym);
 	sym_tab.push_scope(&sym.scope);
 	for( auto& member : members )
-		sym_tab.create_named<SymMember>(member.first, member.second);
+		sym_tab.create_named<SymMember>(member.first, member.second, 0);
 	sym_tab.pop_scope();
 
 	return hir.create<HirStruct>(QualifiedTy(builtins.void_ty), union_sym);
@@ -460,6 +461,106 @@ Sema::sema_sizeof(AstNode* ast_sizeof)
 }
 
 SemaResult<HirNode*>
+Sema::sema_addressof(AstNode* ast_addressof)
+{
+	AstAddressOf& addressof_nod = ast_cast<AstAddressOf>(ast_addressof);
+
+	auto expr_result = sema_expr(addressof_nod.expr);
+	if( !expr_result.ok() )
+		return expr_result;
+
+	// TODO: Ensure lvalueness?
+	auto expr = expr_result.unwrap();
+
+	return hir.create<HirCall>(
+		QualifiedTy(builtins.bool_ty),
+		HirCall::BuiltinKind::AddressOf,
+		std::vector<HirNode*>{expr});
+}
+
+SemaResult<HirNode*>
+Sema::sema_boolnot(AstNode* ast_boolnot)
+{
+	AstBoolNot& boolnot_nod = ast_cast<AstBoolNot>(ast_boolnot);
+
+	auto expr_result = sema_expr(boolnot_nod.expr);
+	if( !expr_result.ok() )
+		return expr_result;
+
+	auto expr = expr_result.unwrap();
+
+	auto coercion_result = equal_coercion(QualifiedTy(builtins.bool_ty), expr);
+	if( !coercion_result.ok() )
+		return coercion_result;
+
+	return hir.create<HirCall>(
+		QualifiedTy(builtins.bool_ty),
+		HirCall::BuiltinKind::BoolNot,
+		std::vector<HirNode*>{coercion_result.unwrap()});
+}
+
+SemaResult<HirNode*>
+Sema::sema_array_access(AstNode* ast_array_access)
+{
+	AstArrayAccess& array_access = ast_cast<AstArrayAccess>(ast_array_access);
+
+	auto callee_result = sema_expr(array_access.callee);
+	if( !callee_result.ok() )
+		return callee_result;
+
+	HirNode* callee = callee_result.unwrap();
+	if( !callee->qty.is_pointer() )
+		return SemaError("Array access must be a pointer or array.", array_access.callee);
+
+	auto expr_result = sema_expr(array_access.expr);
+	if( !expr_result.ok() )
+		return expr_result;
+
+	HirNode* expr = expr_result.unwrap();
+	auto coercion_result = equal_coercion(QualifiedTy(builtins.i32_ty), expr);
+	if( !coercion_result.ok() )
+		return coercion_result;
+
+	return hir.create<HirSubscript>(callee->qty.deref(), callee, coercion_result.unwrap());
+}
+
+SemaResult<HirNode*>
+Sema::sema_member_access(AstNode* ast_member_access)
+{
+	AstMemberAccess& member_access = ast_cast<AstMemberAccess>(ast_member_access);
+
+	auto callee_result = sema_expr(member_access.callee);
+	if( !callee_result.ok() )
+		return callee_result;
+
+	HirNode* callee = callee_result.unwrap();
+	if( member_access.kind == AstMemberAccess::AccessKind::Indirect &&
+		callee->qty.indirection != 1 )
+		return SemaError("-> access must be a pointer.", member_access.callee);
+
+	if( callee->qty.ty->kind != TyKind::Struct && callee->qty.ty->kind != TyKind::Union )
+		return SemaError("Cannot access member of non-struct.", member_access.callee);
+
+	AstId& id = ast_cast<AstId>(member_access.id);
+
+	HirMember::AccessKind kind = member_access.kind == AstMemberAccess::AccessKind::Direct
+									 ? HirMember::AccessKind::Direct
+									 : HirMember::AccessKind::Indirect;
+
+	QualifiedTy member_type;
+	SymLookupResult sym_lu = sym_tab.lookup(callee->qty.ty);
+	if( !sym_lu.sym )
+		return SemaError("???");
+
+	SymType& type_sym = sym_cast<SymType>(sym_lu.sym);
+	Sym* member_sym = type_sym.scope.find(id.name_parts.parts[0]);
+	if( !member_sym )
+		return SemaError(id.name_parts.parts[0] + " is not a member of struct", member_access.id);
+
+	return hir.create<HirMember>(sym_qty(member_sym), callee, member_sym, kind);
+}
+
+SemaResult<HirNode*>
 Sema::sema_let(AstNode* ast_let)
 {
 	AstLet& let = ast_cast<AstLet>(ast_let);
@@ -593,6 +694,10 @@ Sema::sema_expr_any(AstNode* ast_expr)
 		return sema_bin_op(ast_expr);
 	case NodeKind::SizeOf:
 		return sema_sizeof(ast_expr);
+	case NodeKind::MemberAccess:
+		return sema_member_access(ast_expr);
+	case NodeKind::ArrayAccess:
+		return sema_array_access(ast_expr);
 	// We can end up with next expr->expr->expr due to parens.
 	case NodeKind::Expr:
 		return sema_expr(ast_expr);
@@ -658,6 +763,10 @@ Sema::sema_func_call(AstNode* ast_func_call)
 
 		return hir.create<HirCall>(ty_func.rt_qty, sym_lu.sym, args);
 	}
+	case NodeKind::MemberAccess:
+	{
+		// TODO This-call?
+	}
 	default:
 		return NotImpl();
 	}
@@ -668,6 +777,7 @@ bin_op_qty(SymBuiltins& builtins, BinOp op, HirNode* lhs)
 {
 	switch( op )
 	{
+	case BinOp::Neq:
 	case BinOp::Eq:
 	case BinOp::Lt:
 	case BinOp::Lte:

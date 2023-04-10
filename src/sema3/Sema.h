@@ -33,6 +33,10 @@ public:
 	SemaResult<HirNode*> sema_stmt_any(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_return(AstNode* ast_return);
 	SemaResult<HirNode*> sema_sizeof(AstNode* ast_sizeof);
+	SemaResult<HirNode*> sema_addressof(AstNode* ast_addressof);
+	SemaResult<HirNode*> sema_boolnot(AstNode* ast_boolnot);
+	SemaResult<HirNode*> sema_array_access(AstNode* ast_boolnot);
+	SemaResult<HirNode*> sema_member_access(AstNode* ast_boolnot);
 	SemaResult<HirNode*> sema_let(AstNode* ast_let);
 	SemaResult<HirNode*> sema_if(AstNode* ast_let);
 	SemaResult<HirNode*> sema_expr(AstNode* ast_expr);

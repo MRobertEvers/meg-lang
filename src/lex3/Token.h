@@ -21,6 +21,7 @@ enum class TokenKind
 	OpenCurly,
 	CloseCurly,
 
+	Exclam,
 	Ampersand,
 	SkinnyArrow,
 	FatArrow,
@@ -35,6 +36,7 @@ enum class TokenKind
 	Minus,
 	EqEq,
 	Eq,
+	ExclamEq,
 	Gt,
 	Lt,
 	GtEq,

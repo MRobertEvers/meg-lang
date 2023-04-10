@@ -27,7 +27,10 @@ struct SymMember
 	static constexpr SymKind sk = SymKind::Member;
 	QualifiedTy qty;
 
-	SymMember(QualifiedTy qty);
+	// For structs this is used to order members in memory.
+	int position = 0;
+
+	SymMember(QualifiedTy qty, int position);
 };
 
 struct SymEnumMember
