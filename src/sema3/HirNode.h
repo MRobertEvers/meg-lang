@@ -24,6 +24,7 @@ enum class HirNodeKind
 	Enum,
 	Let,
 	If,
+	Switch,
 	VarDecl,
 	Expr,
 	Stmt,
@@ -269,6 +270,28 @@ struct HirIf
 	{}
 };
 
+struct HirSwitch
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Switch;
+
+	HirNode* cond;
+
+	struct CondThen
+	{
+		HirNode* cond;
+		HirNode* then;
+	};
+
+	std::vector<CondThen> branches;
+	HirNode* default_branch;
+
+	HirSwitch(HirNode* cond, std::vector<CondThen> branches, HirNode* default_branch)
+		: cond(cond)
+		, branches(branches)
+		, default_branch(default_branch)
+	{}
+};
+
 struct HirMember
 {
 	static constexpr HirNodeKind nt = HirNodeKind::Member;
@@ -282,7 +305,7 @@ struct HirMember
 	HirNode* self;
 	Sym* member;
 
-	HirIf(HirNode* self, Sym* member, AccessKind kind)
+	HirMember(HirNode* self, Sym* member, AccessKind kind)
 		: self(self)
 		, member(member)
 		, kind(kind)
@@ -311,6 +334,8 @@ struct HirNode
 		HirUnion hir_union;
 		HirEnum hir_enum;
 		HirSubscript hir_subscript;
+		HirMember hir_member;
+		HirSwitch hir_switch;
 
 		// Attention! This leaks!
 		NodeData() {}

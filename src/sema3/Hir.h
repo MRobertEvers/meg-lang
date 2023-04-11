@@ -48,6 +48,10 @@ hir_cast(HirNode* hir_node)
 		return hir_node->data.hir_enum;
 	else if constexpr( std::is_same_v<HirSubscript, Node> )
 		return hir_node->data.hir_subscript;
+	else if constexpr( std::is_same_v<HirMember, Node> )
+		return hir_node->data.hir_member;
+	else if constexpr( std::is_same_v<HirSwitch, Node> )
+		return hir_node->data.hir_switch;
 	else
 		static_assert("Cannot create hir node of type ");
 }

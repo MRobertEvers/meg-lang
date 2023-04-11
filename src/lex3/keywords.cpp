@@ -32,6 +32,7 @@ KeywordIdentifierTuple keywords[] =
 	{"default", TokenKind::DefaultKw},
 	{"continue", TokenKind::ContinueKw},
 	{"case", TokenKind::CaseKw},
+	{"switch", TokenKind::SwitchKw},
 	// clang-format off
 };
 // clang-format on
@@ -155,6 +156,8 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "Exclam";
 	case TokenKind::ExclamEq:
 		return "ExclamEq";
+	case TokenKind::SwitchKw:
+		return "Switch";
 	case TokenKind::Eof:
 		return "Eof";
 	}

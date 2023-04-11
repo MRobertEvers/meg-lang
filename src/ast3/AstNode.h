@@ -33,6 +33,14 @@ enum class NodeKind
 	If,
 	Return,
 	VarDecl,
+	Assign,
+	Switch,
+	Case,
+	Break,
+	Default,
+	Continue,
+	For,
+	While,
 	Expr,
 	Stmt,
 };
@@ -398,6 +406,87 @@ struct AstBinOp
 	{}
 };
 
+struct AstSwitch
+{
+	static constexpr NodeKind nt = NodeKind::Switch;
+
+	AstNode* cond;
+	std::vector<AstNode*> branches;
+
+	AstSwitch(AstNode* cond, std::vector<AstNode*> branches)
+		: cond(cond)
+		, branches(branches)
+	{}
+};
+struct AstCase
+{
+	static constexpr NodeKind nt = NodeKind::Case;
+
+	AstNode* cond;
+	AstNode* stmt;
+
+	AstCase(AstNode* cond, AstNode* stmt)
+		: cond(cond)
+		, stmt(stmt)
+	{}
+};
+struct AstBreak
+{
+	static constexpr NodeKind nt = NodeKind::Break;
+
+	AstBreak() {}
+};
+
+struct AstDefault
+{
+	static constexpr NodeKind nt = NodeKind::Default;
+
+	AstNode* stmt;
+
+	AstDefault(AstNode* stmt)
+		: stmt(stmt){};
+};
+
+struct AstFor
+{
+	static constexpr NodeKind nt = NodeKind::For;
+
+	std::vector<AstNode*> inits;
+	AstNode* cond;
+	std::vector<AstNode*> afters;
+	AstNode* body;
+
+	AstFor(std::vector<AstNode*> inits, AstNode* cond, std::vector<AstNode*> afters, AstNode* body)
+		: inits(inits)
+		, cond(cond)
+		, afters(afters)
+		, body(body){};
+};
+
+struct AstWhile
+{
+	static constexpr NodeKind nt = NodeKind::While;
+
+	AstNode* cond;
+	AstNode* body;
+
+	AstWhile(AstNode* cond, AstNode* body)
+		: cond(cond)
+		, body(body){};
+};
+
+struct AstAssign
+{
+	static constexpr NodeKind nt = NodeKind::Assign;
+
+	AstNode* lhs;
+	AstNode* rhs;
+
+	AstAssign(AstNode* lhs, AstNode* rhs)
+		: lhs(lhs)
+		, rhs(rhs){};
+};
+
 struct AstNode
 {
 	Span span;
@@ -430,6 +519,13 @@ struct AstNode
 		AstMemberAccess ast_member_access;
 		AstDeref ast_deref;
 		AstBoolNot ast_boolnot;
+		AstSwitch ast_switch;
+		AstCase ast_case;
+		AstDefault ast_default;
+		AstBreak ast_break;
+		AstFor ast_for;
+		AstWhile ast_while;
+		AstAssign ast_assign;
 
 		// Attention! This leaks!
 		NodeData() {}

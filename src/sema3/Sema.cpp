@@ -401,6 +401,8 @@ Sema::sema_stmt_any(AstNode* ast_stmt)
 		return sema_if(any_stmt);
 	case NodeKind::Block:
 		return sema_block(any_stmt);
+	case NodeKind::Switch:
+		return sema_block(any_stmt);
 	default:
 		return sema_expr(any_stmt);
 	}
@@ -557,7 +559,7 @@ Sema::sema_member_access(AstNode* ast_member_access)
 	if( !member_sym )
 		return SemaError(id.name_parts.parts[0] + " is not a member of struct", member_access.id);
 
-	return hir.create<HirMember>(sym_qty(member_sym), callee, member_sym, kind);
+	return hir.create<HirMember>(sym_qty(builtins, member_sym), callee, member_sym, kind);
 }
 
 SemaResult<HirNode*>

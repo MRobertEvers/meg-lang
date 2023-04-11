@@ -75,6 +75,20 @@ ast_cast(AstTy* ast_node)
 		return ast_node->data.ast_deref;
 	else if constexpr( std::is_same_v<AstBoolNot, Node> )
 		return ast_node->data.ast_boolnot;
+	else if constexpr( std::is_same_v<AstSwitch, Node> )
+		return ast_node->data.ast_switch;
+	else if constexpr( std::is_same_v<AstCase, Node> )
+		return ast_node->data.ast_case;
+	else if constexpr( std::is_same_v<AstDefault, Node> )
+		return ast_node->data.ast_default;
+	else if constexpr( std::is_same_v<AstBreak, Node> )
+		return ast_node->data.ast_break;
+	else if constexpr( std::is_same_v<AstFor, Node> )
+		return ast_node->data.ast_for;
+	else if constexpr( std::is_same_v<AstWhile, Node> )
+		return ast_node->data.ast_while;
+	else if constexpr( std::is_same_v<AstAssign, Node> )
+		return ast_node->data.ast_assign;
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 }

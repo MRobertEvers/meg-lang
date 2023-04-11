@@ -59,6 +59,16 @@ to_string(NodeKind type)
 		return "BoolNot";
 	case NodeKind::Deref:
 		return "Deref";
+	case NodeKind::Case:
+		return "Case";
+	case NodeKind::Switch:
+		return "Switch";
+	case NodeKind::Break:
+		return "Break";
+	case NodeKind::Default:
+		return "Default";
+	case NodeKind::Continue:
+		return "Continue";
 	}
 
 	return "Bad";

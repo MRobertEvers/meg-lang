@@ -53,6 +53,7 @@ enum class TokenKind
 	UnionKw,
 	EnumKw,
 	SizeOfKw,
+	SwitchKw,
 	IsKw,
 	ForKw,
 	WhileKw,

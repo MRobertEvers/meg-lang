@@ -277,6 +277,22 @@ Parser::parse_array_access(AstNode* array)
 }
 
 ParseResult<AstNode*>
+Parser::parse_assign(AstNode* lhs)
+{
+	ConsumeResult tokc = cursor.consume({
+		TokenKind::Eq,
+	});
+	if( !tokc.ok() )
+		return ParseError("Expected 'assignment'", tokc.token());
+
+	auto expr_result = parse_expr();
+	if( !expr_result.ok() )
+		return expr_result;
+
+	return ast.create<AstAssign>(Span(), lhs, expr_result.unwrap());
+}
+
+ParseResult<AstNode*>
 Parser::parse_deref()
 {
 	ConsumeResult tok = cursor.consume(TokenKind::Star);
@@ -371,6 +387,101 @@ Parser::parse_function_body()
 }
 
 ParseResult<AstNode*>
+Parser::parse_while()
+{
+	auto tok = cursor.consume(TokenKind::WhileKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'while'", tok.token());
+
+	auto cond_result = parse_expr();
+	if( !cond_result.ok() )
+		return cond_result;
+
+	auto body_result = parse_statement();
+	if( !body_result.ok() )
+		return body_result;
+
+	return ast.create<AstWhile>(Span(), cond_result.unwrap(), body_result.unwrap());
+}
+
+ParseResult<AstNode*>
+Parser::parse_for()
+{
+	auto tokc = cursor.consume(TokenKind::ForKw);
+	if( !tokc.ok() )
+		return ParseError("Expected 'for'", tokc.token());
+
+	tokc = cursor.consume(TokenKind::OpenParen);
+	if( !tokc.ok() )
+		return ParseError("Expected '('", tokc.token());
+
+	std::vector<AstNode*> inits;
+	auto tok = cursor.peek();
+	while( tok.kind != TokenKind::SemiColon )
+	{
+		switch( tok.kind )
+		{
+		case TokenKind::LetKw:
+		{
+			auto let_result = parse_let();
+			if( !let_result.ok() )
+				return let_result;
+			inits.push_back(let_result.unwrap());
+			break;
+		}
+		default:
+		{
+			auto expr_result = parse_expr_stmt();
+			if( !expr_result.ok() )
+				return expr_result;
+			inits.push_back(ast.create<AstStmt>(Span(), expr_result.unwrap()));
+			break;
+		}
+		}
+
+		cursor.consume_if_expected(TokenKind::Comma);
+
+		tok = cursor.peek();
+	}
+
+	cursor.consume_if_expected(TokenKind::SemiColon);
+
+	AstNode* cond = nullptr;
+	tok = cursor.peek();
+	if( tok.kind != TokenKind::SemiColon )
+	{
+		auto cond_result = parse_expr();
+		if( !cond_result.ok() )
+			return cond_result;
+
+		cond = cond_result.unwrap();
+	}
+
+	std::vector<AstNode*> afters;
+	tok = cursor.peek();
+	while( tok.kind != TokenKind::CloseParen )
+	{
+		auto expr_result = parse_expr_stmt();
+		if( !expr_result.ok() )
+			return expr_result;
+
+		afters.push_back(ast.create<AstStmt>(Span(), expr_result.unwrap()));
+
+		cursor.consume_if_expected(TokenKind::Comma);
+
+		tok = cursor.peek();
+	}
+
+	cursor.consume_if_expected(TokenKind::CloseParen);
+
+	auto body_result = parse_statement();
+	if( !body_result.ok() )
+		return body_result;
+
+	return ast.create<AstFor>(Span(), inits, cond, afters, body_result.unwrap());
+}
+
+ParseResult<AstNode*>
 Parser::parse_block()
 {
 	// auto trail = get_parse_trail();
@@ -398,6 +509,105 @@ Parser::parse_block()
 		return ParseError("Expected '}'", tok.token());
 
 	return ast.create<AstBlock>(Span(), statements);
+}
+
+ParseResult<AstNode*>
+Parser::parse_switch()
+{
+	auto tok = cursor.consume(TokenKind::SwitchKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'struct'", tok.token());
+
+	auto cond_result = parse_expr();
+	if( !cond_result.ok() )
+		return cond_result;
+
+	tok = cursor.consume(TokenKind::OpenCurly);
+	if( !tok.ok() )
+		return ParseError("Expected '{'", tok.token());
+
+	std::vector<AstNode*> branches;
+	auto curr_tok = cursor.peek();
+	while( curr_tok.kind != TokenKind::CloseCurly )
+	{
+		AstNode* branch;
+		switch( curr_tok.kind )
+		{
+		case TokenKind::CaseKw:
+		{
+			auto case_stmt = parse_case();
+			if( !case_stmt.ok() )
+				return case_stmt;
+			branch = case_stmt.unwrap();
+			break;
+		}
+		case TokenKind::DefaultKw:
+		{
+			auto default_stmt = parse_default();
+			if( !default_stmt.ok() )
+				return default_stmt;
+			branch = default_stmt.unwrap();
+			break;
+		}
+		default:
+			return ParseError("Stray statement", curr_tok);
+		}
+
+		branches.push_back(branch);
+
+		curr_tok = cursor.peek();
+	}
+
+	cursor.consume(TokenKind::CloseCurly);
+
+	AstNode* ast_switch = ast.create<AstSwitch>(Span(), cond_result.unwrap(), branches);
+	return ast_switch;
+}
+
+ParseResult<AstNode*>
+Parser::parse_case()
+{
+	auto tok = cursor.consume(TokenKind::CaseKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'case'", tok.token());
+
+	auto cond_result = parse_expr();
+	if( !cond_result.ok() )
+		return cond_result;
+
+	cursor.consume_if_expected(TokenKind::Colon);
+
+	auto block_result = parse_statement();
+	if( !block_result.ok() )
+		return block_result;
+
+	return ast.create<AstCase>(Span(), cond_result.unwrap(), block_result.unwrap());
+}
+
+ParseResult<AstNode*>
+Parser::parse_default()
+{
+	auto tok = cursor.consume(TokenKind::DefaultKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'default'", tok.token());
+
+	cursor.consume_if_expected(TokenKind::Colon);
+
+	auto block_result = parse_statement();
+	if( !block_result.ok() )
+		return block_result;
+
+	return ast.create<AstDefault>(Span(), block_result.unwrap());
+}
+
+ParseResult<AstNode*>
+Parser::parse_break()
+{
+	auto tok = cursor.consume(TokenKind::BreakKw);
+	if( !tok.ok() )
+		return ParseError("Expected 'break'", tok.token());
+
+	return ast.create<AstBreak>(Span());
 }
 
 ParseResult<AstNode*>
@@ -795,6 +1005,25 @@ Parser::parse_bin_op(int expr_precidence, AstNode* lhs)
 }
 
 ParseResult<AstNode*>
+Parser::parse_expr_stmt()
+{
+	auto expr_result = parse_expr();
+	if( !expr_result.ok() )
+		return expr_result;
+
+	Token tok = cursor.peek();
+	switch( tok.kind )
+	{
+	case TokenKind::Eq:
+		return parse_assign(expr_result.unwrap());
+	default:
+		break;
+	}
+
+	return expr_result.unwrap();
+}
+
+ParseResult<AstNode*>
 Parser::parse_expr_any()
 {
 	// auto trail = get_parse_trail();
@@ -891,9 +1120,39 @@ Parser::parse_statement()
 		goto no_semi;
 		break;
 	}
+	case TokenKind::CaseKw:
+	{
+		auto case_stmt = parse_case();
+		if( !case_stmt.ok() )
+			return case_stmt;
+
+		stmt = case_stmt.unwrap();
+		goto no_semi;
+		break;
+	}
+	case TokenKind::DefaultKw:
+	{
+		auto default_stmt = parse_default();
+		if( !default_stmt.ok() )
+			return default_stmt;
+
+		stmt = default_stmt.unwrap();
+		goto no_semi;
+		break;
+	}
+	case TokenKind::BreakKw:
+	{
+		auto break_stmt = parse_break();
+		if( !break_stmt.ok() )
+			return break_stmt;
+
+		stmt = break_stmt.unwrap();
+		goto no_semi;
+		break;
+	}
 	default:
 	{
-		auto expr_stmt = parse_expr();
+		auto expr_stmt = parse_expr_stmt();
 		if( !expr_stmt.ok() )
 			return expr_stmt;
 
