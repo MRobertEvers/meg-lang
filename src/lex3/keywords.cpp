@@ -158,6 +158,12 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "ExclamEq";
 	case TokenKind::SwitchKw:
 		return "Switch";
+	case TokenKind::AmpAmp:
+		return "AmpAmp";
+	case TokenKind::Pipe:
+		return "Pipe";
+	case TokenKind::PipePipe:
+		return "PipePipe";
 	case TokenKind::Eof:
 		return "Eof";
 	}

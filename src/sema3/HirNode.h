@@ -24,6 +24,7 @@ enum class HirNodeKind
 	Enum,
 	Let,
 	If,
+	Loop,
 	Switch,
 	VarDecl,
 	Expr,
@@ -50,10 +51,17 @@ struct HirBlock
 
 	enum class Scoping
 	{
+		// For scoped blocks, defer and destructors are inserted
+		// for variables constructed within the scope.
 		Scoped,
+
+		// Unscoped blocks do not do this.
 		Inherit
 	} scoping = Scoping::Scoped;
 
+	// The last statement in a block is returned as the result of
+	// the block so long as the statement is also an expression.
+	// I.e. a non-void Node.
 	std::vector<HirNode*> statements;
 
 	HirBlock(std::vector<HirNode*> statements, Scoping scoping)
@@ -90,8 +98,6 @@ struct HirFuncProto
 
 	Sym* sym;
 
-	// TODO: I'm not entirely sure we need to keep track of the rt_type_declarator
-	// Maybe for some template things?
 	HirFuncProto(Linkage linkage, Sym* sym, std::vector<HirNode*> parameters)
 		: linkage(linkage)
 		, parameters(parameters)
@@ -132,18 +138,28 @@ struct HirCall
 		SizeOf,
 		AddressOf,
 		BoolNot,
-		Deref
+		Deref,
+		Is
 	};
 
 	enum class CallKind
 	{
 		Invalid,
+		// When a function is called by name.
+		// e.g. fn my_func()... let x = my_func()
 		Static,
+
+		// When a function is called with ptr indirection
+		// e.g. a.b() or let x = &my_func; x();
 		PtrCall,
 
-		// For Builtin Functions that do special things
-		// during codegen.
+		// Similar to Builtin, but separated because
+		// BinOps are all fairly similar. BuiltIn's can
+		// do weird things.
 		BinOp,
+
+		// Catchall for Builtin Functions that do special things
+		// during codegen.
 		BuiltIn
 	} kind = CallKind::Invalid;
 
@@ -238,6 +254,11 @@ struct HirLet
 	{}
 };
 
+/**
+ * Used to perform pointer arithmetic.
+ * Binary operations on pointers are transformed into HirSubscript
+ *
+ */
 struct HirSubscript
 {
 	static constexpr HirNodeKind nt = HirNodeKind::Subscript;
@@ -251,6 +272,15 @@ struct HirSubscript
 	{}
 };
 
+/**
+ * Unlike AstIf, HirIf can be used as an expression.
+ * HirIf branches must all have the same return type in order to
+ * be properly formed.
+ *
+ * AstIfs are converted in to void HirIfs, boolean expressions
+ * are converted into bool HirIfs
+ *
+ */
 struct HirIf
 {
 	static constexpr HirNodeKind nt = HirNodeKind::If;
@@ -258,6 +288,9 @@ struct HirIf
 	struct CondThen
 	{
 		HirNode* cond;
+
+		// For non-void ifs, the result of this node
+		// is returned.
 		HirNode* then;
 	};
 
@@ -278,7 +311,7 @@ struct HirSwitch
 
 	struct CondThen
 	{
-		HirNode* cond;
+		long long value;
 		HirNode* then;
 	};
 
@@ -312,6 +345,23 @@ struct HirMember
 	{}
 };
 
+struct HirLoop
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Loop;
+
+	HirNode* init; // For do-while, the first iteration is put in here.
+	HirNode* cond;
+	HirNode* body;
+	HirNode* after;
+
+	HirLoop(HirNode* init, HirNode* cond, HirNode* body, HirNode* after)
+		: init(init)
+		, cond(cond)
+		, body(body)
+		, after(after)
+	{}
+};
+
 struct HirNode
 {
 	HirNodeKind kind = HirNodeKind::Invalid;
@@ -336,6 +386,7 @@ struct HirNode
 		HirSubscript hir_subscript;
 		HirMember hir_member;
 		HirSwitch hir_switch;
+		HirLoop hir_loop;
 
 		// Attention! This leaks!
 		NodeData() {}

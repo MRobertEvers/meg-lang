@@ -31,6 +31,7 @@ enum class NodeKind
 	TypeDeclarator,
 	Let,
 	If,
+	Is,
 	Return,
 	VarDecl,
 	Assign,
@@ -41,6 +42,7 @@ enum class NodeKind
 	Continue,
 	For,
 	While,
+	DiscrimatingBlock,
 	Expr,
 	Stmt,
 };
@@ -487,6 +489,30 @@ struct AstAssign
 		, rhs(rhs){};
 };
 
+struct AstDiscriminatingBlock
+{
+	static constexpr NodeKind nt = NodeKind::DiscrimatingBlock;
+
+	std::vector<AstNode*> decl_list;
+	AstNode* body;
+
+	AstDiscriminatingBlock(std::vector<AstNode*> decl_list, AstNode* body)
+		: decl_list(decl_list)
+		, body(body){};
+};
+
+struct AstIs
+{
+	static constexpr NodeKind nt = NodeKind::Is;
+
+	AstNode* expr;
+	AstNode* type_decl;
+
+	AstDiscriminatingBlock(AstNode* expr, AstNode* type_decl)
+		: expr(expr)
+		, type_decl(type_decl){};
+};
+
 struct AstNode
 {
 	Span span;
@@ -526,6 +552,8 @@ struct AstNode
 		AstFor ast_for;
 		AstWhile ast_while;
 		AstAssign ast_assign;
+		AstDiscriminatingBlock ast_discriminating_block;
+		AstIs ast_is;
 
 		// Attention! This leaks!
 		NodeData() {}

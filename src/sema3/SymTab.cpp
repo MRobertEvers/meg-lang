@@ -9,17 +9,34 @@ SymLookupResult
 SymTab::lookup(NameParts name)
 {
 	std::vector<SymScope*> search_stack = stack;
+	int last_part = name.parts.size();
 	while( search_stack.size() != 0 )
 	{
 		SymScope* scope = search_stack.back();
 		search_stack.pop_back();
 
-		for( auto& part : name.parts )
+		for( int i = 0; i < last_part; i++ )
 		{
-			// TODO: Lookup other parts based on the symbol returned.
+			std::string& part = name.parts.at(i);
+
 			Sym* sym = scope->find(part);
-			if( sym )
+			if( !sym )
+				break;
+
+			if( i == last_part - 1 )
 				return SymLookupResult(sym);
+
+			switch( sym->kind )
+			{
+			case SymKind::Type:
+				scope = &sym->data.sym_type.scope;
+				break;
+			case SymKind::Namespace:
+				scope = &sym->data.sym_namespace.scope;
+				break;
+			default:
+				break;
+			}
 		}
 	}
 
@@ -40,6 +57,13 @@ void
 SymTab::push_scope(SymScope* scope)
 {
 	stack.push_back(scope);
+}
+
+void
+SymTab::push_scope()
+{
+	free_scopes.emplace_back();
+	stack.push_back(&free_scopes.back());
 }
 
 void

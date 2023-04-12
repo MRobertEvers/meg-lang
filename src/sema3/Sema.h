@@ -17,6 +17,8 @@ class Sema
 
 	SymBuiltins builtins;
 
+	std::vector<HirNode*>* current_if;
+
 public:
 	Sema(Hir& hir, Types& types, SymTab& sym_tab);
 
@@ -35,13 +37,20 @@ public:
 	SemaResult<HirNode*> sema_sizeof(AstNode* ast_sizeof);
 	SemaResult<HirNode*> sema_addressof(AstNode* ast_addressof);
 	SemaResult<HirNode*> sema_boolnot(AstNode* ast_boolnot);
-	SemaResult<HirNode*> sema_array_access(AstNode* ast_boolnot);
-	SemaResult<HirNode*> sema_member_access(AstNode* ast_boolnot);
+	SemaResult<HirNode*> sema_assign(AstNode* ast_assign);
+	SemaResult<HirNode*> sema_array_access(AstNode* ast_array_access);
+	SemaResult<HirNode*> sema_member_access(AstNode* ast_member_access);
 	SemaResult<HirNode*> sema_let(AstNode* ast_let);
-	SemaResult<HirNode*> sema_if(AstNode* ast_let);
+	SemaResult<HirNode*> sema_if(AstNode* ast_if);
+	SemaResult<HirNode*> sema_is(AstNode* ast_is);
 	SemaResult<HirNode*> sema_expr(AstNode* ast_expr);
 	SemaResult<HirNode*> sema_expr_any(AstNode* ast_expr);
+	SemaResult<HirSwitch::CondThen> sema_case(AstNode* ast_id);
+	SemaResult<HirNode*> sema_default(AstNode* ast_id);
 	SemaResult<HirNode*> sema_id(AstNode* ast_id);
+	SemaResult<HirNode*> sema_for(AstNode* ast_for);
+	SemaResult<HirNode*> sema_while(AstNode* ast_while);
+	SemaResult<HirNode*> sema_switch(AstNode* ast_switch);
 	SemaResult<HirNode*> sema_func_call(AstNode* ast_func_call);
 	SemaResult<HirNode*> sema_bin_op(AstNode* ast_bin_op);
 	SemaResult<HirNode*> sema_number_literal(AstNode* ast_number_literal);

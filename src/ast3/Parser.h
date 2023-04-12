@@ -29,6 +29,7 @@ public:
 	ParseResult<AstNode*> parse_member_access(AstNode* base);
 	ParseResult<AstNode*> parse_array_access(AstNode* array);
 	ParseResult<AstNode*> parse_assign(AstNode* lhs);
+	ParseResult<AstNode*> parse_discriminating_block();
 	ParseResult<AstNode*> parse_deref();
 	ParseResult<AstNode*> parse_function();
 	ParseResult<AstNode*> parse_function_proto();
@@ -46,6 +47,7 @@ public:
 	ParseResult<AstNode*> parse_enum_member();
 	ParseResult<AstNode*> parse_let();
 	ParseResult<AstNode*> parse_if();
+	ParseResult<AstNode*> parse_is(AstNode* base);
 	ParseResult<AstNode*> parse_number_literal();
 	ParseResult<AstNode*> parse_postfix_expr();
 	ParseResult<AstNode*> parse_simple_expr();
@@ -60,5 +62,5 @@ public:
 private:
 	ParseResult<std::vector<AstNode*>> parse_struct_body();
 	ParseResult<std::vector<std::string>> parse_name_parts();
-	ParseResult<std::vector<AstNode*>> parse_func_params();
+	ParseResult<std::vector<AstNode*>> parse_decl_list();
 };

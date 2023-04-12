@@ -31,5 +31,37 @@ fn main(): i32 {
         return 0;
     }
 
+    for (let i = 0; i < 8; i = i + 1) {
+        sizeof Point;
+    }
+
+    while (a == 0) {
+        sizeof Point;
+    }
+
+    switch (a) {
+        case 5:
+            {}
+        default:
+            {}
+    }
+
+    let e: AstNode;
+
+    switch (e) {
+        case AstNode::None => (blurg: i32) {
+            
+        }
+        case AstNode::Func => (blurg: i32) {
+
+        }
+    }
+
+    if (e is AstNode::None) => (e: AstNode::None) {
+
+    }
+
+
+
     return func(b) * 4;
 }

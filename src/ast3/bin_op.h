@@ -12,9 +12,10 @@ enum class BinOp
 	Gte,
 	Lt,
 	Lte,
-	AndOp,
-	OrOp,
+	And,
+	Or,
 	Eq,
+	Is,
 	Assign,
 	Neq,
 	Bad

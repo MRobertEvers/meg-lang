@@ -23,6 +23,9 @@ enum class TokenKind
 
 	Exclam,
 	Ampersand,
+	AmpAmp,
+	Pipe,
+	PipePipe,
 	SkinnyArrow,
 	FatArrow,
 	Dot,

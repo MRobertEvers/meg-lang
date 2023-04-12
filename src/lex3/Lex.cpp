@@ -32,11 +32,14 @@ Lex::next()
 	case TokenKind::NumberLiteral:
 		token = tok_number_literal();
 		break;
+	case TokenKind::Pipe:
+	case TokenKind::Ampersand:
 	case TokenKind::Minus:
 	case TokenKind::Eq:
 	case TokenKind::Lt:
 	case TokenKind::Gt:
 	case TokenKind::Exclam:
+	case TokenKind::Colon:
 		token = tok_ambiguous(tok_kind);
 		break;
 	default:
@@ -113,11 +116,9 @@ Lex::tok_start()
 		break;
 	case ':':
 		tok_kind = TokenKind::Colon;
-		cursor_ += 1;
 		break;
 	case '&':
 		tok_kind = TokenKind::Ampersand;
-		cursor_ += 1;
 		break;
 	case '.':
 		tok_kind = TokenKind::Dot;
@@ -154,6 +155,9 @@ Lex::tok_start()
 	case '!':
 		tok_kind = TokenKind::Exclam;
 		break;
+	case '|':
+		tok_kind = TokenKind::Pipe;
+		break;
 	default:
 		cursor_ += 1;
 		break;
@@ -169,6 +173,18 @@ Lex::tok_ambiguous(TokenKind kind)
 
 	switch( kind )
 	{
+	case TokenKind::Ampersand:
+		if( match(view, "&&") )
+			kind = TokenKind::AmpAmp;
+		break;
+	case TokenKind::Pipe:
+		if( match(view, "||") )
+			kind = TokenKind::PipePipe;
+		break;
+	case TokenKind::Colon:
+		if( match(view, "::") )
+			kind = TokenKind::ColonColon;
+		break;
 	case TokenKind::Minus:
 		if( match(view, "->") )
 			kind = TokenKind::SkinnyArrow;
@@ -195,12 +211,20 @@ Lex::tok_ambiguous(TokenKind kind)
 		break;
 	}
 
+	if( view.size == 0 )
+	{
+		view.size += 1;
+		cursor_ += 1;
+	}
+
 	return Token(view, kind);
 }
 
 bool
 Lex::match(TokenView& tok_view, char const* matcher)
 {
+	int start_size = tok_view.size;
+
 	int start = cursor_;
 	int match_len = strlen(matcher);
 	int i;
@@ -221,8 +245,8 @@ Lex::match(TokenView& tok_view, char const* matcher)
 	return true;
 
 reset:
-	tok_view.size = 1;
-	cursor_ = start + 1;
+	tok_view.size = start_size;
+	cursor_ = start;
 	return false;
 }
 

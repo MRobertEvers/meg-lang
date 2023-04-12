@@ -402,9 +402,19 @@ Sema::sema_stmt_any(AstNode* ast_stmt)
 	case NodeKind::Block:
 		return sema_block(any_stmt);
 	case NodeKind::Switch:
-		return sema_block(any_stmt);
-	default:
+		return sema_switch(any_stmt);
+	case NodeKind::For:
+		return sema_for(any_stmt);
+	case NodeKind::While:
+		return sema_while(any_stmt);
+	case NodeKind::Expr:
 		return sema_expr(any_stmt);
+	case NodeKind::Assign:
+		return sema_assign(any_stmt);
+	// case NodeKind::Break:
+	// 	return sema_assign(any_stmt);
+	default:
+		return NotImpl();
 	}
 
 	return NotImpl();
@@ -499,6 +509,31 @@ Sema::sema_boolnot(AstNode* ast_boolnot)
 		QualifiedTy(builtins.bool_ty),
 		HirCall::BuiltinKind::BoolNot,
 		std::vector<HirNode*>{coercion_result.unwrap()});
+}
+
+SemaResult<HirNode*>
+Sema::sema_assign(AstNode* ast_assign)
+{
+	AstAssign& assign = ast_cast<AstAssign>(ast_assign);
+
+	auto lhs_result = sema_expr(assign.lhs);
+	if( !lhs_result.ok() )
+		return lhs_result;
+
+	HirNode* lhs = lhs_result.unwrap();
+
+	auto rhs_result = sema_expr(assign.rhs);
+	if( !rhs_result.ok() )
+		return rhs_result;
+
+	HirNode* rhs = lhs_result.unwrap();
+
+	auto coercion_result = equal_coercion(lhs->qty, rhs);
+	if( !coercion_result.ok() )
+		return coercion_result;
+
+	return hir.create<HirCall>(
+		QualifiedTy(builtins.void_ty), BinOp::Assign, std::vector<HirNode*>({lhs, rhs}));
 }
 
 SemaResult<HirNode*>
@@ -672,6 +707,12 @@ Sema::sema_if(AstNode* ast_if)
 }
 
 SemaResult<HirNode*>
+Sema::sema_is(AstNode* ast_is)
+{
+	return hir.create<HirCall>(QualifiedTy(builtins.bool_ty), );
+}
+
+SemaResult<HirNode*>
 Sema::sema_expr(AstNode* ast_expr)
 {
 	AstExpr& expr = ast_cast<AstExpr>(ast_expr);
@@ -708,6 +749,103 @@ Sema::sema_expr_any(AstNode* ast_expr)
 	}
 }
 
+SemaResult<HirSwitch::CondThen>
+Sema::sema_case(AstNode* ast_case)
+{
+	AstCase& case_nod = ast_cast<AstCase>(ast_case);
+
+	AstNode* ast_cond = case_nod.cond;
+	long long value;
+	Sym* discrimination = nullptr;
+	switch( ast_cond->kind )
+	{
+	case NodeKind::NumberLiteral:
+	{
+		AstNumberLiteral& nl = ast_cast<AstNumberLiteral>(ast_cond);
+		value = nl.value;
+	}
+	break;
+	case NodeKind::Id:
+	{
+		AstId& id = ast_cast<AstId>(ast_cond);
+		SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+		if( !sym_lu.sym )
+			return SemaError("Could not find  '" + id.name_parts.parts[0] + "'");
+		if( sym_lu.sym->kind != SymKind::EnumMember )
+			return SemaError("Case expression must be convertable to int");
+
+		discrimination = sym_lu.sym;
+		value = sym_cast<SymEnumMember>(sym_lu.sym).value;
+	}
+	break;
+	default:
+		return SemaError("Case expression must be convertable to int");
+	}
+
+	HirNode* hir_then = nullptr;
+	switch( case_nod.stmt->kind )
+	{
+	case NodeKind::DiscrimatingBlock:
+	{
+		auto disc = ast_cast<AstDiscriminatingBlock>(case_nod.stmt);
+		if( disc.decl_list.size() > 1 )
+			return SemaError("Too many type inferences");
+
+		hir_then = hir.create<HirBlock>(
+			QualifiedTy(builtins.void_ty), std::vector<HirNode*>(), HirBlock::Scoping::Scoped);
+
+		HirBlock& block = hir_cast<HirBlock>(hir_then);
+
+		sym_tab.push_scope();
+		if( disc.decl_list.size() == 1 )
+		{
+			AstNode* ast_decl = disc.decl_list.at(0);
+			AstVarDecl& decl = ast_cast<AstVarDecl>(ast_decl);
+			AstId& id = ast_cast<AstId>(decl.id);
+
+			auto qty_result = type_declarator(decl.type_declarator);
+			if( !qty_result.ok() )
+				return MoveError(qty_result);
+
+			Sym* var = sym_tab.create_named<SymVar>(id.name_parts.parts[0], qty_result.unwrap());
+
+			HirNode* hir_var = hir.create<HirLet>(QualifiedTy(builtins.void_ty), var);
+			block.statements.push_back(hir_var);
+		}
+
+		// Body is always a block for disc.
+		auto then_result = sema_stmt_any(disc.body);
+		if( !then_result.ok() )
+			return MoveError(then_result);
+		sym_tab.pop_scope();
+
+		block.statements.push_back(then_result.unwrap());
+		break;
+	}
+	case NodeKind::Stmt:
+	{
+		auto then_result = sema_stmt(case_nod.stmt);
+		if( !then_result.ok() )
+			return MoveError(then_result);
+
+		hir_then = then_result.unwrap();
+		break;
+	}
+	default:
+		return SemaError("Unexpected case statement");
+	}
+
+	return HirSwitch::CondThen{.value = value, .then = hir_then};
+}
+
+SemaResult<HirNode*>
+Sema::sema_default(AstNode* ast_default)
+{
+	AstDefault& default_nod = ast_cast<AstDefault>(ast_default);
+
+	return sema_stmt(default_nod.stmt);
+}
+
 SemaResult<HirNode*>
 Sema::sema_id(AstNode* ast_id)
 {
@@ -721,6 +859,141 @@ Sema::sema_id(AstNode* ast_id)
 		return SemaError("Cannot use type name as an expression.");
 
 	return hir.create<HirId>(sym_qty(builtins, sym_lu.sym), sym_lu.sym);
+}
+
+SemaResult<HirNode*>
+Sema::sema_for(AstNode* ast_for)
+{
+	AstFor& for_nod = ast_cast<AstFor>(ast_for);
+
+	sym_tab.push_scope();
+
+	std::vector<HirNode*> inits;
+	for( AstNode* init : for_nod.inits )
+	{
+		auto stmt_result = sema_stmt(init);
+		if( !stmt_result.ok() )
+			return stmt_result;
+
+		inits.push_back(stmt_result.unwrap());
+	}
+
+	HirNode* cond = nullptr;
+	if( for_nod.cond )
+	{
+		auto cond_result = sema_expr(for_nod.cond);
+		if( !cond_result.ok() )
+			return cond_result;
+		cond = cond_result.unwrap();
+
+		auto coercion_result = equal_coercion(QualifiedTy(builtins.bool_ty), cond);
+		if( !coercion_result.ok() )
+			return coercion_result;
+
+		cond = coercion_result.unwrap();
+	}
+
+	std::vector<HirNode*> afters;
+	for( AstNode* after : for_nod.afters )
+	{
+		auto stmt_result = sema_stmt(after);
+		if( !stmt_result.ok() )
+			return stmt_result;
+
+		afters.push_back(stmt_result.unwrap());
+	}
+
+	auto body_result = sema_stmt(for_nod.body);
+	if( !body_result.ok() )
+		return body_result;
+
+	HirNode* body = body_result.unwrap();
+	HirNode* init =
+		hir.create<HirBlock>(QualifiedTy(builtins.void_ty), inits, HirBlock::Scoping::Inherit);
+	HirNode* after =
+		hir.create<HirBlock>(QualifiedTy(builtins.void_ty), afters, HirBlock::Scoping::Inherit);
+
+	sym_tab.pop_scope();
+
+	return hir.create<HirLoop>(QualifiedTy(builtins.void_ty), init, cond, body, after);
+}
+
+SemaResult<HirNode*>
+Sema::sema_while(AstNode* ast_while)
+{
+	AstWhile& while_nod = ast_cast<AstWhile>(ast_while);
+
+	auto cond_result = sema_expr(while_nod.cond);
+	if( !cond_result.ok() )
+		return cond_result;
+	HirNode* cond = cond_result.unwrap();
+
+	auto coercion_result = equal_coercion(QualifiedTy(builtins.bool_ty), cond);
+	if( !coercion_result.ok() )
+		return coercion_result;
+
+	cond = coercion_result.unwrap();
+
+	auto body_result = sema_stmt(while_nod.body);
+	if( !body_result.ok() )
+		return body_result;
+
+	HirNode* body = body_result.unwrap();
+	HirNode* init = hir.create<HirBlock>(
+		QualifiedTy(builtins.void_ty), std::vector<HirNode*>({}), HirBlock::Scoping::Inherit);
+	HirNode* after = hir.create<HirBlock>(
+		QualifiedTy(builtins.void_ty), std::vector<HirNode*>({}), HirBlock::Scoping::Inherit);
+
+	return hir.create<HirLoop>(QualifiedTy(builtins.void_ty), init, cond, body, after);
+}
+
+SemaResult<HirNode*>
+Sema::sema_switch(AstNode* ast_switch)
+{
+	AstSwitch& switch_nod = ast_cast<AstSwitch>(ast_switch);
+
+	auto cond_result = sema_expr(switch_nod.cond);
+	if( !cond_result.ok() )
+		return cond_result;
+
+	HirNode* cond = cond_result.unwrap();
+	if( cond->qty.ty->kind != TyKind::Enum && false )
+		return SemaError("Switch statement condition must be an enum or an int.");
+
+	std::vector<HirSwitch::CondThen> branches;
+	HirNode* default_block = nullptr;
+	for( AstNode* branch : switch_nod.branches )
+	{
+		switch( branch->kind )
+		{
+		case NodeKind::Case:
+		{
+			auto case_result = sema_case(branch);
+			if( !case_result.ok() )
+				return MoveError(case_result);
+
+			branches.push_back(case_result.unwrap());
+			break;
+		}
+		case NodeKind::Default:
+		{
+			if( default_block )
+				return SemaError("Duplicate default block");
+
+			auto case_result = sema_default(branch);
+			if( !case_result.ok() )
+				return MoveError(case_result);
+
+			default_block = case_result.unwrap();
+			break;
+		}
+		default:
+			return SemaError("Unexpected switch branch!");
+		}
+	}
+
+	return hir.create<HirSwitch>(QualifiedTy(builtins.void_ty), cond, branches, default_block);
+	;
 }
 
 SemaResult<HirNode*>
@@ -785,8 +1058,9 @@ bin_op_qty(SymBuiltins& builtins, BinOp op, HirNode* lhs)
 	case BinOp::Lte:
 	case BinOp::Gt:
 	case BinOp::Gte:
-	case BinOp::AndOp:
-	case BinOp::OrOp:
+	case BinOp::And:
+	case BinOp::Or:
+	case BinOp::Is:
 		return QualifiedTy(builtins.bool_ty);
 	case BinOp::Mul:
 	case BinOp::Div:
@@ -805,6 +1079,9 @@ Sema::sema_bin_op(AstNode* ast_bin_op)
 
 	AstNode* lhs = bin_op.lhs;
 	AstNode* rhs = bin_op.rhs;
+
+	if( bin_op.op == BinOp::Or )
+		current_if = nullptr;
 
 	std::vector<HirNode*> args;
 	for( AstNode* arg : {lhs, rhs} )

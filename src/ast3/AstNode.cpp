@@ -69,6 +69,14 @@ to_string(NodeKind type)
 		return "Default";
 	case NodeKind::Continue:
 		return "Continue";
+	case NodeKind::Assign:
+		return "Assign";
+	case NodeKind::For:
+		return "For";
+	case NodeKind::While:
+		return "While";
+	case NodeKind::DiscrimatingBlock:
+		return "DiscrimatingBlock";
 	}
 
 	return "Bad";

@@ -10,9 +10,15 @@ get_token_precedence(BinOp bin_op_type)
 	{
 	case BinOp::Mul:
 	case BinOp::Div:
-		return 40;
+		return 320;
 	case BinOp::Add:
 	case BinOp::Sub:
+		return 160;
+	case BinOp::Is:
+		return 80;
+	case BinOp::And:
+		return 40;
+	case BinOp::Or:
 		return 20;
 	case BinOp::Eq:
 	case BinOp::Gt:
@@ -66,18 +72,9 @@ get_bin_op_from_token_type(TokenKind token_type)
 	case TokenKind::GtEq:
 		op = BinOp::Gte;
 		break;
-	// case TokenKind::and_lex:
-	// 	op = BinOp::and_op;
-	// 	break;
-	// case TokenKind::or_or_lex:
-	// 	op = BinOp::or_op;
-	// 	break;
-	// case TokenKind::cmp:
-	// 	op = BinOp::cmp;
-	// 	break;
-	// case TokenKind::ne:
-	// 	op = BinOp::ne;
-	// 	break;
+	case TokenKind::IsKw:
+		op = BinOp::Is;
+		break;
 	default:
 		break;
 	}

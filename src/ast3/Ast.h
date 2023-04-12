@@ -89,6 +89,10 @@ ast_cast(AstTy* ast_node)
 		return ast_node->data.ast_while;
 	else if constexpr( std::is_same_v<AstAssign, Node> )
 		return ast_node->data.ast_assign;
+	else if constexpr( std::is_same_v<AstDiscriminatingBlock, Node> )
+		return ast_node->data.ast_discriminating_block;
+	else if constexpr( std::is_same_v<AstIs, Node> )
+		return ast_node->data.ast_is;
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 }

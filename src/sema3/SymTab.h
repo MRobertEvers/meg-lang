@@ -10,6 +10,7 @@
 class SymTab
 {
 	std::deque<Sym> syms;
+	std::deque<SymScope> free_scopes;
 
 	SymScope root;
 	std::vector<SymScope*> stack;
@@ -22,6 +23,7 @@ public:
 	SymLookupResult lookup(Ty const* ty);
 
 	void push_scope(SymScope* scope);
+	void push_scope();
 	void pop_scope();
 
 	template<typename Node, typename... Args>

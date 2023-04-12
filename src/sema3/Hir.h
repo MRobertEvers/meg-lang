@@ -52,6 +52,8 @@ hir_cast(HirNode* hir_node)
 		return hir_node->data.hir_member;
 	else if constexpr( std::is_same_v<HirSwitch, Node> )
 		return hir_node->data.hir_switch;
+	else if constexpr( std::is_same_v<HirLoop, Node> )
+		return hir_node->data.hir_loop;
 	else
 		static_assert("Cannot create hir node of type ");
 }
