@@ -21,7 +21,8 @@ public:
 
 	ParseResult<AstNode*> parse_module();
 	ParseResult<AstNode*> parse_module_statement();
-	ParseResult<AstNode*> parse_identifier();
+	ParseResult<AstNode*> parse_template();
+	ParseResult<AstNode*> parse_identifier(AstId::IdKind mode);
 	ParseResult<AstNode*> parse_type_decl(bool allow_empty);
 	ParseResult<AstNode*> parse_var_decl(bool allow_untyped);
 	ParseResult<AstNode*> parse_call(AstNode* callee);
@@ -61,6 +62,6 @@ public:
 
 private:
 	ParseResult<std::vector<AstNode*>> parse_struct_body();
-	ParseResult<std::vector<std::string>> parse_name_parts();
+	ParseResult<std::vector<std::string>> parse_name_parts(AstId::IdKind mode);
 	ParseResult<std::vector<AstNode*>> parse_decl_list();
 };

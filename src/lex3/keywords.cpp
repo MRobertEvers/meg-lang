@@ -33,6 +33,8 @@ KeywordIdentifierTuple keywords[] =
 	{"continue", TokenKind::ContinueKw},
 	{"case", TokenKind::CaseKw},
 	{"switch", TokenKind::SwitchKw},
+	{"template", TokenKind::TemplateKw},
+	{"typename", TokenKind::TypenameKw},
 	// clang-format off
 };
 // clang-format on
@@ -157,7 +159,11 @@ get_tokentype_string(TokenKind const& tok_kind)
 	case TokenKind::ExclamEq:
 		return "ExclamEq";
 	case TokenKind::SwitchKw:
-		return "Switch";
+		return "SwitchKw";
+	case TokenKind::TemplateKw:
+		return "TemplateKw";
+	case TokenKind::TypenameKw:
+		return "TypenameKw";
 	case TokenKind::AmpAmp:
 		return "AmpAmp";
 	case TokenKind::Pipe:

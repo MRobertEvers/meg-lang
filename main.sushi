@@ -1,4 +1,10 @@
 
+template<typename T> 
+struct ErrorOr {
+    err: i32;
+    value: T;
+}
+
 struct Point {
     x: i8;
     y: i8;

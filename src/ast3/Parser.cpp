@@ -53,7 +53,7 @@ Parser::parse_struct_body()
 }
 
 ParseResult<std::vector<std::string>>
-Parser::parse_name_parts()
+Parser::parse_name_parts(AstId::IdKind mode)
 {
 	std::vector<std::string> name_parts;
 	auto tok = cursor.consume(TokenKind::Identifier);
@@ -62,6 +62,9 @@ Parser::parse_name_parts()
 
 	Token tok_val = tok.token();
 	name_parts.emplace_back(to_string(tok_val));
+
+	if( mode == AstId::IdKind::Simple )
+		return name_parts;
 
 	while( cursor.consume_if_expected(TokenKind::ColonColon).ok() )
 	{
@@ -137,6 +140,8 @@ Parser::parse_module_statement()
 		return parse_union();
 	case TokenKind::EnumKw:
 		return parse_enum();
+	case TokenKind::TemplateKw:
+		return parse_template();
 	default:
 		return ParseError("Expected top level 'fn' or 'struct' declaration.");
 	}
@@ -145,15 +150,45 @@ Parser::parse_module_statement()
 }
 
 ParseResult<AstNode*>
-Parser::parse_identifier()
+Parser::parse_template()
+{
+	auto tokc = cursor.consume_if_expected(TokenKind::Colon);
+	if( !tokc.ok() )
+		return ParseError("Expected 'template'", tokc.token());
+
+	tokc = cursor.consume(TokenKind::Lt);
+	if( !tokc.ok() )
+		return ParseError("Expected '<'", tokc.token());
+
+	Token tok = cursor.peek();
+	while( tok.kind != TokenKind::Gt )
+	{
+		tokc = cursor.consume(TokenKind::TypenameKw);
+		if( !tokc.ok() )
+			return ParseError("Expected 'typename'", tokc.token());
+
+		auto type_result = parse_identifier(AstId::IdKind::Simple);
+		if( !type_result.ok() )
+			return type_result;
+
+		tok = cursor.peek();
+	}
+
+	tokc = cursor.consume(TokenKind::Gt);
+	if( !tokc.ok() )
+		return ParseError("Expected '>'", tokc.token());
+}
+
+ParseResult<AstNode*>
+Parser::parse_identifier(AstId::IdKind mode)
 {
 	// auto trail = get_parse_trail();
 
-	auto name_parts = parse_name_parts();
+	auto name_parts = parse_name_parts(mode);
 	if( !name_parts.ok() )
 		return ParseError(*name_parts.unwrap_error().get());
 
-	return ast.create<AstId>(Span(), name_parts.unwrap());
+	return ast.create<AstId>(Span(), name_parts.unwrap(), mode);
 }
 
 ParseResult<AstNode*>
@@ -165,7 +200,7 @@ Parser::parse_type_decl(bool allow_empty)
 	if( tok.kind != TokenKind::Identifier )
 		return ParseError("Unexpected token while parsing type.", tok);
 
-	auto id_result = parse_identifier();
+	auto id_result = parse_identifier(AstId::IdKind::Qualified);
 	if( !id_result.ok() )
 		return id_result;
 
@@ -175,7 +210,7 @@ Parser::parse_type_decl(bool allow_empty)
 ParseResult<AstNode*>
 Parser::parse_var_decl(bool allow_untyped)
 {
-	auto id = parse_identifier();
+	auto id = parse_identifier(AstId::IdKind::Simple);
 	if( !id.ok() )
 		return id;
 
@@ -233,7 +268,7 @@ Parser::parse_indirect_member_access(AstNode* base)
 	if( !tok.ok() )
 		return ParseError("Expected '->'", tok.token());
 
-	auto expr_result = parse_identifier();
+	auto expr_result = parse_identifier(AstId::IdKind::Simple);
 	if( !expr_result.ok() )
 		return expr_result;
 
@@ -248,7 +283,7 @@ Parser::parse_member_access(AstNode* base)
 	if( !tok.ok() )
 		return ParseError("Expected '.'", tok.token());
 
-	auto expr_result = parse_identifier();
+	auto expr_result = parse_identifier(AstId::IdKind::Simple);
 	if( !expr_result.ok() )
 		return expr_result;
 
@@ -357,7 +392,8 @@ Parser::parse_function_proto()
 {
 	// auto trail = get_parse_trail();
 
-	auto id_result = parse_identifier();
+	// TODO: Simple for now.
+	auto id_result = parse_identifier(AstId::IdKind::Simple);
 	if( !id_result.ok() )
 		return id_result;
 
@@ -612,7 +648,7 @@ Parser::parse_case()
 	}
 	case TokenKind::Identifier:
 	{
-		auto id_result = parse_identifier();
+		auto id_result = parse_type_decl(false);
 		if( !id_result.ok() )
 			return id_result;
 		cond = id_result.unwrap();
@@ -684,7 +720,7 @@ Parser::parse_struct()
 	if( !tok.ok() )
 		return ParseError("Expected 'struct'", tok.token());
 
-	auto id_result = parse_identifier();
+	auto id_result = parse_identifier(AstId::IdKind::Simple);
 	if( !id_result.ok() )
 		return id_result;
 
@@ -702,7 +738,7 @@ Parser::parse_union()
 	if( !tok.ok() )
 		return ParseError("Expected 'union'", tok.token());
 
-	auto id_result = parse_identifier();
+	auto id_result = parse_identifier(AstId::IdKind::Simple);
 	if( !id_result.ok() )
 		return id_result;
 
@@ -722,7 +758,7 @@ Parser::parse_enum()
 	if( !tok.ok() )
 		return ParseError("Expected 'enum'", tok.token());
 
-	auto id_result = parse_identifier();
+	auto id_result = parse_identifier(AstId::IdKind::Simple);
 	if( !id_result.ok() )
 		return id_result;
 
@@ -755,7 +791,7 @@ Parser::parse_enum()
 ParseResult<AstNode*>
 Parser::parse_enum_member()
 {
-	auto id_result = parse_identifier();
+	auto id_result = parse_identifier(AstId::IdKind::Simple);
 	if( !id_result.ok() )
 		return id_result;
 
@@ -911,8 +947,10 @@ Parser::parse_simple_expr()
 	}
 	case TokenKind::Identifier:
 	{
-		cursor.consume(TokenKind::Identifier);
-		result = ast.create<AstId>(Span(), to_string(tok));
+		auto expr_result = parse_identifier(AstId::IdKind::Simple);
+		if( !expr_result.ok() )
+			return expr_result;
+		result = expr_result.unwrap();
 		break;
 	}
 	case TokenKind::SizeOfKw:

@@ -88,14 +88,19 @@ struct AstTypeDeclarator
 struct AstId
 {
 	static constexpr NodeKind nt = NodeKind::Id;
+
+	enum class IdKind
+	{
+		Invalid,
+		Simple,
+		Qualified,
+	} kind = IdKind::Invalid;
+
 	NameParts name_parts;
 
-	AstId(std::string name)
-		: name_parts({name})
-	{}
-
-	AstId(std::vector<std::string> name_parts)
+	AstId(std::vector<std::string> name_parts, IdKind kind)
 		: name_parts(name_parts)
+		, kind(kind)
 	{}
 };
 

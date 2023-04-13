@@ -9,6 +9,10 @@ sym_unalias(Sym* sym)
 	return sym;
 }
 
+SymTemplate::SymTemplate(){};
+
+SymTemplateParameter::SymTemplateParameter(){};
+
 SymVar::SymVar(QualifiedTy qty)
 	: qty(qty){};
 

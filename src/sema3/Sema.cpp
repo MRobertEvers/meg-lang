@@ -18,6 +18,26 @@ MoveError(SemaResult<T>& err)
 	return SemaError(*err.unwrap_error().get());
 }
 
+static std::string
+to_simple(AstId& id)
+{
+	assert(id.kind == AstId::IdKind::Simple);
+
+	return id.name_parts.parts[0];
+}
+
+static std::string
+to_qualified(AstId& id)
+{
+	assert(id.kind == AstId::IdKind::Qualified);
+
+	std::string name = id.name_parts.parts.at(0);
+	for( int i = 1; i < id.name_parts.parts.size(); i++ )
+		name += "::" + id.name_parts.parts.at(i);
+
+	return name;
+}
+
 static void
 union_inferences(HirNode* target, HirNode* a, HirNode* b)
 {
@@ -210,35 +230,35 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	if( !rt_type_declarator_result.ok() )
 		return MoveError(rt_type_declarator_result);
 
-	QualifiedTy rt_type_declarator = rt_type_declarator_result.unwrap();
+	QualifiedTy rt_type_declarator = rt_type_declarator_result.unwrap().qty;
 
 	// The function type does not need to go into the symbol table.
 	// Presumably we just look up the function symbol and get the type
 	// from that??
 	// TODO: Enter the function in the symbol table
 	// The function in the symbol table acts as an overload set
-	Ty const* func_ty = types.create<TyFunc>(id.name_parts.parts[0], arg_qtys, rt_type_declarator);
-	Sym* sym = sym_tab.create_named<SymFunc>(id.name_parts.parts[0], func_ty);
+	Ty const* func_ty = types.create<TyFunc>(to_simple(id), arg_qtys, rt_type_declarator);
+	Sym* sym = sym_tab.create_named<SymFunc>(to_simple(id), func_ty);
 
 	std::vector<HirNode*> parameters;
 	for( int i = 0; i < func_proto.parameters.size(); i++ )
 	{
 		AstNode* param = func_proto.parameters.at(i);
 		AstVarDecl& var_decl = ast_cast<AstVarDecl>(param);
-		// TODO: Simple names
+
 		AstId& ast_id = ast_cast<AstId>(var_decl.id);
 
 		QualifiedTy qty = arg_qtys.at(i);
-		Sym* sym_var = sym_tab.create_named<SymVar>(ast_id.name_parts.parts[0], qty);
+		Sym* sym_var = sym_tab.create_named<SymVar>(to_simple(ast_id), qty);
 
 		SymFunc& sym_func = sym->data.sym_func;
-		sym_func.scope.insert(ast_id.name_parts.parts[0], sym_var);
+		sym_func.scope.insert(to_simple(ast_id), sym_var);
 	}
 
 	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, sym, parameters);
 }
 
-SemaResult<QualifiedTy>
+SemaResult<Sema::TypeDeclAnalysis>
 Sema::type_declarator(AstNode* ast_type_declarator)
 {
 	AstTypeDeclarator& type_declarator = ast_cast<AstTypeDeclarator>(ast_type_declarator);
@@ -248,10 +268,10 @@ Sema::type_declarator(AstNode* ast_type_declarator)
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
 	if( !sym_lu.sym ||
 		(sym_lu.sym->kind != SymKind::Type && sym_lu.sym->kind != SymKind::EnumMember) )
-		return SemaError("Could not find type '" + id.name_parts.parts[0] + "'");
+		return SemaError("Could not find type '" + to_qualified(id) + "'");
 
 	QualifiedTy qty = sym_qty(builtins, sym_lu.sym);
-	return qty;
+	return TypeDeclAnalysis{.qty = qty, .sym = sym_lu.sym};
 }
 
 SemaResult<std::map<std::string, QualifiedTy>>
@@ -267,11 +287,10 @@ Sema::decl_list(std::vector<AstNode*>& ast_decls)
 		if( !type_declarator_result.ok() )
 			return MoveError(type_declarator_result);
 
-		// TODO: Simple name
 		AstId& member_id = ast_cast<AstId>(var_decl.id);
-		std::string simple_name = member_id.name_parts.parts[0];
+		std::string simple_name = to_simple(member_id);
 
-		members.emplace(simple_name, type_declarator_result.unwrap());
+		members.emplace(simple_name, type_declarator_result.unwrap().qty);
 	}
 
 	return members;
@@ -314,8 +333,8 @@ Sema::sema_struct(AstNode* ast_struct)
 
 	std::map<std::string, QualifiedTy> members = decl_list_result.unwrap();
 
-	Ty const* struct_ty = types.create<TyStruct>(id.name_parts.parts[0], members);
-	Sym* struct_sym = sym_tab.create_named<SymType>(id.name_parts.parts[0], struct_ty);
+	Ty const* struct_ty = types.create<TyStruct>(to_simple(id), members);
+	Sym* struct_sym = sym_tab.create_named<SymType>(to_simple(id), struct_ty);
 
 	SymType& sym = sym_cast<SymType>(struct_sym);
 	sym_tab.push_scope(&sym.scope);
@@ -344,8 +363,8 @@ Sema::sema_union(AstNode* ast_union)
 
 	std::map<std::string, QualifiedTy> members = decl_list_result.unwrap();
 
-	Ty const* union_ty = types.create<TyUnion>(id.name_parts.parts[0], members);
-	Sym* union_sym = sym_tab.create_named<SymType>(id.name_parts.parts[0], union_ty);
+	Ty const* union_ty = types.create<TyUnion>(to_simple(id), members);
+	Sym* union_sym = sym_tab.create_named<SymType>(to_simple(id), union_ty);
 
 	SymType& sym = sym_cast<SymType>(union_sym);
 	sym_tab.push_scope(&sym.scope);
@@ -361,14 +380,13 @@ Sema::sema_enum(AstNode* ast_enum)
 {
 	AstEnum& enum_nod = ast_cast<AstEnum>(ast_enum);
 
-	// TODO: Simple name
 	AstId& id = ast_cast<AstId>(enum_nod.id);
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
 	if( sym_lu.sym )
 		return SemaError("Redefinition");
 
-	Ty const* enum_ty = types.create<TyEnum>(id.name_parts.parts[0]);
-	Sym* enum_sym = sym_tab.create_named<SymType>(id.name_parts.parts[0], enum_ty);
+	Ty const* enum_ty = types.create<TyEnum>(to_simple(id));
+	Sym* enum_sym = sym_tab.create_named<SymType>(to_simple(id), enum_ty);
 	SymType& sym = sym_cast<SymType>(enum_sym);
 	sym_tab.push_scope(&sym.scope);
 
@@ -377,7 +395,7 @@ Sema::sema_enum(AstNode* ast_enum)
 	{
 		AstEnumMember& enum_member = ast_cast<AstEnumMember>(ast_enum_member);
 		AstId& member_id = ast_cast<AstId>(enum_member.id);
-		std::string simple_name = member_id.name_parts.parts[0];
+		std::string simple_name = to_simple(member_id);
 
 		switch( enum_member.kind )
 		{
@@ -618,9 +636,9 @@ Sema::sema_member_access(AstNode* ast_member_access)
 		return SemaError("???");
 
 	SymType& type_sym = sym_cast<SymType>(sym_lu.sym);
-	Sym* member_sym = type_sym.scope.find(id.name_parts.parts[0]);
+	Sym* member_sym = type_sym.scope.find(to_simple(id));
 	if( !member_sym )
-		return SemaError(id.name_parts.parts[0] + " is not a member of struct", member_access.id);
+		return SemaError(to_simple(id) + " is not a member of struct", member_access.id);
 
 	return hir.create<HirMember>(sym_qty(builtins, member_sym), callee, member_sym, kind);
 }
@@ -672,8 +690,7 @@ Sema::sema_let(AstNode* ast_let)
 	}
 
 	AstId& id = ast_cast<AstId>(var_decl.id);
-	// TODO: Simple name?
-	Sym* sym = sym_tab.create_named<SymVar>(id.name_parts.parts[0], qty);
+	Sym* sym = sym_tab.create_named<SymVar>(to_simple(id), qty);
 	stmts.push_back(hir.create<HirLet>(QualifiedTy(builtins.void_ty), sym));
 
 	if( rhs )
@@ -732,13 +749,12 @@ Sema::sema_if(AstNode* ast_if)
 				if( !qty_result.ok() )
 					return MoveError(qty_result);
 
-				QualifiedTy expected_qty = qty_result.unwrap();
+				QualifiedTy expected_qty = qty_result.unwrap().qty;
 				if( !QualifiedTy::equals(expected_qty, inf.qty) )
 					return SemaError("Invalid inference.");
 
-				// TODO: Simple name
 				AstId& id = ast_cast<AstId>(decl.id);
-				Sym* alias = sym_tab.create_named<SymAlias>(id.name_parts.parts[0], inf.sym);
+				Sym* alias = sym_tab.create_named<SymAlias>(to_simple(id), inf.sym);
 			}
 
 			auto body_result = sema_block(ast_disc.body);
@@ -793,7 +809,7 @@ Sema::sema_is(AstNode* ast_is)
 	auto qty_result = type_declarator(is.type_decl);
 	if( !qty_result.ok() )
 		return MoveError(qty_result);
-	QualifiedTy qty = qty_result.unwrap();
+	QualifiedTy qty = qty_result.unwrap().qty;
 	SymLookupResult ty_lu = sym_tab.lookup(qty.ty);
 	if( !ty_lu.sym )
 		return SemaError("???");
@@ -928,17 +944,18 @@ Sema::sema_case(AstNode* ast_case)
 		value = nl.value;
 	}
 	break;
-	case NodeKind::Id:
+	case NodeKind::TypeDeclarator:
 	{
-		AstId& id = ast_cast<AstId>(ast_cond);
-		SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-		if( !sym_lu.sym )
-			return SemaError("Could not find  '" + id.name_parts.parts[0] + "'");
-		if( sym_lu.sym->kind != SymKind::EnumMember )
+		auto type_decl_result = type_declarator(ast_cond);
+		if( !type_decl_result.ok() )
+			return MoveError(type_decl_result);
+
+		Sym* sym = type_decl_result.unwrap().sym;
+		if( sym->kind != SymKind::EnumMember )
 			return SemaError("Case expression must be convertable to int");
 
-		discrimination = sym_lu.sym;
-		value = sym_cast<SymEnumMember>(sym_lu.sym).value;
+		discrimination = sym;
+		value = sym_cast<SymEnumMember>(sym).value;
 	}
 	break;
 	default:
@@ -970,7 +987,7 @@ Sema::sema_case(AstNode* ast_case)
 			if( !qty_result.ok() )
 				return MoveError(qty_result);
 
-			Sym* var = sym_tab.create_named<SymVar>(id.name_parts.parts[0], qty_result.unwrap());
+			Sym* var = sym_tab.create_named<SymVar>(to_simple(id), qty_result.unwrap().qty);
 
 			HirNode* hir_var = hir.create<HirLet>(QualifiedTy(builtins.void_ty), var);
 			block.statements.push_back(hir_var);
@@ -1253,6 +1270,8 @@ SemaResult<HirNode*>
 Sema::sema_bin_op_long(AstNode* ast_bin_op)
 {
 	AstBinOp& bin_op = ast_cast<AstBinOp>(ast_bin_op);
+
+	// TODO: If either side is a pointer type, convert to subscript inst.
 
 	AstNode* lhs = bin_op.lhs;
 	AstNode* rhs = bin_op.rhs;

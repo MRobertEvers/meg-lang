@@ -8,6 +8,8 @@ enum class SymKind
 	Invalid,
 	Var,
 	Alias,
+	Template,
+	TemplateParameter,
 	Member,
 	EnumMember,
 	Type,
@@ -84,6 +86,20 @@ struct SymType
 	SymType(Ty const* ty);
 };
 
+struct SymTemplate
+{
+	static constexpr SymKind sk = SymKind::Template;
+
+	SymTemplate();
+};
+
+struct SymTemplateParameter
+{
+	static constexpr SymKind sk = SymKind::TemplateParameter;
+
+	SymTemplateParameter();
+};
+
 struct SymNamespace
 {
 	static constexpr SymKind sk = SymKind::Namespace;
@@ -104,6 +120,8 @@ struct Sym
 		SymMember sym_member;
 		SymEnumMember sym_enum_member;
 		SymAlias sym_alias;
+		SymTemplate sym_template;
+		SymTemplateParameter sym_template_parameter;
 
 		// Attention! This leaks!
 		SymData() {}
