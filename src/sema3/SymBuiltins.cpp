@@ -56,6 +56,8 @@ sym_qty(SymBuiltins const& builtins, Sym* sym)
 		return QualifiedTy(sym->data.sym_type.ty);
 	case SymKind::Member:
 		return sym->data.sym_member.qty;
+	case SymKind::Template:
+		return QualifiedTy(builtins.void_ty);
 	case SymKind::Alias:
 		return sym_qty(builtins, sym_unalias(sym));
 	case SymKind::EnumMember:

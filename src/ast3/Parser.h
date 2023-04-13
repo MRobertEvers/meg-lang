@@ -5,6 +5,7 @@
 #include "ast3/AstNode.h"
 #include "lex3/Cursor.h"
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,7 @@ public:
 	ParseResult<AstNode*> parse_type_decl(bool allow_empty);
 	ParseResult<AstNode*> parse_var_decl(bool allow_untyped);
 	ParseResult<AstNode*> parse_call(AstNode* callee);
+	ParseResult<AstNode*> parse_template_identifer(AstNode* base);
 	ParseResult<AstNode*> parse_indirect_member_access(AstNode* base);
 	ParseResult<AstNode*> parse_member_access(AstNode* base);
 	ParseResult<AstNode*> parse_array_access(AstNode* array);

@@ -24,6 +24,8 @@ enum class NodeKind
 	BinOp,
 	Struct,
 	Union,
+	Template,
+	TemplateId,
 	Enum,
 	EnumMember,
 	NumberLiteral,
@@ -76,11 +78,14 @@ struct AstBlock
 struct AstTypeDeclarator
 {
 	static constexpr NodeKind nt = NodeKind::TypeDeclarator;
+	std::vector<AstNode*> params;
 	AstNode* id;
+	int indirection;
 
-	AstTypeDeclarator(AstNode* id)
-		: id(id)
-	{}
+	AstTypeDeclarator(std::vector<AstNode*> params, AstNode* id, int indirection)
+		: params(params)
+		, id(id)
+		, indirection(indirection){};
 };
 
 // simple_id is just a string
@@ -518,6 +523,30 @@ struct AstIs
 		, type_decl(type_decl){};
 };
 
+struct AstTemplate
+{
+	static constexpr NodeKind nt = NodeKind::Template;
+
+	std::vector<AstNode*> types;
+	AstNode* template_tree;
+
+	AstTemplate(std::vector<AstNode*> types, AstNode* template_tree)
+		: types(types)
+		, template_tree(template_tree){};
+};
+
+struct AstTemplateId
+{
+	static constexpr NodeKind nt = NodeKind::TemplateId;
+
+	std::vector<AstNode*> types;
+	AstNode* id;
+
+	AstTemplateId(std::vector<AstNode*> types, AstNode* id)
+		: types(types)
+		, id(id){};
+};
+
 struct AstNode
 {
 	Span span;
@@ -559,6 +588,8 @@ struct AstNode
 		AstAssign ast_assign;
 		AstDiscriminatingBlock ast_discriminating_block;
 		AstIs ast_is;
+		AstTemplate ast_template;
+		AstTemplateId ast_template_id;
 
 		// Attention! This leaks!
 		NodeData() {}

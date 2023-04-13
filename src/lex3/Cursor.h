@@ -31,15 +31,15 @@ public:
 class Cursor
 {
 	Lex lex;
+	int ind = 0;
 	std::vector<Token> tokens;
-
-	// Tokens peeked.
-	std::deque<Token*> queue;
 
 public:
 	Cursor(char const* input);
 
-	// TODO: Enforce only already seen tokens.
+	int save_point() const;
+	void reset_point(int);
+
 	bool at_end() const;
 	Token token_at(int ind);
 

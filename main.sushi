@@ -5,6 +5,11 @@ struct ErrorOr {
     value: T;
 }
 
+template<typename T>
+fn booger(a: T): T {
+    return a;
+}
+
 struct Point {
     x: i8;
     y: i8;
@@ -26,8 +31,10 @@ fn func(a: i32): i32 {
 }
 
 fn main(): i32 {
-    let a: i8 = 5;
+    let a: i8 = booger<i8>(5);
     let b: i32 = sizeof (Point);
+
+    let s: ErrorOr<i8>;
 
     if (a >= 8) {
         return 11;

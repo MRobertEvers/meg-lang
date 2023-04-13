@@ -26,7 +26,7 @@ public:
 	SemaResult<HirNode*> sema_module_stmt_any(AstNode* ast_module_stmt);
 	SemaResult<HirNode*> sema_func(AstNode* ast_func);
 	SemaResult<HirNode*> sema_func_proto(AstNode* ast_func_proto);
-
+	SemaResult<HirNode*> sema_template(AstNode* ast_template);
 	SemaResult<HirNode*> sema_block(AstNode* ast_func);
 	SemaResult<HirNode*> sema_struct(AstNode* ast_struct);
 	SemaResult<HirNode*> sema_union(AstNode* ast_union);

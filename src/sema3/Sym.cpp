@@ -9,9 +9,10 @@ sym_unalias(Sym* sym)
 	return sym;
 }
 
-SymTemplate::SymTemplate(){};
-
-SymTemplateParameter::SymTemplateParameter(){};
+SymTemplate::SymTemplate(SymKind kind, std::vector<AstNode*> typenames, AstNode* template_tree)
+	: template_kind(kind)
+	, typenames(typenames)
+	, template_tree(template_tree){};
 
 SymVar::SymVar(QualifiedTy qty)
 	: qty(qty){};

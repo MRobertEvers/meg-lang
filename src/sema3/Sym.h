@@ -2,6 +2,9 @@
 #include "QualifiedTy.h"
 #include "SymScope.h"
 #include "Ty.h"
+#include "ast3/Ast.h"
+
+#include <string>
 
 enum class SymKind
 {
@@ -9,7 +12,6 @@ enum class SymKind
 	Var,
 	Alias,
 	Template,
-	TemplateParameter,
 	Member,
 	EnumMember,
 	Type,
@@ -90,14 +92,12 @@ struct SymTemplate
 {
 	static constexpr SymKind sk = SymKind::Template;
 
-	SymTemplate();
-};
+	SymKind template_kind = SymKind::Invalid;
 
-struct SymTemplateParameter
-{
-	static constexpr SymKind sk = SymKind::TemplateParameter;
+	std::vector<AstNode*> typenames;
+	AstNode* template_tree;
 
-	SymTemplateParameter();
+	SymTemplate(SymKind kind, std::vector<AstNode*> typenames, AstNode* template_tree);
 };
 
 struct SymNamespace
@@ -121,7 +121,6 @@ struct Sym
 		SymEnumMember sym_enum_member;
 		SymAlias sym_alias;
 		SymTemplate sym_template;
-		SymTemplateParameter sym_template_parameter;
 
 		// Attention! This leaks!
 		SymData() {}
@@ -131,3 +130,29 @@ struct Sym
 };
 
 Sym* sym_unalias(Sym* sym);
+
+template<typename Node, typename SymTy>
+auto&
+sym_cast(SymTy* sym)
+{
+	assert(sym->kind == Node::sk);
+
+	if constexpr( std::is_same_v<SymVar, Node> )
+		return sym->data.sym_var;
+	else if constexpr( std::is_same_v<SymFunc, Node> )
+		return sym->data.sym_func;
+	else if constexpr( std::is_same_v<SymNamespace, Node> )
+		return sym->data.sym_namespace;
+	else if constexpr( std::is_same_v<SymType, Node> )
+		return sym->data.sym_type;
+	else if constexpr( std::is_same_v<SymMember, Node> )
+		return sym->data.sym_member;
+	else if constexpr( std::is_same_v<SymEnumMember, Node> )
+		return sym->data.sym_enum_member;
+	else if constexpr( std::is_same_v<SymAlias, Node> )
+		return sym->data.sym_alias;
+	else if constexpr( std::is_same_v<SymTemplate, Node> )
+		return sym->data.sym_template;
+	else
+		static_assert("Cannot create symbol of type " + to_string(Node::sk));
+}

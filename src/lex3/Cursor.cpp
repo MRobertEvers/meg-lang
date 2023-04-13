@@ -4,6 +4,18 @@ Cursor::Cursor(char const* input)
 	: lex(input)
 {}
 
+int
+Cursor::save_point() const
+{
+	return ind;
+}
+
+void
+Cursor::reset_point(int reset)
+{
+	ind = reset;
+}
+
 bool
 Cursor::at_end() const
 {
@@ -54,8 +66,8 @@ Cursor::consume(std::initializer_list<TokenKind> expecteds)
 Token*
 Cursor::current()
 {
-	if( queue.size() != 0 )
-		return queue.front();
+	if( ind != tokens.size() )
+		return &tokens.at(ind);
 
 	Token lex_next = lex.next();
 	while( lex_next.kind == TokenKind::LineComment )
@@ -64,7 +76,6 @@ Cursor::current()
 	tokens.push_back(lex_next);
 
 	Token* next = &tokens.back();
-	queue.push_back(next);
 
 	return next;
 }
@@ -73,8 +84,9 @@ Token*
 Cursor::consume(bool consume)
 {
 	Token* cur = current();
+
 	if( consume )
-		queue.pop_front();
+		ind += 1;
 
 	return cur;
 }

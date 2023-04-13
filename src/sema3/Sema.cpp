@@ -137,11 +137,27 @@ Sema::sema_module(AstNode* ast_module)
 
 	for( auto& stmt : mod.statements )
 	{
-		auto stmt_result = sema_module_stmt_any(stmt);
-		if( !stmt_result.ok() )
-			return stmt_result;
+		switch( stmt->kind )
+		{
+		case NodeKind::Template:
+		{
+			auto stmt_result = sema_template(stmt);
+			if( !stmt_result.ok() )
+				return stmt_result;
 
-		statements.push_back(stmt_result.unwrap());
+			// Templates do not get added to the statements list.
+		}
+		break;
+		default:
+		{
+			auto stmt_result = sema_module_stmt_any(stmt);
+			if( !stmt_result.ok() )
+				return stmt_result;
+
+			statements.push_back(stmt_result.unwrap());
+		}
+		break;
+		}
 	}
 
 	return hir.create<HirModule>(QualifiedTy(builtins.void_ty), statements);
@@ -256,6 +272,65 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	}
 
 	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, sym, parameters);
+}
+
+SemaResult<HirNode*>
+Sema::sema_template(AstNode* ast_template)
+{
+	AstTemplate& template_nod = ast_cast<AstTemplate>(ast_template);
+
+	// Just hang on to the typename identifiers for now.
+	std::vector<AstNode*> typenames = template_nod.types;
+
+	AstNode* template_tree = template_nod.template_tree;
+	std::string name;
+	SymKind kind = SymKind::Invalid;
+
+	switch( template_nod.template_tree->kind )
+	{
+	case NodeKind::Func:
+	{
+		AstFunc& nod = ast_cast<AstFunc>(template_nod.template_tree);
+		AstFuncProto& func_proto = ast_cast<AstFuncProto>(nod.proto);
+		AstId& func_id = ast_cast<AstId>(func_proto.id);
+
+		name = to_simple(func_id);
+		kind = SymKind::Func;
+	}
+	break;
+	case NodeKind::Struct:
+	{
+		AstStruct& nod = ast_cast<AstStruct>(template_nod.template_tree);
+		AstId& id = ast_cast<AstId>(nod.id);
+
+		name = to_simple(id);
+		kind = SymKind::Type;
+	}
+	break;
+	case NodeKind::Enum:
+	{
+		AstEnum& nod = ast_cast<AstEnum>(template_nod.template_tree);
+		AstId& id = ast_cast<AstId>(nod.id);
+
+		name = to_simple(id);
+		kind = SymKind::Type;
+	}
+	break;
+	case NodeKind::Union:
+	{
+		AstUnion& nod = ast_cast<AstUnion>(template_nod.template_tree);
+		AstId& id = ast_cast<AstId>(nod.id);
+
+		name = to_simple(id);
+		kind = SymKind::Type;
+	}
+	break;
+	default:
+		return NotImpl();
+	}
+
+	sym_tab.create_named<SymTemplate>(name, kind, typenames, template_tree);
+	return nullptr;
 }
 
 SemaResult<Sema::TypeDeclAnalysis>

@@ -21,6 +21,14 @@ to_string(Token token)
 	return std::string(token.view.start, token.view.size);
 }
 
+static std::string
+to_simple(AstId& id)
+{
+	assert(id.kind == AstId::IdKind::Simple);
+
+	return id.name_parts.parts[0];
+}
+
 ParseResult<std::vector<AstNode*>>
 Parser::parse_struct_body()
 {
@@ -116,11 +124,28 @@ Parser::parse_module()
 
 	while( !cursor.at_end() )
 	{
-		ParseResult<AstNode*> statement = parse_module_statement();
-		if( !statement.ok() )
-			return statement;
+		Token token = cursor.peek();
+		switch( token.kind )
+		{
+		case TokenKind::TemplateKw:
+		{
+			ParseResult<AstNode*> statement = parse_template();
+			if( !statement.ok() )
+				return statement;
 
-		statements.push_back(statement.unwrap());
+			statements.push_back(statement.unwrap());
+			break;
+		}
+		default:
+		{
+			ParseResult<AstNode*> statement = parse_module_statement();
+			if( !statement.ok() )
+				return statement;
+
+			statements.push_back(statement.unwrap());
+		}
+		break;
+		}
 	}
 
 	return ast.create<AstModule>(Span(), statements);
@@ -140,8 +165,6 @@ Parser::parse_module_statement()
 		return parse_union();
 	case TokenKind::EnumKw:
 		return parse_enum();
-	case TokenKind::TemplateKw:
-		return parse_template();
 	default:
 		return ParseError("Expected top level 'fn' or 'struct' declaration.");
 	}
@@ -152,7 +175,7 @@ Parser::parse_module_statement()
 ParseResult<AstNode*>
 Parser::parse_template()
 {
-	auto tokc = cursor.consume_if_expected(TokenKind::Colon);
+	auto tokc = cursor.consume_if_expected(TokenKind::TemplateKw);
 	if( !tokc.ok() )
 		return ParseError("Expected 'template'", tokc.token());
 
@@ -160,6 +183,7 @@ Parser::parse_template()
 	if( !tokc.ok() )
 		return ParseError("Expected '<'", tokc.token());
 
+	std::vector<AstNode*> types;
 	Token tok = cursor.peek();
 	while( tok.kind != TokenKind::Gt )
 	{
@@ -167,9 +191,13 @@ Parser::parse_template()
 		if( !tokc.ok() )
 			return ParseError("Expected 'typename'", tokc.token());
 
-		auto type_result = parse_identifier(AstId::IdKind::Simple);
-		if( !type_result.ok() )
-			return type_result;
+		auto typename_result = parse_identifier(AstId::IdKind::Simple);
+		if( !typename_result.ok() )
+			return typename_result;
+
+		types.push_back(typename_result.unwrap());
+
+		cursor.consume_if_expected(TokenKind::Comma);
 
 		tok = cursor.peek();
 	}
@@ -177,6 +205,14 @@ Parser::parse_template()
 	tokc = cursor.consume(TokenKind::Gt);
 	if( !tokc.ok() )
 		return ParseError("Expected '>'", tokc.token());
+
+	auto template_result = parse_module_statement();
+	if( !template_result.ok() )
+		return template_result;
+
+	AstNode* template_nod = template_result.unwrap();
+
+	return ast.create<AstTemplate>(Span(), types, template_nod);
 }
 
 ParseResult<AstNode*>
@@ -188,7 +224,13 @@ Parser::parse_identifier(AstId::IdKind mode)
 	if( !name_parts.ok() )
 		return ParseError(*name_parts.unwrap_error().get());
 
-	return ast.create<AstId>(Span(), name_parts.unwrap(), mode);
+	AstNode* ast_id = ast.create<AstId>(Span(), name_parts.unwrap(), mode);
+
+	auto template_parse_result = parse_template_identifer(ast_id);
+	if( template_parse_result.ok() )
+		return template_parse_result;
+	else
+		return ast_id;
 }
 
 ParseResult<AstNode*>
@@ -196,7 +238,7 @@ Parser::parse_type_decl(bool allow_empty)
 {
 	// auto trail = get_parse_trail();
 
-	auto tok = cursor.peek();
+	Token tok = cursor.peek();
 	if( tok.kind != TokenKind::Identifier )
 		return ParseError("Unexpected token while parsing type.", tok);
 
@@ -204,7 +246,35 @@ Parser::parse_type_decl(bool allow_empty)
 	if( !id_result.ok() )
 		return id_result;
 
-	return ast.create<AstTypeDeclarator>(Span(), id_result.unwrap());
+	std::vector<AstNode*> types;
+	auto tokc = cursor.consume_if_expected(TokenKind::Lt);
+	if( tokc.ok() )
+	{
+		tok = cursor.peek();
+		while( tok.kind != TokenKind::Gt )
+		{
+			auto typename_result = parse_type_decl(false);
+			if( !typename_result.ok() )
+				return typename_result;
+
+			types.push_back(typename_result.unwrap());
+
+			cursor.consume_if_expected(TokenKind::Comma);
+
+			tok = cursor.peek();
+		}
+
+		tokc = cursor.consume(TokenKind::Gt);
+		if( !tokc.ok() )
+			return ParseError("Expected '>'", tokc.token());
+	}
+
+	int indirection = 0;
+	tokc = cursor.consume_if_expected(TokenKind::Star);
+	for( ; tokc.ok(); indirection++ )
+		tokc = cursor.consume_if_expected(TokenKind::Star);
+
+	return ast.create<AstTypeDeclarator>(Span(), types, id_result.unwrap(), indirection);
 }
 
 ParseResult<AstNode*>
@@ -259,6 +329,61 @@ Parser::parse_call(AstNode* callee)
 		return ParseError("Expected ')'", tok.token());
 
 	return ast.create<AstFuncCall>(Span(), callee, args);
+}
+
+class RestoreCursor
+{
+	Cursor& ref;
+	int save;
+	bool reset = true;
+
+public:
+	RestoreCursor(Cursor& ref)
+		: ref(ref)
+		, save(ref.save_point()){};
+	~RestoreCursor()
+	{
+		if( reset )
+			ref.reset_point(save);
+	}
+	void release() { reset = false; }
+};
+
+ParseResult<AstNode*>
+Parser::parse_template_identifer(AstNode* base)
+{
+	RestoreCursor restore(cursor);
+
+	ConsumeResult tokc = cursor.consume(TokenKind::Lt);
+	if( !tokc.ok() )
+		return ParseError("Expected '<'", tokc.token());
+
+	// Look ahead to see if there is a closing '>'
+	// The idea is that this should be parsed as
+	// a template id my_func<id>(4) instead of
+	// my_func < id > (4) because expr < expr > expr
+	// is never valid.
+	std::vector<AstNode*> types;
+	Token tok = cursor.peek();
+	while( tok.kind != TokenKind::Gt )
+	{
+		auto expr_result = parse_type_decl(false);
+		if( !expr_result.ok() )
+			return expr_result;
+
+		types.push_back(expr_result.unwrap());
+
+		// Also catches trailing comma.
+		cursor.consume_if_expected(TokenKind::Comma);
+		tok = cursor.peek();
+	}
+
+	tokc = cursor.consume(TokenKind::Gt);
+	if( !tokc.ok() )
+		return ParseError("Expected '>'", tokc.token());
+
+	restore.release();
+	return ast.create<AstTemplateId>(Span(), types, base);
 }
 
 ParseResult<AstNode*>
@@ -911,21 +1036,23 @@ Parser::parse_postfix_expr()
 	if( !simple_expr_result.ok() )
 		return simple_expr_result;
 
+	AstNode* simple_expr = simple_expr_result.unwrap();
+
 	Token tok = cursor.peek();
 	switch( tok.kind )
 	{
 	case TokenKind::OpenSquare:
-		return parse_array_access(simple_expr_result.unwrap());
+		return parse_array_access(simple_expr);
 	case TokenKind::OpenParen:
-		return parse_call(simple_expr_result.unwrap());
+		return parse_call(simple_expr);
 	case TokenKind::IsKw:
-		return parse_is(simple_expr_result.unwrap());
+		return parse_is(simple_expr);
 	case TokenKind::SkinnyArrow:
-		return parse_indirect_member_access(simple_expr_result.unwrap());
+		return parse_indirect_member_access(simple_expr);
 	case TokenKind::Dot:
-		return parse_member_access(simple_expr_result.unwrap());
+		return parse_member_access(simple_expr);
 	default:
-		return simple_expr_result.unwrap();
+		return simple_expr;
 	}
 }
 
