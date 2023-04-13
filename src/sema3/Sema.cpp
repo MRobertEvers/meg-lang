@@ -18,6 +18,33 @@ MoveError(SemaResult<T>& err)
 	return SemaError(*err.unwrap_error().get());
 }
 
+static void
+union_inferences(HirNode* target, HirNode* a, HirNode* b)
+{
+	for( auto& inf : a->inferrences )
+		target->inferrences.push_back(inf);
+	for( auto& inf : b->inferrences )
+		target->inferrences.push_back(inf);
+}
+
+static void
+intersect_inferences(HirNode* target, HirNode* a, HirNode* b)
+{
+	// TODO: Better alg for this.
+
+	for( auto& inf : a->inferrences )
+	{
+		auto iter_inf =
+			std::find_if(b->inferrences.begin(), b->inferrences.end(), [&inf](Inferrence& elem) {
+				if( elem.sym == inf.sym && QualifiedTy::equals(inf.qty, elem.qty) )
+					return true;
+				return false;
+			});
+		if( iter_inf != b->inferrences.end() )
+			target->inferrences.push_back(inf);
+	}
+}
+
 // @deprecated
 // Due to parsing and parents ( expr ), we may have exprs pointing to exprs and so on.
 // Get the innermost expr.
@@ -219,7 +246,8 @@ Sema::type_declarator(AstNode* ast_type_declarator)
 	AstId& id = type_declarator.id->data.ast_id;
 
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( !sym_lu.sym || sym_lu.sym->kind != SymKind::Type )
+	if( !sym_lu.sym ||
+		(sym_lu.sym->kind != SymKind::Type && sym_lu.sym->kind != SymKind::EnumMember) )
 		return SemaError("Could not find type '" + id.name_parts.parts[0] + "'");
 
 	QualifiedTy qty = sym_qty(builtins, sym_lu.sym);
@@ -683,11 +711,62 @@ Sema::sema_if(AstNode* ast_if)
 
 		cond = bool_coerce_result.unwrap();
 
-		auto body_result = sema_stmt(if_nod.then_stmt);
-		if( !body_result.ok() )
-			return body_result;
+		// Type inference here
 
-		elsifs.push_back((HirIf::CondThen){.cond = cond, .then = body_result.unwrap()});
+		HirNode* body = nullptr;
+		switch( if_nod.then_stmt->kind )
+		{
+		case NodeKind::DiscrimatingBlock:
+		{
+			sym_tab.push_scope();
+			AstDiscriminatingBlock& ast_disc = ast_cast<AstDiscriminatingBlock>(if_nod.then_stmt);
+			if( ast_disc.decl_list.size() >= cond->inferrences.size() )
+				return SemaError("Not enough type inferences to unpack.");
+
+			for( int i = 0; i < ast_disc.decl_list.size(); i++ )
+			{
+				AstVarDecl& decl = ast_cast<AstVarDecl>(ast_disc.decl_list.at(i));
+				Inferrence& inf = cond->inferrences.at(i);
+
+				auto qty_result = type_declarator(decl.type_declarator);
+				if( !qty_result.ok() )
+					return MoveError(qty_result);
+
+				QualifiedTy expected_qty = qty_result.unwrap();
+				if( !QualifiedTy::equals(expected_qty, inf.qty) )
+					return SemaError("Invalid inference.");
+
+				// TODO: Simple name
+				AstId& id = ast_cast<AstId>(decl.id);
+				Sym* alias = sym_tab.create_named<SymAlias>(id.name_parts.parts[0], inf.sym);
+			}
+
+			auto body_result = sema_block(ast_disc.body);
+			if( !body_result.ok() )
+				return body_result;
+
+			body = body_result.unwrap();
+
+			sym_tab.pop_scope();
+		}
+		break;
+		case NodeKind::Stmt:
+		{
+			auto body_result = sema_stmt(if_nod.then_stmt);
+			if( !body_result.ok() )
+				return body_result;
+
+			body = body_result.unwrap();
+		}
+		break;
+		default:
+			assert(false && "Unreachable");
+			return NotImpl();
+		}
+
+		// Restore type inference
+
+		elsifs.push_back((HirIf::CondThen){.cond = cond, .then = body});
 
 		if( if_nod.else_stmt )
 			ast_if = ast_cast<AstStmt>(if_nod.else_stmt).stmt;
@@ -709,7 +788,89 @@ Sema::sema_if(AstNode* ast_if)
 SemaResult<HirNode*>
 Sema::sema_is(AstNode* ast_is)
 {
-	return hir.create<HirCall>(QualifiedTy(builtins.bool_ty), );
+	AstIs& is = ast_cast<AstIs>(ast_is);
+
+	auto qty_result = type_declarator(is.type_decl);
+	if( !qty_result.ok() )
+		return MoveError(qty_result);
+	QualifiedTy qty = qty_result.unwrap();
+	SymLookupResult ty_lu = sym_tab.lookup(qty.ty);
+	if( !ty_lu.sym )
+		return SemaError("???");
+	// Must be enum type or RTTI type.
+	if( ty_lu.sym->kind != SymKind::EnumMember )
+		return SemaError("Must be enum type or RTTI type.");
+
+	auto value = sym_cast<SymEnumMember>(ty_lu.sym).value;
+
+	std::vector<HirNode*> args;
+	switch( is.expr->kind )
+	{
+	case NodeKind::Id:
+	{
+		auto id_result = sema_id(is.expr);
+		if( !id_result.ok() )
+			return id_result;
+
+		HirNode* hir_id = id_result.unwrap();
+		Sym* sym = hir_cast<HirId>(hir_id).sym;
+
+		// A particular id is descriminated, no lowering is needed.
+		HirNode* hir_is = hir.create<HirCall>(
+			QualifiedTy(builtins.bool_ty),
+			HirCall::BuiltinKind::Is,
+			std::vector<HirNode*>{
+				hir.create<HirId>(qty, sym),									  //
+				hir.create<HirNumberLiteral>(QualifiedTy(builtins.i32_ty), value) //
+			});
+
+		hir_is->inferrences.push_back(Inferrence{.qty = qty, .sym = sym});
+
+		return hir_is;
+	}
+	break;
+	default:
+	{
+		auto expr_result = sema_expr_any(is.expr);
+		if( expr_result.ok() )
+			return expr_result;
+
+		HirNode* expr = expr_result.unwrap();
+
+		// Create an anonymous symbol for reference later.
+		Sym* sym = sym_tab.create<SymVar>(qty);
+
+		// {!
+		// 	let a: T;
+		// 	a = expr
+		// 	a
+		// }
+		std::vector<HirNode*> lowering({
+			hir.create<HirLet>(expr->qty, sym), //
+			hir.create<HirCall>(
+				QualifiedTy(builtins.void_ty),
+				BinOp::Assign,
+				std::vector<HirNode*>{hir.create<HirId>(qty, sym), expr}), //
+			hir.create<HirId>(qty, sym)									   //
+		});
+
+		HirNode* hir_lowering_block =
+			hir.create<HirBlock>(qty, lowering, HirBlock::Scoping::Inherit);
+
+		HirNode* hir_is = hir.create<HirCall>(
+			QualifiedTy(builtins.bool_ty),
+			HirCall::BuiltinKind::Is,
+			std::vector<HirNode*>{
+				hir.create<HirId>(qty, sym),									  //
+				hir.create<HirNumberLiteral>(QualifiedTy(builtins.i32_ty), value) //
+			});
+
+		hir_is->inferrences.push_back(Inferrence{.qty = qty, .sym = sym});
+
+		return hir_is;
+	}
+	break;
+	}
 }
 
 SemaResult<HirNode*>
@@ -735,6 +896,8 @@ Sema::sema_expr_any(AstNode* ast_expr)
 		return sema_func_call(ast_expr);
 	case NodeKind::BinOp:
 		return sema_bin_op(ast_expr);
+	case NodeKind::Is:
+		return sema_is(ast_expr);
 	case NodeKind::SizeOf:
 		return sema_sizeof(ast_expr);
 	case NodeKind::MemberAccess:
@@ -1080,8 +1243,19 @@ Sema::sema_bin_op(AstNode* ast_bin_op)
 	AstNode* lhs = bin_op.lhs;
 	AstNode* rhs = bin_op.rhs;
 
-	if( bin_op.op == BinOp::Or )
-		current_if = nullptr;
+	if( bin_op.op == BinOp::And || bin_op.op == BinOp::Or )
+		return sema_bin_op_short_circuit(ast_bin_op);
+	else
+		return sema_bin_op_long(ast_bin_op);
+}
+
+SemaResult<HirNode*>
+Sema::sema_bin_op_long(AstNode* ast_bin_op)
+{
+	AstBinOp& bin_op = ast_cast<AstBinOp>(ast_bin_op);
+
+	AstNode* lhs = bin_op.lhs;
+	AstNode* rhs = bin_op.rhs;
 
 	std::vector<HirNode*> args;
 	for( AstNode* arg : {lhs, rhs} )
@@ -1101,6 +1275,64 @@ Sema::sema_bin_op(AstNode* ast_bin_op)
 	args[1] = coercion_result.unwrap();
 
 	return hir.create<HirCall>(bin_op_qty(builtins, bin_op.op, args[0]), bin_op.op, args);
+}
+
+SemaResult<HirNode*>
+Sema::sema_bin_op_short_circuit(AstNode* ast_bin_op)
+{
+	AstBinOp& bin_op = ast_cast<AstBinOp>(ast_bin_op);
+
+	AstNode* lhs = bin_op.lhs;
+	AstNode* rhs = bin_op.rhs;
+
+	auto lhs_result = sema_expr_any(lhs);
+	if( !lhs_result.ok() )
+		return lhs_result;
+
+	HirNode* hir_lhs = lhs_result.unwrap();
+	if( !QualifiedTy::equals(hir_lhs->qty, QualifiedTy(builtins.bool_ty)) )
+		return SemaError("Expected bool");
+
+	auto rhs_result = sema_expr_any(rhs);
+	if( !rhs_result.ok() )
+		return rhs_result;
+
+	HirNode* hir_rhs = lhs_result.unwrap();
+	if( !QualifiedTy::equals(hir_rhs->qty, QualifiedTy(builtins.bool_ty)) )
+		return SemaError("Expected bool");
+
+	std::vector<HirIf::CondThen> elsifs;
+	switch( bin_op.op )
+	{
+	case BinOp::Or:
+	{
+		std::vector<HirNode*> args({hir_lhs});
+		HirNode* hir_sc =
+			hir.create<HirCall>(QualifiedTy(builtins.bool_ty), HirCall::BuiltinKind::BoolNot, args);
+
+		elsifs.push_back(HirIf::CondThen{.cond = hir_sc, .then = hir_rhs});
+
+		HirNode* hir_if = hir.create<HirIf>(QualifiedTy(builtins.bool_ty), elsifs, true);
+		intersect_inferences(hir_if, hir_lhs, hir_rhs);
+		return hir_if;
+	}
+	break;
+	case BinOp::And:
+	{
+		HirNode* hir_sc = hir_lhs;
+
+		elsifs.push_back(HirIf::CondThen{.cond = hir_sc, .then = hir_rhs});
+		HirNode* hir_if = hir.create<HirIf>(QualifiedTy(builtins.bool_ty), elsifs, true);
+		// TODO: If the same symbol is inferred as different types, error.
+		union_inferences(hir_if, hir_lhs, hir_rhs);
+		return hir_if;
+	}
+	break;
+	default:
+		assert(false && "Unreachable");
+		return SemaError("");
+		break;
+	}
 }
 
 SemaResult<HirNode*>

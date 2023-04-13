@@ -508,7 +508,7 @@ struct AstIs
 	AstNode* expr;
 	AstNode* type_decl;
 
-	AstDiscriminatingBlock(AstNode* expr, AstNode* type_decl)
+	AstIs(AstNode* expr, AstNode* type_decl)
 		: expr(expr)
 		, type_decl(type_decl){};
 };

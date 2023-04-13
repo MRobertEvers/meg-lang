@@ -75,6 +75,8 @@ to_string(NodeKind type)
 		return "For";
 	case NodeKind::While:
 		return "While";
+	case NodeKind::Is:
+		return "Is";
 	case NodeKind::DiscrimatingBlock:
 		return "DiscrimatingBlock";
 	}

@@ -139,6 +139,10 @@ struct HirCall
 		AddressOf,
 		BoolNot,
 		Deref,
+
+		// Args { HirId, HirNumberLiteral }
+		// Checks if the type (must be ENUM) tag for the HirId arg
+		// is the same as HirNumberLiteral
 		Is
 	};
 
@@ -277,6 +281,9 @@ struct HirSubscript
  * HirIf branches must all have the same return type in order to
  * be properly formed.
  *
+ * Additionally, if there is no else block,
+ * the expression itself is returned as the expression.
+ *
  * AstIfs are converted in to void HirIfs, boolean expressions
  * are converted into bool HirIfs
  *
@@ -295,11 +302,19 @@ struct HirIf
 	};
 
 	std::vector<CondThen> elsifs;
-	HirNode* else_node;
+
+	HirNode* else_node = nullptr;
+	// If cond_else is true, include the expr in the phi resolution.
+	// Note! Incompatible with else block.
+	bool cond_else = false;
 
 	HirIf(std::vector<CondThen> elsifs, HirNode* else_node)
 		: elsifs(elsifs)
 		, else_node(else_node)
+	{}
+	HirIf(std::vector<CondThen> elsifs, bool cond_else)
+		: elsifs(elsifs)
+		, cond_else(cond_else)
 	{}
 };
 
@@ -362,11 +377,23 @@ struct HirLoop
 	{}
 };
 
+struct Inferrence
+{
+	Sym* sym;
+	QualifiedTy qty;
+};
+
 struct HirNode
 {
 	HirNodeKind kind = HirNodeKind::Invalid;
 
 	QualifiedTy qty;
+
+	/**
+	 * This is used to track type inferring statements.
+	 * In if clauses, if a type becomes inferred.
+	 */
+	std::vector<Inferrence> inferrences;
 
 	union NodeData
 	{

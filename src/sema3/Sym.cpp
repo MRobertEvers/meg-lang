@@ -1,7 +1,19 @@
 #include "Sym.h"
 
+Sym*
+sym_unalias(Sym* sym)
+{
+	while( sym->kind == SymKind::Alias )
+		sym = sym->data.sym_alias.sym;
+
+	return sym;
+}
+
 SymVar::SymVar(QualifiedTy qty)
 	: qty(qty){};
+
+SymAlias::SymAlias(Sym* sym)
+	: sym(sym){};
 
 SymFunc::SymFunc(Ty const* ty)
 	: ty(ty){};

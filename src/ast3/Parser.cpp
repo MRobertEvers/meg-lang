@@ -1006,6 +1006,8 @@ Parser::parse_bin_op(int expr_precidence, AstNode* lhs)
 			TokenKind::GtEq,
 			TokenKind::Lt,
 			TokenKind::LtEq,
+			TokenKind::AmpAmp,
+			TokenKind::PipePipe,
 			TokenKind::ExclamEq,
 			TokenKind::IsKw //
 		});

@@ -57,7 +57,7 @@ fn main(): i32 {
         }
     }
 
-    if (e is AstNode::None) => (e: AstNode::None) {
+    if (e is AstNode::None || e is AstNode::Func) => (e: AstNode::Func) {
 
     }
 

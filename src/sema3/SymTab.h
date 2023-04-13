@@ -54,6 +54,8 @@ sym_cast(SymTy* sym)
 		return sym->data.sym_member;
 	else if constexpr( std::is_same_v<SymEnumMember, Node> )
 		return sym->data.sym_enum_member;
+	else if constexpr( std::is_same_v<SymAlias, Node> )
+		return sym->data.sym_alias;
 	else
 		static_assert("Cannot create symbol of type " + to_string(Node::sk));
 }

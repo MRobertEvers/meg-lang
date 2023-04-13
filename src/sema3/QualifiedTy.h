@@ -19,6 +19,7 @@ public:
 	bool is_pointer() const;
 	bool is_function() const;
 	bool is_primitive() const;
+	bool is_enum() const;
 
 	QualifiedTy deref() const;
 

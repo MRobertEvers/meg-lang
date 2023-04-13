@@ -25,13 +25,19 @@ QualifiedTy::is_pointer() const
 bool
 QualifiedTy::is_function() const
 {
-	return ty->kind == TyKind::Func;
+	return ty->kind == TyKind::Func && indirection == 0 && !is_array;
 }
 
 bool
 QualifiedTy::is_primitive() const
 {
 	return ty->kind == TyKind::Primitive && indirection == 0 && !is_array;
+}
+
+bool
+QualifiedTy::is_enum() const
+{
+	return ty->kind == TyKind::Enum && indirection == 0 && !is_array;
 }
 
 QualifiedTy

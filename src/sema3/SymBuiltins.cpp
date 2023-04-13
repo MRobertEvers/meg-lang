@@ -56,9 +56,11 @@ sym_qty(SymBuiltins const& builtins, Sym* sym)
 		return QualifiedTy(sym->data.sym_type.ty);
 	case SymKind::Member:
 		return sym->data.sym_member.qty;
+	case SymKind::Alias:
+		return sym_qty(builtins, sym_unalias(sym));
 	case SymKind::EnumMember:
 		// TODO: How to handle when stuct type?
-		return QualifiedTy(builtins.i32_ty);
+		return QualifiedTy(sym->data.sym_enum_member.struct_ty);
 	case SymKind::Namespace:
 		return QualifiedTy(builtins.void_ty);
 	case SymKind::Invalid:

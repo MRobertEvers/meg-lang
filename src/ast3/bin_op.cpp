@@ -75,6 +75,12 @@ get_bin_op_from_token_type(TokenKind token_type)
 	case TokenKind::IsKw:
 		op = BinOp::Is;
 		break;
+	case TokenKind::AmpAmp:
+		op = BinOp::And;
+		break;
+	case TokenKind::PipePipe:
+		op = BinOp::Or;
+		break;
 	default:
 		break;
 	}

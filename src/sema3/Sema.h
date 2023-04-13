@@ -53,6 +53,8 @@ public:
 	SemaResult<HirNode*> sema_switch(AstNode* ast_switch);
 	SemaResult<HirNode*> sema_func_call(AstNode* ast_func_call);
 	SemaResult<HirNode*> sema_bin_op(AstNode* ast_bin_op);
+	SemaResult<HirNode*> sema_bin_op_long(AstNode* ast_bin_op);
+	SemaResult<HirNode*> sema_bin_op_short_circuit(AstNode* ast_bin_op);
 	SemaResult<HirNode*> sema_number_literal(AstNode* ast_number_literal);
 
 private:

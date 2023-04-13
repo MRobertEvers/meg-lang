@@ -24,7 +24,7 @@ SymTab::lookup(NameParts name)
 				break;
 
 			if( i == last_part - 1 )
-				return SymLookupResult(sym);
+				return SymLookupResult(sym_unalias(sym));
 
 			switch( sym->kind )
 			{

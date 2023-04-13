@@ -7,6 +7,7 @@ enum class SymKind
 {
 	Invalid,
 	Var,
+	Alias,
 	Member,
 	EnumMember,
 	Type,
@@ -20,6 +21,14 @@ struct SymVar
 	QualifiedTy qty;
 
 	SymVar(QualifiedTy qty);
+};
+
+struct SymAlias
+{
+	static constexpr SymKind sk = SymKind::Alias;
+	Sym* sym;
+
+	SymAlias(Sym* sym);
 };
 
 struct SymMember
@@ -94,6 +103,7 @@ struct Sym
 		SymType sym_type;
 		SymMember sym_member;
 		SymEnumMember sym_enum_member;
+		SymAlias sym_alias;
 
 		// Attention! This leaks!
 		SymData() {}
@@ -101,3 +111,5 @@ struct Sym
 		~SymData() {}
 	} data; //
 };
+
+Sym* sym_unalias(Sym* sym);
