@@ -15,6 +15,25 @@ struct Point {
     y: i8;
 }
 
+template<typename Iter>
+struct SendResult {
+    done: bool;
+    value: Iter;
+}
+
+template<typename Ret>
+struct CloseResult {
+    has_value: bool;
+    value: Ret;
+}
+
+template<typename Iter, typename Send, typename Ret>
+interface Generator {
+    fn begin(): SendResult<Iter>;
+    fn send(a: Send): SendResult<Iter>;
+    fn close(): CloseResult<Ret>;
+}
+
 enum AstNode {
     None,
     Func { id: i32 }
@@ -71,7 +90,7 @@ fn main(): i32 {
         }
     }
 
-    if (e is AstNode::Func) => (e: AstNode::Func) {
+    if (e is AstNode::Func) {
 
     }
 

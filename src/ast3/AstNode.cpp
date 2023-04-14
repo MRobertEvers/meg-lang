@@ -79,6 +79,12 @@ to_string(NodeKind type)
 		return "Is";
 	case NodeKind::DiscrimatingBlock:
 		return "DiscrimatingBlock";
+	case NodeKind::Interface:
+		return "Interface";
+	case NodeKind::Template:
+		return "Template";
+	case NodeKind::TemplateId:
+		return "TemplateId";
 	}
 
 	return "Bad";

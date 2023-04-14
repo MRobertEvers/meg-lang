@@ -34,9 +34,9 @@ public:
 	ParseResult<AstNode*> parse_assign(AstNode* lhs);
 	ParseResult<AstNode*> parse_discriminating_block();
 	ParseResult<AstNode*> parse_deref();
-	ParseResult<AstNode*> parse_function();
-	ParseResult<AstNode*> parse_function_proto();
-	ParseResult<AstNode*> parse_function_body();
+	ParseResult<AstNode*> parse_func();
+	ParseResult<AstNode*> parse_func_proto();
+	ParseResult<AstNode*> parse_func_body();
 	ParseResult<AstNode*> parse_while();
 	ParseResult<AstNode*> parse_for();
 	ParseResult<AstNode*> parse_block();
@@ -44,6 +44,7 @@ public:
 	ParseResult<AstNode*> parse_case();
 	ParseResult<AstNode*> parse_default();
 	ParseResult<AstNode*> parse_break();
+	ParseResult<AstNode*> parse_interface();
 	ParseResult<AstNode*> parse_struct();
 	ParseResult<AstNode*> parse_union();
 	ParseResult<AstNode*> parse_enum();

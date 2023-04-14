@@ -158,13 +158,15 @@ Parser::parse_module_statement()
 	switch( tok.kind )
 	{
 	case TokenKind::FnKw:
-		return parse_function();
+		return parse_func();
 	case TokenKind::StructKw:
 		return parse_struct();
 	case TokenKind::UnionKw:
 		return parse_union();
 	case TokenKind::EnumKw:
 		return parse_enum();
+	case TokenKind::InterfaceKw:
+		return parse_interface();
 	default:
 		return ParseError("Expected top level 'fn' or 'struct' declaration.");
 	}
@@ -493,19 +495,15 @@ Parser::parse_deref()
 }
 
 ParseResult<AstNode*>
-Parser::parse_function()
+Parser::parse_func()
 {
 	// auto trail = get_parse_trail();
 
-	auto tok = cursor.consume(TokenKind::FnKw);
-	if( !tok.ok() )
-		return ParseError("Expected 'fn'", tok.token());
-
-	auto proto = parse_function_proto();
+	auto proto = parse_func_proto();
 	if( !proto.ok() )
 		return proto;
 
-	auto definition = parse_function_body();
+	auto definition = parse_func_body();
 	if( !definition.ok() )
 		return definition;
 
@@ -513,30 +511,32 @@ Parser::parse_function()
 }
 
 ParseResult<AstNode*>
-Parser::parse_function_proto()
+Parser::parse_func_proto()
 {
 	// auto trail = get_parse_trail();
+	auto tokc = cursor.consume(TokenKind::FnKw);
+	if( !tokc.ok() )
+		return ParseError("Expected 'fn'", tokc.token());
 
-	// TODO: Simple for now.
 	auto id_result = parse_identifier(AstId::IdKind::Simple);
 	if( !id_result.ok() )
 		return id_result;
 
-	auto tok = cursor.consume(TokenKind::OpenParen);
-	if( !tok.ok() )
-		return ParseError("Expected '('", tok.token());
+	tokc = cursor.consume(TokenKind::OpenParen);
+	if( !tokc.ok() )
+		return ParseError("Expected '('", tokc.token());
 
 	auto parameters = parse_decl_list();
 	if( !parameters.ok() )
 		return ParseError("Failed parsing func params");
 
-	tok = cursor.consume(TokenKind::CloseParen);
-	if( !tok.ok() )
-		return ParseError("Expected ')'", tok.token());
+	tokc = cursor.consume(TokenKind::CloseParen);
+	if( !tokc.ok() )
+		return ParseError("Expected ')'", tokc.token());
 
-	tok = cursor.consume(TokenKind::Colon);
-	if( !tok.ok() )
-		return ParseError("Expected ':'", tok.token());
+	tokc = cursor.consume(TokenKind::Colon);
+	if( !tokc.ok() )
+		return ParseError("Expected ':'", tokc.token());
 
 	auto return_type_decl = parse_type_decl(false);
 	if( !return_type_decl.ok() )
@@ -549,26 +549,10 @@ Parser::parse_function_proto()
 		id_result.unwrap(),
 		parameters.unwrap(),
 		return_type_decl.unwrap());
-
-	// if( infer_type_tok.ok() )
-	// {
-	// 	auto return_type_identifier = parse_type_decl(false);
-	// 	if( !return_type_identifier.ok() )
-	// 	{
-	// 		return return_type_identifier;
-	// 	}
-	// 	return ast.FnProto(
-	// 		Span(), fn_identifier.unwrap(), params.unwrap(), return_type_identifier.unwrap());
-	// }
-	// else
-	// {
-	// 	return ast.FnProto(
-	// 		Span(), fn_identifier.unwrap(), ast.TypeDeclaratorEmpty(), params.unwrap());
-	// }
 }
 
 ParseResult<AstNode*>
-Parser::parse_function_body()
+Parser::parse_func_body()
 {
 	return parse_block();
 }
@@ -834,6 +818,44 @@ Parser::parse_break()
 		return ParseError("Expected 'break'", tok.token());
 
 	return ast.create<AstBreak>(Span());
+}
+
+ParseResult<AstNode*>
+Parser::parse_interface()
+{
+	std::vector<AstNode*> members;
+
+	auto tokc = cursor.consume(TokenKind::InterfaceKw);
+	if( !tokc.ok() )
+		return ParseError("Expected 'interface'", tokc.token());
+
+	auto id_result = parse_identifier(AstId::IdKind::Simple);
+	if( !id_result.ok() )
+		return id_result;
+
+	tokc = cursor.consume(TokenKind::OpenCurly);
+	if( !tokc.ok() )
+		return ParseError("Expected '{'", tokc.token());
+
+	Token tok = cursor.peek();
+	while( tok.kind != TokenKind::CloseCurly )
+	{
+		auto expr_result = parse_func_proto();
+		if( !expr_result.ok() )
+			return expr_result;
+
+		members.push_back(expr_result.unwrap());
+
+		// Also catches trailing semicolon.
+		cursor.consume_if_expected(TokenKind::SemiColon);
+		tok = cursor.peek();
+	}
+
+	tokc = cursor.consume(TokenKind::CloseCurly);
+	if( !tokc.ok() )
+		return ParseError("Expected '}'", tokc.token());
+
+	return ast.create<AstInterface>(Span(), id_result.unwrap(), members);
 }
 
 ParseResult<AstNode*>

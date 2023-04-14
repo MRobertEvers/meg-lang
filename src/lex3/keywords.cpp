@@ -35,6 +35,7 @@ KeywordIdentifierTuple keywords[] =
 	{"switch", TokenKind::SwitchKw},
 	{"template", TokenKind::TemplateKw},
 	{"typename", TokenKind::TypenameKw},
+	{"interface", TokenKind::InterfaceKw},
 	// clang-format off
 };
 // clang-format on
@@ -170,6 +171,8 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "Pipe";
 	case TokenKind::PipePipe:
 		return "PipePipe";
+	case TokenKind::InterfaceKw:
+		return "InterfaceKw";
 	case TokenKind::Eof:
 		return "Eof";
 	}

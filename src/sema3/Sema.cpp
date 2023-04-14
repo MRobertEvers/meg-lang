@@ -443,9 +443,8 @@ Sema::sema_struct(AstNode* ast_struct)
 SemaResult<HirNode*>
 Sema::sema_union(AstNode* ast_union)
 {
-	AstStruct& union_nod = ast_cast<AstStruct>(ast_union);
+	AstUnion& union_nod = ast_cast<AstUnion>(ast_union);
 
-	// TODO: Simple name
 	AstId& id = ast_cast<AstId>(union_nod.id);
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
 	if( sym_lu.found() )
@@ -466,7 +465,7 @@ Sema::sema_union(AstNode* ast_union)
 		sym_tab.create_named<SymMember>(member.first, member.second, 0);
 	sym_tab.pop_scope();
 
-	return hir.create<HirStruct>(QualifiedTy(builtins.void_ty), union_sym);
+	return hir.create<HirUnion>(QualifiedTy(builtins.void_ty), union_sym);
 }
 
 SemaResult<HirNode*>
@@ -514,6 +513,30 @@ Sema::sema_enum(AstNode* ast_enum)
 	sym_tab.pop_scope();
 
 	return hir.create<HirEnum>(QualifiedTy(builtins.void_ty), enum_sym);
+}
+
+SemaResult<HirNode*>
+Sema::sema_interface(AstNode* ast_interface)
+{
+	return NotImpl();
+	// AstInterface& interface_nod = ast_cast<AstInterface>(ast_interface);
+
+	// // TODO: Simple name
+	// AstId& id = ast_cast<AstId>(interface_nod.id);
+	// SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	// if( sym_lu.found() )
+	// 	return SemaError("Redefinition");
+
+	// Ty const* union_ty = types.create<TyUnion>(to_simple(id), members);
+	// Sym* union_sym = sym_tab.create_named<SymType>(to_simple(id), union_ty);
+
+	// SymType& sym = sym_cast<SymType>(union_sym);
+	// sym_tab.push_scope(&sym.scope);
+	// for( auto& member : members )
+	// 	sym_tab.create_named<SymMember>(member.first, member.second, 0);
+	// sym_tab.pop_scope();
+
+	// return hir.create<HirUnion>(QualifiedTy(builtins.void_ty), union_sym);
 }
 
 SemaResult<HirNode*>

@@ -24,6 +24,7 @@ enum class NodeKind
 	BinOp,
 	Struct,
 	Union,
+	Interface,
 	Template,
 	TemplateId,
 	Enum,
@@ -547,6 +548,18 @@ struct AstTemplateId
 		, id(id){};
 };
 
+struct AstInterface
+{
+	static constexpr NodeKind nt = NodeKind::Interface;
+
+	std::vector<AstNode*> members;
+	AstNode* id;
+
+	AstInterface(AstNode* id, std::vector<AstNode*> members)
+		: members(members)
+		, id(id){};
+};
+
 struct AstNode
 {
 	Span span;
@@ -590,6 +603,7 @@ struct AstNode
 		AstIs ast_is;
 		AstTemplate ast_template;
 		AstTemplateId ast_template_id;
+		AstInterface ast_interface;
 
 		// Attention! This leaks!
 		NodeData() {}

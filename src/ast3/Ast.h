@@ -97,6 +97,8 @@ ast_cast(AstTy* ast_node)
 		return ast_node->data.ast_template;
 	else if constexpr( std::is_same_v<AstTemplateId, Node> )
 		return ast_node->data.ast_template_id;
+	else if constexpr( std::is_same_v<AstInterface, Node> )
+		return ast_node->data.ast_interface;
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 }

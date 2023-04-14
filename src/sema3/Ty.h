@@ -10,6 +10,7 @@ enum class TyKind
 {
 	Invalid,
 	Primitive,
+	Interface,
 	Func,
 	Enum,
 	Struct,
@@ -28,6 +29,19 @@ struct TyPrimitive
 	TyPrimitive(std::string name, int width)
 		: name(name)
 		, width(width){};
+};
+
+struct TyInterface
+{
+	static constexpr TyKind tk = TyKind::Interface;
+	std::string name;
+
+	// Function members
+	std::map<std::string, QualifiedTy> members;
+
+	TyInterface(std::string name, std::map<std::string, QualifiedTy> members)
+		: name(name)
+		, members(members){};
 };
 
 struct TyFunc

@@ -33,6 +33,7 @@ public:
 	SemaResult<HirNode*> sema_struct(AstNode* ast_struct);
 	SemaResult<HirNode*> sema_union(AstNode* ast_union);
 	SemaResult<HirNode*> sema_enum(AstNode* ast_enum);
+	SemaResult<HirNode*> sema_interface(AstNode* ast_enum);
 	SemaResult<HirNode*> sema_stmt(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_stmt_any(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_return(AstNode* ast_return);

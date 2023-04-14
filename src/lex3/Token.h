@@ -48,6 +48,7 @@ enum class TokenKind
 	FnKw,
 	TemplateKw,
 	TypenameKw,
+	InterfaceKw,
 	IfKw,
 	TrueKw,
 	FalseKw,
