@@ -40,11 +40,17 @@ struct TyInt
 		u64,
 	} kind = IntKind::i32;
 
+	enum class Sign
+	{
+		Signed,
+		Unsigned
+	} sign = Sign::Signed;
+
 	std::string name;
 
-	TyInt(std::string name, IntKind kind)
-		: name(name)
-		, kind(kind){};
+	int width;
+
+	TyInt(std::string name, IntKind kind);
 };
 
 struct TyBool

@@ -91,7 +91,7 @@ Sema::equal_coercion(QualifiedTy target, HirNode* node)
 		TyInt const& target_ty = ty_cast<TyInt>(target.ty);
 		TyInt const& source_ty = ty_cast<TyInt>(node->qty.ty);
 
-		if( target_ty.kind > source_ty.kind )
+		if( target_ty.width > source_ty.width )
 		{
 			auto ty_sym_lu = sym_tab.lookup(target.ty);
 			std::vector<HirNode*> args{hir.create<HirId>(target, ty_sym_lu.first()), node};
