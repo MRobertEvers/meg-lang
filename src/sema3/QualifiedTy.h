@@ -16,9 +16,9 @@ public:
 	QualifiedTy(Ty const* ty, int indirection);
 
 	// bool is_array() const;
+	bool is_int() const;
 	bool is_pointer() const;
 	bool is_function() const;
-	bool is_primitive() const;
 	bool is_enum() const;
 
 	QualifiedTy deref() const;

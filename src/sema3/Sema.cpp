@@ -86,35 +86,20 @@ Sema::equal_coercion(QualifiedTy target, HirNode* node)
 	if( QualifiedTy::equals(target, node->qty) )
 		return node;
 
-	if( target.is_primitive() && node->qty.is_primitive() )
+	if( target.is_int() && node->qty.is_int() )
 	{
-		std::vector<Ty const*> int_tys = {
-			builtins.i64_ty,
-			builtins.i32_ty,
-			builtins.i16_ty,
-			builtins.i8_ty,
-			builtins.u64_ty,
-			builtins.u32_ty,
-			builtins.u16_ty,
-			builtins.u8_ty};
-		auto target_int_ty = std::find(int_tys.begin(), int_tys.end(), target.ty);
-		auto node_int_ty = std::find(int_tys.begin(), int_tys.end(), node->qty.ty);
+		TyInt const& target_ty = ty_cast<TyInt>(target.ty);
+		TyInt const& source_ty = ty_cast<TyInt>(node->qty.ty);
 
-		if( target_int_ty != int_tys.end() && node_int_ty != int_tys.end() )
+		if( target_ty.kind > source_ty.kind )
 		{
-			auto target_ty = ty_cast<TyPrimitive>(*target_int_ty);
-			auto source_ty = ty_cast<TyPrimitive>(*node_int_ty);
-
-			if( target_ty.width > source_ty.width )
-			{
-				auto ty_sym_lu = sym_tab.lookup(*target_int_ty);
-				std::vector<HirNode*> args{hir.create<HirId>(target, ty_sym_lu.first()), node};
-				return hir.create<HirCall>(target, HirCall::BuiltinKind::Cast, args);
-			}
-			else
-			{
-				return SemaError("Implicit narrowing conversion!");
-			}
+			auto ty_sym_lu = sym_tab.lookup(target.ty);
+			std::vector<HirNode*> args{hir.create<HirId>(target, ty_sym_lu.first()), node};
+			return hir.create<HirCall>(target, HirCall::BuiltinKind::Cast, args);
+		}
+		else
+		{
+			return SemaError("Implicit narrowing conversion!");
 		}
 	}
 
