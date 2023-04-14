@@ -15,6 +15,8 @@ class Sema
 	Types& types;
 	SymTab& sym_tab;
 
+	// Used during template instantiation to inject top level statements.
+	std::vector<HirNode*>* current_module;
 	SymBuiltins builtins;
 
 	std::vector<HirNode*>* current_if;
@@ -58,13 +60,14 @@ public:
 	SemaResult<HirNode*> sema_number_literal(AstNode* ast_number_literal);
 
 private:
-	// Checks if two types can be equal after coercing the subject type.
-	struct TypeDeclAnalysis
+	struct TypeDeclResult
 	{
 		Sym* sym;
 		QualifiedTy qty;
 	};
-	SemaResult<TypeDeclAnalysis> type_declarator(AstNode* ast_type_declarator);
+	SemaResult<TypeDeclResult> type_declarator(AstNode* ast_type_declarator);
 	SemaResult<std::map<std::string, QualifiedTy>> decl_list(std::vector<AstNode*>& ast_decls);
+	// Checks if two types can be equal after coercing the subject type.
 	SemaResult<HirNode*> equal_coercion(QualifiedTy target, HirNode* node);
+	SemaResult<Sym*> lookup_or_instantiate_template(AstNode* ast_template_id);
 };

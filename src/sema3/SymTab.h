@@ -21,10 +21,14 @@ public:
 
 	SymLookupResult lookup(NameParts name);
 	SymLookupResult lookup(Ty const* ty);
+	SymLookupResult lookup_template_instance(NameParts name, std::vector<QualifiedTy> params);
 
 	void push_scope(SymScope* scope);
 	void push_scope();
 	void pop_scope();
+
+	std::vector<SymScope*> save_state();
+	void restore_state(std::vector<SymScope*> stack);
 
 	template<typename Node, typename... Args>
 	Sym* create(Args&&... args);

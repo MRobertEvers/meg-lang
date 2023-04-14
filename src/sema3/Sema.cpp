@@ -108,7 +108,7 @@ Sema::equal_coercion(QualifiedTy target, HirNode* node)
 			if( target_ty.width > source_ty.width )
 			{
 				auto ty_sym_lu = sym_tab.lookup(*target_int_ty);
-				std::vector<HirNode*> args{hir.create<HirId>(target, ty_sym_lu.sym), node};
+				std::vector<HirNode*> args{hir.create<HirId>(target, ty_sym_lu.first()), node};
 				return hir.create<HirCall>(target, HirCall::BuiltinKind::Cast, args);
 			}
 			else
@@ -132,6 +132,7 @@ SemaResult<HirNode*>
 Sema::sema_module(AstNode* ast_module)
 {
 	std::vector<HirNode*> statements;
+	current_module = &statements;
 
 	AstModule& mod = ast_cast<AstModule>(ast_module);
 
@@ -222,24 +223,19 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	// TODO: Simple names only?
 	AstId& id = ast_cast<AstId>(func_proto.id);
 
-	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( sym_lu.sym )
-		return SemaError("Redeclaration");
-
 	//  We add the vars to the scope below, but we need to look up the arg types
 	// here so we can include them in the func ty.
 	std::vector<QualifiedTy> arg_qtys;
 	for( auto& param : func_proto.parameters )
 	{
 		AstVarDecl& var_decl = ast_cast<AstVarDecl>(param);
-		// TODO: Simple names
 		AstTypeDeclarator& ast_ty = ast_cast<AstTypeDeclarator>(var_decl.type_declarator);
 
 		SymLookupResult ty_lu = sym_tab.lookup(ast_cast<AstId>(ast_ty.id).name_parts);
-		if( !ty_lu.sym )
+		if( !ty_lu.found() )
 			return SemaError("Unrecognized type.");
 
-		arg_qtys.push_back(sym_qty(builtins, ty_lu.sym));
+		arg_qtys.push_back(sym_qty(builtins, ty_lu.first()));
 	}
 
 	auto rt_type_declarator_result = type_declarator(func_proto.rt_type_declarator);
@@ -333,20 +329,43 @@ Sema::sema_template(AstNode* ast_template)
 	return nullptr;
 }
 
-SemaResult<Sema::TypeDeclAnalysis>
+SemaResult<Sema::TypeDeclResult>
 Sema::type_declarator(AstNode* ast_type_declarator)
 {
 	AstTypeDeclarator& type_declarator = ast_cast<AstTypeDeclarator>(ast_type_declarator);
 
-	AstId& id = type_declarator.id->data.ast_id;
+	Sym* sym = nullptr;
+	switch( type_declarator.id->kind )
+	{
+	case NodeKind::TemplateId:
+	{
+		SemaResult<Sym*> sym_result = lookup_or_instantiate_template(type_declarator.id);
 
-	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( !sym_lu.sym ||
-		(sym_lu.sym->kind != SymKind::Type && sym_lu.sym->kind != SymKind::EnumMember) )
-		return SemaError("Could not find type '" + to_qualified(id) + "'");
+		if( !sym_result.ok() )
+			return MoveError(sym_result);
 
-	QualifiedTy qty = sym_qty(builtins, sym_lu.sym);
-	return TypeDeclAnalysis{.qty = qty, .sym = sym_lu.sym};
+		sym = sym_result.unwrap();
+	}
+	break;
+	case NodeKind::Id:
+	{
+		AstId& id = ast_cast<AstId>(type_declarator.id);
+
+		SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+		if( !sym_lu.found() )
+			return SemaError("Could not find type '" + to_qualified(id) + "'");
+
+		sym = sym_lu.first();
+	}
+	break;
+	default:
+		return NotImpl();
+	}
+	if( sym->kind != SymKind::TypeAlias && sym->kind != SymKind::Type &&
+		sym->kind != SymKind::EnumMember )
+		return SemaError("Could not find type.");
+
+	return TypeDeclResult{.qty = sym_qty(builtins, sym), .sym = sym};
 }
 
 SemaResult<std::map<std::string, QualifiedTy>>
@@ -398,9 +417,9 @@ Sema::sema_struct(AstNode* ast_struct)
 
 	// TODO: Simple name
 	AstId& id = ast_cast<AstId>(struct_nod.id);
-	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( sym_lu.sym )
-		return SemaError("Redefinition");
+	// SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	// if( sym_lu.first_of(SymKind::Type) )
+	// 	return SemaError("Redefinition");
 
 	auto decl_list_result = decl_list(struct_nod.var_decls);
 	if( !decl_list_result.ok() )
@@ -429,7 +448,7 @@ Sema::sema_union(AstNode* ast_union)
 	// TODO: Simple name
 	AstId& id = ast_cast<AstId>(union_nod.id);
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( sym_lu.sym )
+	if( sym_lu.found() )
 		return SemaError("Redefinition");
 
 	auto decl_list_result = decl_list(union_nod.var_decls);
@@ -457,7 +476,7 @@ Sema::sema_enum(AstNode* ast_enum)
 
 	AstId& id = ast_cast<AstId>(enum_nod.id);
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( sym_lu.sym )
+	if( sym_lu.found() )
 		return SemaError("Redefinition");
 
 	Ty const* enum_ty = types.create<TyEnum>(to_simple(id));
@@ -571,10 +590,10 @@ Sema::sema_sizeof(AstNode* ast_sizeof)
 		AstId& id = ast_cast<AstId>(sizeof_expr);
 
 		SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-		if( !sym_lu.sym )
+		if( !sym_lu.found() )
 			return SemaError("Unrecognized id.");
 
-		hir_expr = hir.create<HirId>(sym_qty(builtins, sym_lu.sym), sym_lu.sym);
+		hir_expr = hir.create<HirId>(sym_qty(builtins, sym_lu.first()), sym_lu.first());
 	}
 	break;
 	default:
@@ -707,10 +726,10 @@ Sema::sema_member_access(AstNode* ast_member_access)
 
 	QualifiedTy member_type;
 	SymLookupResult sym_lu = sym_tab.lookup(callee->qty.ty);
-	if( !sym_lu.sym )
+	if( !sym_lu.found() )
 		return SemaError("???");
 
-	SymType& type_sym = sym_cast<SymType>(sym_lu.sym);
+	SymType& type_sym = sym_cast<SymType>(sym_lu.first());
 	Sym* member_sym = type_sym.scope.find(to_simple(id));
 	if( !member_sym )
 		return SemaError(to_simple(id) + " is not a member of struct", member_access.id);
@@ -732,13 +751,12 @@ Sema::sema_let(AstNode* ast_let)
 	QualifiedTy qty;
 	if( var_decl.type_declarator )
 	{
-		AstTypeDeclarator& type_declarator = ast_cast<AstTypeDeclarator>(var_decl.type_declarator);
-		AstId& ty_id = ast_cast<AstId>(type_declarator.id);
-		SymLookupResult ty_sym_lu = sym_tab.lookup(ty_id.name_parts);
-		if( !ty_sym_lu.sym )
-			return SemaError("Unrecognized type.");
+		auto type_decl_result = type_declarator(var_decl.type_declarator);
+		if( !type_decl_result.ok() )
+			return MoveError(type_decl_result);
 
-		qty = sym_qty(builtins, ty_sym_lu.sym);
+		TypeDeclResult tdr = type_decl_result.unwrap();
+		qty = tdr.qty;
 	}
 
 	HirNode* rhs = nullptr;
@@ -812,7 +830,7 @@ Sema::sema_if(AstNode* ast_if)
 		{
 			sym_tab.push_scope();
 			AstDiscriminatingBlock& ast_disc = ast_cast<AstDiscriminatingBlock>(if_nod.then_stmt);
-			if( ast_disc.decl_list.size() >= cond->inferrences.size() )
+			if( ast_disc.decl_list.size() > cond->inferrences.size() )
 				return SemaError("Not enough type inferences to unpack.");
 
 			for( int i = 0; i < ast_disc.decl_list.size(); i++ )
@@ -886,13 +904,13 @@ Sema::sema_is(AstNode* ast_is)
 		return MoveError(qty_result);
 	QualifiedTy qty = qty_result.unwrap().qty;
 	SymLookupResult ty_lu = sym_tab.lookup(qty.ty);
-	if( !ty_lu.sym )
+	if( !ty_lu.found() )
 		return SemaError("???");
 	// Must be enum type or RTTI type.
-	if( ty_lu.sym->kind != SymKind::EnumMember )
+	if( ty_lu.first()->kind != SymKind::EnumMember )
 		return SemaError("Must be enum type or RTTI type.");
 
-	auto value = sym_cast<SymEnumMember>(ty_lu.sym).value;
+	auto value = sym_cast<SymEnumMember>(ty_lu.first()).value;
 
 	std::vector<HirNode*> args;
 	switch( is.expr->kind )
@@ -1107,13 +1125,13 @@ Sema::sema_id(AstNode* ast_id)
 	AstId& id = ast_cast<AstId>(ast_id);
 
 	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( !sym_lu.sym )
+	if( !sym_lu.found() )
 		return SemaError("Unrecognized id.");
 
-	if( sym_lu.sym->kind == SymKind::Type )
+	if( sym_lu.first()->kind == SymKind::Type )
 		return SemaError("Cannot use type name as an expression.");
 
-	return hir.create<HirId>(sym_qty(builtins, sym_lu.sym), sym_lu.sym);
+	return hir.create<HirId>(sym_qty(builtins, sym_lu.first()), sym_lu.first());
 }
 
 SemaResult<HirNode*>
@@ -1269,14 +1287,21 @@ Sema::sema_func_call(AstNode* ast_func_call)
 	AstNode* callee = func_call.callee;
 	switch( callee->kind )
 	{
-	case NodeKind::Id:
+	case NodeKind::TemplateId:
 	{
-		AstId& id = ast_cast<AstId>(callee);
-		SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-		if( !sym_lu.sym )
-			return SemaError("Unrecognized callee.");
+		// Look up the template symbol with the given inputs.
+		// Function overfload resolution does not occur since
+		// the type parameters are explicitly specified, and that
+		// means the symbol MUST be a template instance.
+		SemaResult<Sym*> sym_result = lookup_or_instantiate_template(callee);
+		if( !sym_result.ok() )
+			return MoveError(sym_result);
 
-		QualifiedTy qty = sym_qty(builtins, sym_lu.sym);
+		Sym* sym = sym_result.unwrap();
+		if( sym->kind != SymKind::Func )
+			return SemaError("Typename used in place of function");
+
+		QualifiedTy qty = sym_qty(builtins, sym);
 		if( !qty.is_function() )
 			return SemaError("...is not a function.");
 
@@ -1285,13 +1310,45 @@ Sema::sema_func_call(AstNode* ast_func_call)
 			QualifiedTy const& arg_qty = args.at(i)->qty;
 			QualifiedTy const& expected_qty = ty_cast<TyFunc>(qty.ty).args_qtys.at(i);
 
-			if( !QualifiedTy::equals(arg_qty, expected_qty) )
-				return SemaError("Bad arg type.");
+			auto coercion_result = equal_coercion(expected_qty, args.at(i));
+			if( !coercion_result.ok() )
+				return coercion_result;
+
+			args[i] = coercion_result.unwrap();
 		}
 
-		auto& ty_func = ty_cast<TyFunc>(sym_cast<SymFunc>(sym_lu.sym).ty);
+		SymFunc& sym_func = sym_cast<SymFunc>(sym);
+		auto& ty_func = ty_cast<TyFunc>(sym_func.ty);
 
-		return hir.create<HirCall>(ty_func.rt_qty, sym_lu.sym, args);
+		return hir.create<HirCall>(ty_func.rt_qty, sym, args);
+		break;
+	}
+	case NodeKind::Id:
+	{
+		AstId& id = ast_cast<AstId>(callee);
+		SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+		if( !sym_lu.found() )
+			return SemaError("Unrecognized callee.");
+
+		QualifiedTy qty = sym_qty(builtins, sym_lu.first());
+		if( !qty.is_function() )
+			return SemaError("...is not a function.");
+
+		for( int i = 0; i < args.size(); i++ )
+		{
+			QualifiedTy const& arg_qty = args.at(i)->qty;
+			QualifiedTy const& expected_qty = ty_cast<TyFunc>(qty.ty).args_qtys.at(i);
+
+			auto coercion_result = equal_coercion(expected_qty, args.at(i));
+			if( !coercion_result.ok() )
+				return coercion_result;
+
+			args[i] = coercion_result.unwrap();
+		}
+
+		auto& ty_func = ty_cast<TyFunc>(sym_cast<SymFunc>(sym_lu.first()).ty);
+
+		return hir.create<HirCall>(ty_func.rt_qty, sym_lu.first(), args);
 	}
 	case NodeKind::MemberAccess:
 	{
@@ -1435,4 +1492,84 @@ Sema::sema_number_literal(AstNode* ast_number_literal)
 	AstNumberLiteral& literal = ast_cast<AstNumberLiteral>(ast_number_literal);
 	// TODO: Check the number size and choose the type appropriately.
 	return hir.create<HirNumberLiteral>(QualifiedTy(builtins.i8_ty), literal.value);
+}
+
+SemaResult<Sym*>
+Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
+{
+	AstTemplateId& template_id = ast_cast<AstTemplateId>(ast_template_id);
+	AstId& id = ast_cast<AstId>(template_id.id);
+	NameParts& name = id.name_parts;
+
+	std::vector<QualifiedTy> type_params;
+	for( AstNode* ast_type_decl : template_id.types )
+	{
+		auto type_decl_result = type_declarator(ast_type_decl);
+		if( !type_decl_result.ok() )
+			return MoveError(type_decl_result);
+
+		type_params.push_back(type_decl_result.unwrap().qty);
+	}
+
+	SymLookupResult lu = sym_tab.lookup_template_instance(name, type_params);
+	if( lu.found() )
+		return lu.first();
+
+	lu = sym_tab.lookup(name);
+	if( !lu.found() )
+		return SemaError("Unrecognized identifier used as template");
+
+	// TODO: I guess there could be more than one template with
+	// the same name and we use SFINEA
+	Sym* templ = lu.first_of(SymKind::Template);
+	if( !templ )
+		return SemaError("Template with name not found.");
+
+	SymTemplate& sym_templ = sym_cast<SymTemplate>(templ);
+
+	auto save_state = sym_tab.save_state();
+	sym_tab.push_scope();
+
+	for( int i = 0; i < sym_templ.typenames.size(); i++ )
+	{
+		AstNode* ast_typename = sym_templ.typenames.at(i);
+		QualifiedTy& qty = type_params.at(i);
+
+		AstId& id = ast_cast<AstId>(ast_typename);
+
+		sym_tab.create_named<SymTypeAlias>(to_simple(id), qty);
+	}
+
+	auto instantiation_result = sema_module_stmt_any(sym_templ.template_tree);
+	if( !instantiation_result.ok() )
+		return SemaError("Failed to instantiate template");
+
+	HirNode* hir_stmt = instantiation_result.unwrap();
+	current_module->push_back(hir_stmt);
+
+	Sym* sym = nullptr;
+	switch( hir_stmt->kind )
+	{
+	case HirNodeKind::Func:
+		sym = hir_cast<HirFuncProto>(hir_cast<HirFunc>(hir_stmt).proto).sym;
+		break;
+	case HirNodeKind::Struct:
+		sym = hir_cast<HirStruct>(hir_stmt).sym;
+		break;
+	case HirNodeKind::Union:
+		sym = hir_cast<HirUnion>(hir_stmt).sym;
+		break;
+	case HirNodeKind::Enum:
+		sym = hir_cast<HirEnum>(hir_stmt).sym;
+		break;
+	default:
+		return NotImpl();
+	}
+
+	sym_templ.instances.push_back(SymTemplate::Instance{.sym = sym, .types = type_params});
+
+	sym_tab.pop_scope();
+	sym_tab.restore_state(save_state);
+
+	return sym;
 }

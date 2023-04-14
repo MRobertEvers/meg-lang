@@ -11,6 +11,7 @@ enum class SymKind
 	Invalid,
 	Var,
 	Alias,
+	TypeAlias, // For aliasing a type like Point*.
 	Template,
 	Member,
 	EnumMember,
@@ -33,6 +34,14 @@ struct SymAlias
 	Sym* sym;
 
 	SymAlias(Sym* sym);
+};
+
+struct SymTypeAlias
+{
+	static constexpr SymKind sk = SymKind::TypeAlias;
+	QualifiedTy qty;
+
+	SymTypeAlias(QualifiedTy qty);
 };
 
 struct SymMember
@@ -92,6 +101,13 @@ struct SymTemplate
 {
 	static constexpr SymKind sk = SymKind::Template;
 
+	struct Instance
+	{
+		std::vector<QualifiedTy> types;
+		Sym* sym;
+	};
+	std::vector<Instance> instances;
+
 	SymKind template_kind = SymKind::Invalid;
 
 	std::vector<AstNode*> typenames;
@@ -120,6 +136,7 @@ struct Sym
 		SymMember sym_member;
 		SymEnumMember sym_enum_member;
 		SymAlias sym_alias;
+		SymTypeAlias sym_type_alias;
 		SymTemplate sym_template;
 
 		// Attention! This leaks!
@@ -151,6 +168,8 @@ sym_cast(SymTy* sym)
 		return sym->data.sym_enum_member;
 	else if constexpr( std::is_same_v<SymAlias, Node> )
 		return sym->data.sym_alias;
+	else if constexpr( std::is_same_v<SymTypeAlias, Node> )
+		return sym->data.sym_type_alias;
 	else if constexpr( std::is_same_v<SymTemplate, Node> )
 		return sym->data.sym_template;
 	else

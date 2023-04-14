@@ -9,6 +9,8 @@ SymLookupResult
 SymTab::lookup(NameParts name)
 {
 	std::vector<SymScope*> search_stack = stack;
+
+	std::vector<Sym*> syms;
 	int last_part = name.parts.size();
 	while( search_stack.size() != 0 )
 	{
@@ -24,7 +26,10 @@ SymTab::lookup(NameParts name)
 				break;
 
 			if( i == last_part - 1 )
-				return SymLookupResult(sym_unalias(sym));
+			{
+				syms.push_back(sym);
+				break;
+			}
 
 			switch( sym->kind )
 			{
@@ -40,7 +45,7 @@ SymTab::lookup(NameParts name)
 		}
 	}
 
-	return SymLookupResult(nullptr);
+	return SymLookupResult(syms);
 }
 
 SymLookupResult
@@ -48,9 +53,57 @@ SymTab::lookup(Ty const* ty)
 {
 	auto iter_find = ty_lookup.find(ty);
 	if( iter_find != ty_lookup.end() )
-		return SymLookupResult(iter_find->second);
+		return SymLookupResult({iter_find->second});
 
-	return SymLookupResult(nullptr);
+	return SymLookupResult({});
+}
+
+static bool
+param_match(std::vector<QualifiedTy> left, std::vector<QualifiedTy> right)
+{
+	if( left.size() != right.size() )
+		return false;
+
+	for( int i = 0; i < right.size(); i++ )
+	{
+		QualifiedTy& l_qty = left.at(i);
+		QualifiedTy& r_qty = right.at(i);
+		if( !QualifiedTy::equals(l_qty, r_qty) )
+			return false;
+	}
+
+	return true;
+}
+
+static void
+find_matches(Sym* sym, std::vector<QualifiedTy> params, std::vector<Sym*>& out_matches)
+{
+	assert(sym->kind == SymKind::Template);
+
+	SymTemplate& templ = sym_cast<SymTemplate>(sym);
+
+	for( auto& instance : templ.instances )
+	{
+		if( param_match(params, instance.types) )
+			out_matches.push_back(instance.sym);
+	}
+}
+
+SymLookupResult
+SymTab::lookup_template_instance(NameParts name, std::vector<QualifiedTy> params)
+{
+	std::vector<Sym*> filtered;
+	SymLookupResult lu = lookup(name);
+	if( !lu.found() )
+		return lu;
+
+	for( Sym* sym : lu )
+	{
+		if( sym->kind == SymKind::Template )
+			find_matches(sym, params, filtered);
+	}
+
+	return SymLookupResult(filtered);
 }
 
 void
@@ -70,6 +123,22 @@ void
 SymTab::pop_scope()
 {
 	stack.pop_back();
+}
+
+std::vector<SymScope*>
+SymTab::save_state()
+{
+	std::vector<SymScope*> out = stack;
+
+	stack = {&root};
+
+	return out;
+}
+
+void
+SymTab::restore_state(std::vector<SymScope*> in)
+{
+	stack = in;
 }
 
 SymScope*

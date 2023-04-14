@@ -60,6 +60,8 @@ sym_qty(SymBuiltins const& builtins, Sym* sym)
 		return QualifiedTy(builtins.void_ty);
 	case SymKind::Alias:
 		return sym_qty(builtins, sym_unalias(sym));
+	case SymKind::TypeAlias:
+		return sym->data.sym_type_alias.qty;
 	case SymKind::EnumMember:
 		// TODO: How to handle when stuct type?
 		return QualifiedTy(sym->data.sym_enum_member.struct_ty);

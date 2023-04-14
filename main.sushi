@@ -32,6 +32,7 @@ fn func(a: i32): i32 {
 
 fn main(): i32 {
     let a: i8 = booger<i8>(5);
+    let c: i32 = booger<i16>(5);
     let b: i32 = sizeof (Point);
 
     let s: ErrorOr<i8>;
@@ -70,7 +71,7 @@ fn main(): i32 {
         }
     }
 
-    if (e is AstNode::None || e is AstNode::Func) => (e: AstNode::Func) {
+    if (e is AstNode::Func) => (e: AstNode::Func) {
 
     }
 
