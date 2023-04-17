@@ -106,6 +106,10 @@ struct TyFunc
 struct TyStruct
 {
 	static constexpr TyKind tk = TyKind::Struct;
+
+	// Pointers to interfaces implemented by this struct.
+	std::vector<Ty const*> implements;
+
 	std::string name;
 
 	std::map<std::string, QualifiedTy> members;
@@ -179,6 +183,8 @@ ty_cast(TyTy* ty)
 		return ty->data.ty_void;
 	else if constexpr( std::is_same_v<TyFloat, Node> )
 		return ty->data.ty_float;
+	else if constexpr( std::is_same_v<TyInterface, Node> )
+		return ty->data.ty_interface;
 	else
 		static_assert("Bad ty cast");
 }

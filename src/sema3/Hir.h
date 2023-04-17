@@ -16,48 +16,6 @@ public:
 	HirNode* create(QualifiedTy qty, Args&&... args);
 };
 
-template<typename Node>
-auto&
-hir_cast(HirNode* hir_node)
-{
-	if constexpr( std::is_same_v<HirModule, Node> )
-		return hir_node->data.hir_module;
-	else if constexpr( std::is_same_v<HirReturn, Node> )
-		return hir_node->data.hir_return;
-	else if constexpr( std::is_same_v<HirNumberLiteral, Node> )
-		return hir_node->data.hir_number_literal;
-	else if constexpr( std::is_same_v<HirBlock, Node> )
-		return hir_node->data.hir_block;
-	else if constexpr( std::is_same_v<HirFunc, Node> )
-		return hir_node->data.hir_func;
-	else if constexpr( std::is_same_v<HirFuncProto, Node> )
-		return hir_node->data.hir_func_proto;
-	else if constexpr( std::is_same_v<HirId, Node> )
-		return hir_node->data.hir_id;
-	else if constexpr( std::is_same_v<HirCall, Node> )
-		return hir_node->data.hir_call;
-	else if constexpr( std::is_same_v<HirLet, Node> )
-		return hir_node->data.hir_let;
-	else if constexpr( std::is_same_v<HirIf, Node> )
-		return hir_node->data.hir_if;
-	else if constexpr( std::is_same_v<HirStruct, Node> )
-		return hir_node->data.hir_struct;
-	else if constexpr( std::is_same_v<HirUnion, Node> )
-		return hir_node->data.hir_union;
-	else if constexpr( std::is_same_v<HirEnum, Node> )
-		return hir_node->data.hir_enum;
-	else if constexpr( std::is_same_v<HirSubscript, Node> )
-		return hir_node->data.hir_subscript;
-	else if constexpr( std::is_same_v<HirMember, Node> )
-		return hir_node->data.hir_member;
-	else if constexpr( std::is_same_v<HirSwitch, Node> )
-		return hir_node->data.hir_switch;
-	else if constexpr( std::is_same_v<HirLoop, Node> )
-		return hir_node->data.hir_loop;
-	else
-		static_assert("Cannot create hir node of type ");
-}
-
 template<typename Node, typename... Args>
 HirNode*
 Hir::create(QualifiedTy qty, Args&&... args)

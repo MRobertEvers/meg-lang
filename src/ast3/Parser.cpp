@@ -228,6 +228,20 @@ Parser::parse_identifier(AstId::IdKind mode)
 
 	AstNode* ast_id = ast.create<AstId>(Span(), name_parts.unwrap(), mode);
 
+	/**
+	 * Some research on this expression parsing mode.
+	 *
+	 * CPP's parser is keeps track of types during parsing,
+	 * and will parse an identifier based on the type during parsing.
+	 *
+	 * This parsing mode resembles more so how Typescript parses
+	 * the construct. Basically, if it can be parsed as a
+	 * construct like a<b, c>(d), it will. Typescript additionally,
+	 * uses speculative parsing, where it will look ahead to see if
+	 * it matches the speculative parsing, and if so, will favor
+	 * the 'template' identifier mode, otherwise, it will roll back
+	 * the parser.
+	 */
 	auto template_parse_result = parse_template_identifer(ast_id);
 	if( template_parse_result.ok() )
 		return template_parse_result;

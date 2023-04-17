@@ -162,6 +162,8 @@ Sema::sema_module_stmt_any(AstNode* ast_stmt)
 		return sema_union(ast_stmt);
 	case NodeKind::Enum:
 		return sema_enum(ast_stmt);
+	case NodeKind::Interface:
+		return sema_interface(ast_stmt);
 	default:
 		return NotImpl();
 	}
@@ -306,6 +308,15 @@ Sema::sema_template(AstNode* ast_template)
 		kind = SymKind::Type;
 	}
 	break;
+	case NodeKind::Interface:
+	{
+		AstInterface& nod = ast_cast<AstInterface>(template_nod.template_tree);
+		AstId& id = ast_cast<AstId>(nod.id);
+
+		name = to_simple(id);
+		kind = SymKind::Type;
+	}
+	break;
 	default:
 		return NotImpl();
 	}
@@ -400,7 +411,6 @@ Sema::sema_struct(AstNode* ast_struct)
 {
 	AstStruct& struct_nod = ast_cast<AstStruct>(ast_struct);
 
-	// TODO: Simple name
 	AstId& id = ast_cast<AstId>(struct_nod.id);
 	// SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
 	// if( sym_lu.first_of(SymKind::Type) )
@@ -500,28 +510,60 @@ Sema::sema_enum(AstNode* ast_enum)
 	return hir.create<HirEnum>(QualifiedTy(builtins.void_ty), enum_sym);
 }
 
+struct ProtoNameResult
+{
+	std::string name;
+	QualifiedTy qty;
+};
+static ProtoNameResult
+proto_name(HirNode* hir_fn_proto)
+{
+	HirFuncProto& fn_proto = hir_cast<HirFuncProto>(hir_fn_proto);
+	Sym* sym = fn_proto.sym;
+	SymFunc& func = sym_cast<SymFunc>(sym);
+	TyFunc const& func_ty = ty_cast<TyFunc>(func.ty);
+
+	return ProtoNameResult{.name = func_ty.name, .qty = QualifiedTy(func.ty)};
+}
+
 SemaResult<HirNode*>
 Sema::sema_interface(AstNode* ast_interface)
 {
-	return NotImpl();
-	// AstInterface& interface_nod = ast_cast<AstInterface>(ast_interface);
+	AstInterface& interface_nod = ast_cast<AstInterface>(ast_interface);
 
-	// // TODO: Simple name
-	// AstId& id = ast_cast<AstId>(interface_nod.id);
-	// SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	// if( sym_lu.found() )
-	// 	return SemaError("Redefinition");
+	AstId& id = ast_cast<AstId>(interface_nod.id);
+	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	if( sym_lu.found() )
+		return SemaError("Redefinition");
 
-	// Ty const* union_ty = types.create<TyUnion>(to_simple(id), members);
-	// Sym* union_sym = sym_tab.create_named<SymType>(to_simple(id), union_ty);
+	// This is unusual, create the sym first, later we will fill in the type.
+	// I didn't want to break the function proto sema into multiple steps,
+	// (1. Proto Ty, 2. Proto Symbol)
+	// Since sema_func_proto populates symbols in scope,
+	// we need the scope before we call that function.
+	Sym* interface_sym = sym_tab.create_named<SymType>(to_simple(id), nullptr);
+	SymType& sym = sym_cast<SymType>(interface_sym);
+	sym_tab.push_scope(&sym.scope);
 
-	// SymType& sym = sym_cast<SymType>(union_sym);
-	// sym_tab.push_scope(&sym.scope);
-	// for( auto& member : members )
-	// 	sym_tab.create_named<SymMember>(member.first, member.second, 0);
-	// sym_tab.pop_scope();
+	std::map<std::string, QualifiedTy> members;
+	for( AstNode* ast_decl : interface_nod.members )
+	{
+		auto fn_decl_result = sema_func_proto(ast_decl);
+		if( !fn_decl_result.ok() )
+			return fn_decl_result;
 
-	// return hir.create<HirUnion>(QualifiedTy(builtins.void_ty), union_sym);
+		HirNode* hir_fn = fn_decl_result.unwrap();
+		ProtoNameResult pnr = proto_name(hir_fn);
+		members.emplace(pnr.name, pnr.qty);
+	}
+
+	Ty const* interface_ty = types.create<TyInterface>(to_simple(id), members);
+
+	sym.ty = interface_ty;
+
+	sym_tab.pop_scope();
+
+	return hir.create<HirInterface>(QualifiedTy(builtins.void_ty), interface_sym);
 }
 
 SemaResult<HirNode*>
@@ -1245,6 +1287,18 @@ Sema::sema_switch(AstNode* ast_switch)
 	HirNode* default_block = nullptr;
 	for( AstNode* branch : switch_nod.branches )
 	{
+		// This type of parsing works for the switch statement
+		// because 'case' and 'default' must appear as top level definitions.
+		//
+		// e.g.
+		// switch (e) {
+		//   case Blurn:
+		//   {
+		//		case Blurn2: <--- not allowed
+		//   }
+		//
+		// For parsing 'break', which is not used in switch statements
+		// We have to keep track of the current break target.
 		switch( branch->kind )
 		{
 		case NodeKind::Case:
@@ -1274,7 +1328,6 @@ Sema::sema_switch(AstNode* ast_switch)
 	}
 
 	return hir.create<HirSwitch>(QualifiedTy(builtins.void_ty), cond, branches, default_block);
-	;
 }
 
 SemaResult<HirNode*>
@@ -1536,6 +1589,7 @@ Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 	SymTemplate& sym_templ = sym_cast<SymTemplate>(templ);
 
 	auto save_state = sym_tab.save_state();
+	// TODO: Push the namespace that the symbol belongs.
 	sym_tab.push_scope();
 
 	for( int i = 0; i < sym_templ.typenames.size(); i++ )
