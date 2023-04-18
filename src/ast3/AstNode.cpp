@@ -1,5 +1,18 @@
 #include "AstNode.h"
 
+AstFuncProto::AstFuncProto(
+	Linkage linkage,
+	Routine routine,
+	AstNode* id,
+	std::vector<AstNode*> parameters,
+	AstNode* rt_type_declarator)
+	: routine(routine)
+	, linkage(linkage)
+	, parameters(parameters)
+	, id(id)
+	, rt_type_declarator(rt_type_declarator)
+{}
+
 std::string
 to_string(NodeKind type)
 {
@@ -85,6 +98,10 @@ to_string(NodeKind type)
 		return "Template";
 	case NodeKind::TemplateId:
 		return "TemplateId";
+	case NodeKind::Yield:
+		return "Yield";
+	case NodeKind::Using:
+		return "Using";
 	}
 
 	return "Bad";

@@ -17,7 +17,12 @@ enum class TyKind
 	Func,
 	Enum,
 	Struct,
-	Union
+	Union,
+
+	// Frame type is generated from functions
+	// annoted with the 'async' keyword.
+	// Frames are "impl generator<Iter, Send, Ret>"
+	Frame,
 };
 
 class Ty;
@@ -30,6 +35,9 @@ struct TyInt
 	// do simple comparisons to for safe conversions
 	enum class IntKind : int
 	{
+		// iX is used for int literals
+		// iX is usually coerced to a concrety type on first use.
+		iX,
 		i8,
 		u8,
 		i16,
@@ -38,10 +46,13 @@ struct TyInt
 		u32,
 		i64,
 		u64,
+		i128,
+		u128,
 	} kind = IntKind::i32;
 
 	enum class Sign
 	{
+		Any,
 		Signed,
 		Unsigned
 	} sign = Sign::Signed;
@@ -140,6 +151,15 @@ struct TyEnum
 		: name(name){};
 };
 
+struct TyFrame
+{
+	static constexpr TyKind tk = TyKind::Frame;
+	std::string name;
+
+	TyFrame(std::string name)
+		: name(name){};
+};
+
 struct Ty
 {
 	TyKind kind = TyKind::Invalid;
@@ -153,6 +173,7 @@ struct Ty
 		TyStruct ty_struct;
 		TyUnion ty_union;
 		TyEnum ty_enum;
+		TyFrame ty_frame;
 		TyInterface ty_interface;
 
 		// Attention! This leaks!

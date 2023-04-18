@@ -1,9 +1,64 @@
 #include "SymBuiltins.h"
 
 #include "QualifiedTy.h"
+#include "ast3/Ast.h"
+#include "ast3/Parser.h"
+
+static char const send_result_builtin[] = R"(
+template<typename Iter>
+struct SendResult
+{
+	done: bool;
+	value: Iter;
+}
+)";
+
+static char const close_result_builtin[] = R"(
+template<typename Ret>
+enum CloseResult {
+    None,
+    Value { value: Ret }
+}
+)";
+
+static char const generator_builtin[] = R"(
+template<typename IterTy, typename SendTy, typename RetTy>
+interface generator {
+	using Iter = IterTy;
+	using Send = SendTy;
+	using Ret = RetTy;
+
+    fn begin(): SendResult<IterTy>;
+    fn send(a: Send): SendResult<SendTy>;
+    fn close(): CloseResult<RetTy>;
+}
+)";
+
+static void
+create_builtin(SymTab& sym_tab, Types& types, Ast& ast, std::string name, char const* builtin)
+{
+	Cursor cursor(builtin);
+	AstNode* ast_module = Parser::parse(ast, cursor).unwrap();
+	AstModule& mod = ast_cast<AstModule>(ast_module);
+
+	AstTemplate& template_nod = ast_cast<AstTemplate>(mod.statements.at(0));
+
+	std::vector<AstNode*> typenames = template_nod.types;
+	AstNode* tree = template_nod.template_tree;
+
+	sym_tab.create_named<SymTemplate>(name, SymKind::Type, typenames, tree);
+}
+
+static void
+create_generator_builtin(SymTab& sym_tab, Types& types, Ast& ast)
+{
+	create_builtin(sym_tab, types, ast, "SendResult", send_result_builtin);
+	create_builtin(sym_tab, types, ast, "CloseResult", close_result_builtin);
+	create_builtin(sym_tab, types, ast, "generator", generator_builtin);
+}
 
 SymBuiltins
-SymBuiltins::create_builtins(SymTab& sym_tab, Types& types)
+SymBuiltins::create_builtins(SymTab& sym_tab, Types& types, Ast& ast)
 {
 	SymBuiltins builtins;
 	Ty const* ty = nullptr;
@@ -39,6 +94,8 @@ SymBuiltins::create_builtins(SymTab& sym_tab, Types& types)
 	ty = types.create<TyVoid>();
 	sym_tab.create_named<SymType>("void", ty);
 	builtins.void_ty = ty;
+
+	create_generator_builtin(sym_tab, types, ast);
 
 	return builtins;
 }

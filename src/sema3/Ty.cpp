@@ -5,6 +5,8 @@ kind_width(TyInt::IntKind kind)
 {
 	switch( kind )
 	{
+	case TyInt::IntKind::iX:
+		return 0;
 	case TyInt::IntKind::i8:
 	case TyInt::IntKind::u8:
 		return 8;
@@ -17,6 +19,9 @@ kind_width(TyInt::IntKind kind)
 	case TyInt::IntKind::i64:
 	case TyInt::IntKind::u64:
 		return 64;
+	case TyInt::IntKind::i128:
+	case TyInt::IntKind::u128:
+		return 128;
 	}
 }
 
@@ -25,15 +30,19 @@ kind_sign(TyInt::IntKind kind)
 {
 	switch( kind )
 	{
+	case TyInt::IntKind::iX:
+		return TyInt::Sign::Any;
 	case TyInt::IntKind::i8:
 	case TyInt::IntKind::i16:
 	case TyInt::IntKind::i32:
 	case TyInt::IntKind::i64:
+	case TyInt::IntKind::i128:
 		return TyInt::Sign::Signed;
 	case TyInt::IntKind::u8:
 	case TyInt::IntKind::u16:
 	case TyInt::IntKind::u32:
 	case TyInt::IntKind::u64:
+	case TyInt::IntKind::u128:
 		return TyInt::Sign::Unsigned;
 	}
 }

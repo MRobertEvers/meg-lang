@@ -1,38 +1,16 @@
 
-template<typename T> 
-struct ErrorOr {
-    err: i32;
-    value: T;
-}
 
-template<typename T>
-fn booger(a: T): T {
-    return a;
-}
 
 struct Point {
     x: i8;
     y: i8;
 }
 
-template<typename Iter>
-struct SendResult {
-    done: bool;
-    value: Iter;
+async fn range(a: i32, b: i32): impl generator<i32, void, void> {
+    for (let i = a; i < b; i = i + 1)
+        yield i;
 }
 
-template<typename Ret>
-struct CloseResult {
-    has_value: bool;
-    value: Ret;
-}
-
-template<typename Iter, typename Send, typename Ret>
-interface Generator {
-    fn begin(): SendResult<Iter>;
-    fn send(a: Send): SendResult<Iter>;
-    fn close(): CloseResult<Ret>;
-}
 
 enum AstNode {
     None,
@@ -50,51 +28,5 @@ fn func(a: i32): i32 {
 }
 
 fn main(): i32 {
-    let a: i8 = booger<i8>(5);
-    let c: i32 = booger<i16>(5);
-    let b: i32 = sizeof (Point);
-
-    let s: ErrorOr<i8>;
-
-    if (a >= 8) {
-        return 11;
-    } else if (b == a) {
-        return 8;
-    } else {
-        return 0;
-    }
-
-    for (let i = 0; i < 8; i = i + 1) {
-        sizeof Point;
-    }
-
-    while (a == 0) {
-        sizeof Point;
-    }
-
-    switch (a) {
-        case 5:
-            {}
-        default:
-            {}
-    }
-
-    let e: AstNode;
-
-    switch (e) {
-        case AstNode::None => (blurg: i32) {
-            
-        }
-        case AstNode::Func => (blurg: i32) {
-
-        }
-    }
-
-    if (e is AstNode::Func) {
-
-    }
-
-
-
-    return func(b) * 4;
+    return func(2) * 4;
 }

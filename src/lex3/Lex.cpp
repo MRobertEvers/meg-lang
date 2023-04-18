@@ -143,6 +143,14 @@ Lex::tok_start()
 		tok_kind = TokenKind::Comma;
 		cursor_ += 1;
 		break;
+	case '^':
+		tok_kind = TokenKind::Caret;
+		cursor_ += 1;
+		break;
+	case '~':
+		tok_kind = TokenKind::Tilde;
+		cursor_ += 1;
+		break;
 	case '=':
 		tok_kind = TokenKind::Eq;
 		break;

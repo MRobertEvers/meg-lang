@@ -9,7 +9,9 @@ QualifiedTy::QualifiedTy(Ty const* ty, int indirection)
 	: ty(ty)
 	, indirection(indirection)
 {}
-
+QualifiedTy::QualifiedTy(Ty const* ty, ImplKind kind)
+	: ty(ty)
+	, impl(kind){};
 // bool
 // QualifiedTy::is_array() const
 // {

@@ -11,18 +11,19 @@
 
 class Sema
 {
+	Ast& ast;
 	Hir& hir;
 	Types& types;
 	SymTab& sym_tab;
 
-	// Used during template instantiation to inject top level statements.
-	std::vector<HirNode*>* current_module;
 	SymBuiltins builtins;
 
-	std::vector<HirNode*>* current_if;
+	// Used during template instantiation to inject top level statements.
+	std::vector<HirNode*>* current_module = nullptr;
+	HirFuncProto* current_function = nullptr;
 
 public:
-	Sema(Hir& hir, Types& types, SymTab& sym_tab);
+	Sema(Ast& ast, Hir& hir, Types& types, SymTab& sym_tab);
 
 	SemaResult<HirNode*> sema_module(AstNode* ast_module);
 	SemaResult<HirNode*> sema_module_stmt_any(AstNode* ast_module_stmt);
@@ -33,7 +34,8 @@ public:
 	SemaResult<HirNode*> sema_struct(AstNode* ast_struct);
 	SemaResult<HirNode*> sema_union(AstNode* ast_union);
 	SemaResult<HirNode*> sema_enum(AstNode* ast_enum);
-	SemaResult<HirNode*> sema_interface(AstNode* ast_enum);
+	SemaResult<HirNode*> sema_interface(AstNode* ast_interface);
+	SemaResult<HirNode*> sema_interface_member(AstNode* ast_node);
 	SemaResult<HirNode*> sema_stmt(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_stmt_any(AstNode* ast_stmt);
 	SemaResult<HirNode*> sema_return(AstNode* ast_return);
@@ -46,10 +48,12 @@ public:
 	SemaResult<HirNode*> sema_let(AstNode* ast_let);
 	SemaResult<HirNode*> sema_if(AstNode* ast_if);
 	SemaResult<HirNode*> sema_is(AstNode* ast_is);
+	SemaResult<HirNode*> sema_using(AstNode* ast_using);
 	SemaResult<HirNode*> sema_expr(AstNode* ast_expr);
 	SemaResult<HirNode*> sema_expr_any(AstNode* ast_expr);
-	SemaResult<HirSwitch::CondThen> sema_case(AstNode* ast_id);
-	SemaResult<HirNode*> sema_default(AstNode* ast_id);
+	SemaResult<HirSwitch::CondThen> sema_case(AstNode* ast_case);
+	SemaResult<HirNode*> sema_default(AstNode* ast_default);
+	SemaResult<HirNode*> sema_yield(AstNode* ast_yield);
 	SemaResult<HirNode*> sema_id(AstNode* ast_id);
 	SemaResult<HirNode*> sema_for(AstNode* ast_for);
 	SemaResult<HirNode*> sema_while(AstNode* ast_while);

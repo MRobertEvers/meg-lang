@@ -157,6 +157,8 @@ Parser::parse_module_statement()
 	Token tok = cursor.peek();
 	switch( tok.kind )
 	{
+	case TokenKind::ExternKw:
+	case TokenKind::AsyncKw:
 	case TokenKind::FnKw:
 		return parse_func();
 	case TokenKind::StructKw:
@@ -253,8 +255,11 @@ ParseResult<AstNode*>
 Parser::parse_type_decl(bool allow_empty)
 {
 	// auto trail = get_parse_trail();
+	auto tokc = cursor.consume_if_expected(TokenKind::ImplKw);
+	bool is_impl = tokc.ok();
 
-	Token tok = cursor.peek();
+	Token tok;
+	tok = cursor.peek();
 	if( tok.kind != TokenKind::Identifier )
 		return ParseError("Unexpected token while parsing type.", tok);
 
@@ -263,7 +268,7 @@ Parser::parse_type_decl(bool allow_empty)
 		return id_result;
 
 	std::vector<AstNode*> types;
-	auto tokc = cursor.consume_if_expected(TokenKind::Lt);
+	tokc = cursor.consume_if_expected(TokenKind::Lt);
 	if( tokc.ok() )
 	{
 		tok = cursor.peek();
@@ -290,7 +295,12 @@ Parser::parse_type_decl(bool allow_empty)
 	for( ; tokc.ok(); indirection++ )
 		tokc = cursor.consume_if_expected(TokenKind::Star);
 
-	return ast.create<AstTypeDeclarator>(Span(), types, id_result.unwrap(), indirection);
+	return ast.create<AstTypeDeclarator>(
+		Span(),
+		is_impl ? AstTypeDeclarator::ImplKind::Impl : AstTypeDeclarator::ImplKind::None,
+		types,
+		id_result.unwrap(),
+		indirection);
 }
 
 ParseResult<AstNode*>
@@ -524,19 +534,58 @@ Parser::parse_func()
 	return ast.create<AstFunc>(Span(), proto.unwrap(), definition.unwrap());
 }
 
+struct FuncDecorators
+{
+	bool is_extern;
+	bool is_async;
+};
+
+static ParseResult<FuncDecorators>
+parse_func_decorators(Cursor& cursor)
+{
+	FuncDecorators decorators;
+	Token tok = cursor.peek();
+	while( true )
+	{
+		switch( tok.kind )
+		{
+		case TokenKind::FnKw:
+			cursor.consume(TokenKind::FnKw);
+			goto done;
+		case TokenKind::ExternKw:
+			decorators.is_extern = true;
+			cursor.consume(TokenKind::ExternKw);
+			break;
+		case TokenKind::AsyncKw:
+			decorators.is_async = true;
+			cursor.consume(TokenKind::AsyncKw);
+			break;
+		default:
+			return ParseError("Unexpected syntax.");
+		}
+
+		tok = cursor.peek();
+	}
+
+done:
+	return decorators;
+}
+
 ParseResult<AstNode*>
 Parser::parse_func_proto()
 {
 	// auto trail = get_parse_trail();
-	auto tokc = cursor.consume(TokenKind::FnKw);
-	if( !tokc.ok() )
-		return ParseError("Expected 'fn'", tokc.token());
+	auto decorators_result = parse_func_decorators(cursor);
+	if( !decorators_result.ok() )
+		return MoveError(decorators_result);
+
+	FuncDecorators decorators = decorators_result.unwrap();
 
 	auto id_result = parse_identifier(AstId::IdKind::Simple);
 	if( !id_result.ok() )
 		return id_result;
 
-	tokc = cursor.consume(TokenKind::OpenParen);
+	auto tokc = cursor.consume(TokenKind::OpenParen);
 	if( !tokc.ok() )
 		return ParseError("Expected '('", tokc.token());
 
@@ -559,7 +608,8 @@ Parser::parse_func_proto()
 	// Linkage linkage, AstNode* id, std::vector<AstNode*> parameters, AstNode* rt_type_declarator
 	return ast.create<AstFuncProto>(
 		Span(),
-		AstFuncProto::Linkage::Extern,
+		decorators.is_extern ? AstFuncProto::Linkage::Extern : AstFuncProto::Linkage::None,
+		decorators.is_async ? AstFuncProto::Routine::Coroutine : AstFuncProto::Routine::Subroutine,
 		id_result.unwrap(),
 		parameters.unwrap(),
 		return_type_decl.unwrap());
@@ -835,6 +885,20 @@ Parser::parse_break()
 }
 
 ParseResult<AstNode*>
+Parser::parse_yield()
+{
+	auto tokc = cursor.consume(TokenKind::YieldKw);
+	if( !tokc.ok() )
+		return ParseError("Expected 'yield'", tokc.token());
+
+	auto expr_result = parse_expr();
+	if( !expr_result.ok() )
+		return expr_result;
+
+	return ast.create<AstYield>(Span(), expr_result.unwrap());
+}
+
+ParseResult<AstNode*>
 Parser::parse_interface()
 {
 	std::vector<AstNode*> members;
@@ -854,7 +918,7 @@ Parser::parse_interface()
 	Token tok = cursor.peek();
 	while( tok.kind != TokenKind::CloseCurly )
 	{
-		auto expr_result = parse_func_proto();
+		auto expr_result = parse_interface_member();
 		if( !expr_result.ok() )
 			return expr_result;
 
@@ -870,6 +934,20 @@ Parser::parse_interface()
 		return ParseError("Expected '}'", tokc.token());
 
 	return ast.create<AstInterface>(Span(), id_result.unwrap(), members);
+}
+
+ParseResult<AstNode*>
+Parser::parse_interface_member()
+{
+	Token tok = cursor.peek();
+
+	switch( tok.kind )
+	{
+	case TokenKind::UsingKw:
+		return parse_using();
+	default:
+		return parse_func_proto();
+	}
 }
 
 ParseResult<AstNode*>
@@ -1037,6 +1115,32 @@ Parser::parse_if()
 		return else_result;
 
 	return ast.create<AstIf>(Span(), expr_result.unwrap(), then, else_result.unwrap());
+}
+
+ParseResult<AstNode*>
+Parser::parse_using()
+{
+	auto tokc = cursor.consume(TokenKind::UsingKw);
+	if( !tokc.ok() )
+		return ParseError("Expected 'using'", tokc.token());
+
+	auto lhs_result = parse_identifier(AstId::IdKind::Simple);
+	if( !lhs_result.ok() )
+		return lhs_result;
+
+	AstNode* lhs_id = lhs_result.unwrap();
+
+	tokc = cursor.consume(TokenKind::Eq);
+	if( !tokc.ok() )
+		return ParseError("Expected '='", tokc.token());
+
+	auto rhs_result = parse_identifier(AstId::IdKind::Qualified);
+	if( !rhs_result.ok() )
+		return lhs_result;
+
+	AstNode* rhs_id = rhs_result.unwrap();
+
+	return ast.create<AstUsing>(Span(), lhs_id, rhs_id);
 }
 
 ParseResult<AstNode*>
@@ -1270,9 +1374,33 @@ Parser::parse_expr_stmt()
 }
 
 ParseResult<AstNode*>
+Parser::parse_expr()
+{
+	auto expr_any_result = parse_expr_any();
+	if( !expr_any_result.ok() )
+		return expr_any_result;
+
+	AstNode* ast_expr = expr_any_result.unwrap();
+
+	return ast.create<AstExpr>(Span(), ast_expr);
+}
+
+ParseResult<AstNode*>
 Parser::parse_expr_any()
 {
-	// auto trail = get_parse_trail();
+	Token tok = cursor.peek();
+	switch( tok.kind )
+	{
+	case TokenKind::YieldKw:
+		return parse_yield();
+	default:
+		return parse_expr_interior();
+	}
+}
+
+ParseResult<AstNode*>
+Parser::parse_expr_interior()
+{
 	auto lhs_result = parse_postfix_expr();
 	if( !lhs_result.ok() )
 		return lhs_result;
@@ -1282,17 +1410,6 @@ Parser::parse_expr_any()
 		return bin_op_result;
 
 	return bin_op_result;
-}
-
-ParseResult<AstNode*>
-Parser::parse_expr()
-{
-	// auto trail = get_parse_trail();
-	auto expr_any_result = parse_expr_any();
-	if( !expr_any_result.ok() )
-		return expr_any_result;
-
-	return ast.create<AstExpr>(Span(), expr_any_result.unwrap());
 }
 
 ParseResult<AstNode*>

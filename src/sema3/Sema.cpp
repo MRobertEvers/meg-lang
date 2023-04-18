@@ -106,11 +106,12 @@ Sema::equal_coercion(QualifiedTy target, HirNode* node)
 	return SemaError("Not coercable");
 }
 
-Sema::Sema(Hir& hir, Types& types, SymTab& sym_tab)
-	: hir(hir)
+Sema::Sema(Ast& ast, Hir& hir, Types& types, SymTab& sym_tab)
+	: ast(ast)
+	, hir(hir)
 	, types(types)
 	, sym_tab(sym_tab)
-	, builtins(SymBuiltins::create_builtins(sym_tab, types))
+	, builtins(SymBuiltins::create_builtins(sym_tab, types, ast))
 {}
 
 SemaResult<HirNode*>
@@ -179,11 +180,16 @@ Sema::sema_func(AstNode* ast_func)
 	auto proto = proto_result.unwrap();
 
 	HirFuncProto& hir_proto = hir_cast<HirFuncProto>(proto);
+
+	current_function = &hir_proto;
+
 	sym_tab.push_scope(&sym_cast<SymFunc>(hir_proto.sym).scope);
 	auto body_result = sema_block(func.body);
 	if( !body_result.ok() )
 		return body_result;
 	sym_tab.pop_scope();
+
+	current_function = nullptr;
 
 	return hir.create<HirFunc>(QualifiedTy(builtins.void_ty), proto, body_result.unwrap());
 }
@@ -200,14 +206,26 @@ translate_linkage(AstFuncProto::Linkage ast_linkage)
 	}
 }
 
+static HirFuncProto::Routine
+translate_routine_kind(AstFuncProto::Routine ast_routine)
+{
+	switch( ast_routine )
+	{
+	case AstFuncProto::Routine::Subroutine:
+		return HirFuncProto::Routine::Subroutine;
+	case AstFuncProto::Routine::Coroutine:
+		return HirFuncProto::Routine::Coroutine;
+	}
+}
+
 SemaResult<HirNode*>
 Sema::sema_func_proto(AstNode* ast_func_proto)
 {
 	AstFuncProto& func_proto = ast_cast<AstFuncProto>(ast_func_proto);
 
 	HirFuncProto::Linkage linkage = translate_linkage(func_proto.linkage);
+	HirFuncProto::Routine routine_kind = translate_routine_kind(func_proto.routine);
 
-	// TODO: Simple names only?
 	AstId& id = ast_cast<AstId>(func_proto.id);
 
 	//  We add the vars to the scope below, but we need to look up the arg types
@@ -254,7 +272,7 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 		sym_func.scope.insert(to_simple(ast_id), sym_var);
 	}
 
-	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, sym, parameters);
+	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, routine_kind, sym, parameters);
 }
 
 SemaResult<HirNode*>
@@ -357,11 +375,16 @@ Sema::type_declarator(AstNode* ast_type_declarator)
 	default:
 		return NotImpl();
 	}
+
 	if( sym->kind != SymKind::TypeAlias && sym->kind != SymKind::Type &&
 		sym->kind != SymKind::EnumMember )
 		return SemaError("Could not find type.");
 
-	return TypeDeclResult{.qty = sym_qty(builtins, sym), .sym = sym};
+	QualifiedTy qty = sym_qty(builtins, sym);
+	if( type_declarator.impl_kind == AstTypeDeclarator::ImplKind::Impl )
+		qty.impl = QualifiedTy::ImplKind::Impl;
+
+	return TypeDeclResult{.qty = qty, .sym = sym};
 }
 
 SemaResult<std::map<std::string, QualifiedTy>>
@@ -469,9 +492,9 @@ Sema::sema_enum(AstNode* ast_enum)
 	AstEnum& enum_nod = ast_cast<AstEnum>(ast_enum);
 
 	AstId& id = ast_cast<AstId>(enum_nod.id);
-	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( sym_lu.found() )
-		return SemaError("Redefinition");
+	// SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	// if( sym_lu.found() )
+	// 	return SemaError("Redefinition");
 
 	Ty const* enum_ty = types.create<TyEnum>(to_simple(id));
 	Sym* enum_sym = sym_tab.create_named<SymType>(to_simple(id), enum_ty);
@@ -532,38 +555,55 @@ Sema::sema_interface(AstNode* ast_interface)
 	AstInterface& interface_nod = ast_cast<AstInterface>(ast_interface);
 
 	AstId& id = ast_cast<AstId>(interface_nod.id);
-	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
-	if( sym_lu.found() )
-		return SemaError("Redefinition");
+	// SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	// if( sym_lu.found() )
+	// 	return SemaError("Redefinition");
 
 	// This is unusual, create the sym first, later we will fill in the type.
 	// I didn't want to break the function proto sema into multiple steps,
 	// (1. Proto Ty, 2. Proto Symbol)
 	// Since sema_func_proto populates symbols in scope,
 	// we need the scope before we call that function.
-	Sym* interface_sym = sym_tab.create_named<SymType>(to_simple(id), nullptr);
+	std::map<std::string, QualifiedTy> members;
+	Ty const* interface_ty = types.create<TyInterface>(to_simple(id), members);
+	Sym* interface_sym = sym_tab.create_named<SymType>(to_simple(id), interface_ty);
+
 	SymType& sym = sym_cast<SymType>(interface_sym);
 	sym_tab.push_scope(&sym.scope);
 
-	std::map<std::string, QualifiedTy> members;
 	for( AstNode* ast_decl : interface_nod.members )
 	{
-		auto fn_decl_result = sema_func_proto(ast_decl);
-		if( !fn_decl_result.ok() )
-			return fn_decl_result;
+		auto member_result = sema_interface_member(ast_decl);
+		if( !member_result.ok() )
+			return member_result;
 
-		HirNode* hir_fn = fn_decl_result.unwrap();
-		ProtoNameResult pnr = proto_name(hir_fn);
-		members.emplace(pnr.name, pnr.qty);
+		if( ast_decl->kind == NodeKind::FuncProto )
+		{
+			HirNode* hir_fn = member_result.unwrap();
+			ProtoNameResult pnr = proto_name(hir_fn);
+			members.emplace(pnr.name, pnr.qty);
+		}
 	}
 
-	Ty const* interface_ty = types.create<TyInterface>(to_simple(id), members);
+	const_cast<Ty*>(interface_ty)->data.ty_interface.members = members;
 
 	sym.ty = interface_ty;
 
 	sym_tab.pop_scope();
 
 	return hir.create<HirInterface>(QualifiedTy(builtins.void_ty), interface_sym);
+}
+
+SemaResult<HirNode*>
+Sema::sema_interface_member(AstNode* ast_node)
+{
+	switch( ast_node->kind )
+	{
+	case NodeKind::Using:
+		return sema_using(ast_node);
+	default:
+		return sema_func_proto(ast_node);
+	}
 }
 
 SemaResult<HirNode*>
@@ -1033,6 +1073,22 @@ Sema::sema_is(AstNode* ast_is)
 }
 
 SemaResult<HirNode*>
+Sema::sema_using(AstNode* ast_using)
+{
+	AstUsing& using_nod = ast_cast<AstUsing>(ast_using);
+
+	AstId& lhs = ast_cast<AstId>(using_nod.id_lhs);
+	AstId& rhs = ast_cast<AstId>(using_nod.id_rhs);
+	SymLookupResult sym_lu = sym_tab.lookup(rhs.name_parts);
+	if( !sym_lu.found() )
+		return SemaError("Unrecognized name");
+
+	sym_tab.create_named<SymAlias>(to_simple(lhs), sym_lu.first());
+
+	return nullptr;
+}
+
+SemaResult<HirNode*>
 Sema::sema_expr(AstNode* ast_expr)
 {
 	AstExpr& expr = ast_cast<AstExpr>(ast_expr);
@@ -1063,6 +1119,8 @@ Sema::sema_expr_any(AstNode* ast_expr)
 		return sema_member_access(ast_expr);
 	case NodeKind::ArrayAccess:
 		return sema_array_access(ast_expr);
+	case NodeKind::Yield:
+		return sema_yield(ast_expr);
 	// We can end up with next expr->expr->expr due to parens.
 	case NodeKind::Expr:
 		return sema_expr(ast_expr);
@@ -1167,6 +1225,65 @@ Sema::sema_default(AstNode* ast_default)
 	AstDefault& default_nod = ast_cast<AstDefault>(ast_default);
 
 	return sema_stmt(default_nod.stmt);
+}
+
+QualifiedTy
+gen_send_qty(SymBuiltins& builtins, Sym* sym)
+{
+	SymType& gen = sym_cast<SymType>(sym);
+	Sym* send = gen.scope.find("Send");
+	assert(send);
+
+	return sym_qty(builtins, send);
+}
+
+QualifiedTy
+gen_iter_qty(SymBuiltins& builtins, Sym* sym)
+{
+	SymType& gen = sym_cast<SymType>(sym);
+	Sym* send = gen.scope.find("Iter");
+	assert(send);
+
+	return sym_qty(builtins, send);
+}
+
+QualifiedTy
+gen_ret_qty(SymBuiltins& builtins, Sym* sym)
+{
+	SymType& gen = sym_cast<SymType>(sym);
+	Sym* send = gen.scope.find("Ret");
+	assert(send);
+
+	return sym_qty(builtins, send);
+}
+
+SemaResult<HirNode*>
+Sema::sema_yield(AstNode* ast_yield)
+{
+	assert(current_function);
+	if( current_function->kind != HirFuncProto::Routine::Coroutine )
+		return SemaError("Yield statement can only be used in 'async' functions.");
+
+	AstYield& yield_nod = ast_cast<AstYield>(ast_yield);
+
+	auto expr_result = sema_expr_any(yield_nod.expr);
+	if( !expr_result.ok() )
+		return expr_result;
+
+	SymFunc& func = sym_cast<SymFunc>(current_function->sym);
+	SymLookupResult yield_ty_sym = sym_tab.lookup(ty_cast<TyFunc>(func.ty).rt_qty.ty);
+	if( !yield_ty_sym.found() )
+		return SemaError("??");
+
+	QualifiedTy yield_qty = gen_iter_qty(builtins, yield_ty_sym.first());
+	HirNode* expr = expr_result.unwrap();
+	auto coercion_result = equal_coercion(yield_qty, expr);
+	if( !coercion_result.ok() )
+		return coercion_result;
+
+	QualifiedTy send_qty = gen_send_qty(builtins, yield_ty_sym.first());
+	return hir.create<HirYield>(send_qty, coercion_result.unwrap());
+	// return hir.create<
 }
 
 SemaResult<HirNode*>
@@ -1623,6 +1740,9 @@ Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 		break;
 	case HirNodeKind::Enum:
 		sym = hir_cast<HirEnum>(hir_stmt).sym;
+		break;
+	case HirNodeKind::Interface:
+		sym = hir_cast<HirInterface>(hir_stmt).sym;
 		break;
 	default:
 		return NotImpl();

@@ -22,6 +22,8 @@ enum class TokenKind
 	CloseCurly,
 
 	Exclam,
+	Caret,
+	Tilde,
 	Ampersand,
 	AmpAmp,
 	Pipe,
@@ -29,6 +31,7 @@ enum class TokenKind
 	SkinnyArrow,
 	FatArrow,
 	Dot,
+	Percent,
 	Colon,
 	ColonColon,
 	SemiColon,
@@ -46,6 +49,10 @@ enum class TokenKind
 	LtEq,
 
 	FnKw,
+	YieldKw,
+	AsyncKw,
+	UsingKw,
+	ImplKw,
 	TemplateKw,
 	TypenameKw,
 	InterfaceKw,
@@ -107,3 +114,5 @@ struct Token
 	Token();
 	Token(TokenView view, TokenKind kind);
 };
+
+char const* get_tokentype_string(TokenKind const& tok_kind);

@@ -41,6 +41,8 @@ enum class NodeKind
 	Switch,
 	Case,
 	Break,
+	Yield,
+	Using,
 	Default,
 	Continue,
 	For,
@@ -49,8 +51,6 @@ enum class NodeKind
 	Expr,
 	Stmt,
 };
-
-std::string to_string(NodeKind type);
 
 struct AstNode;
 
@@ -81,10 +81,18 @@ struct AstTypeDeclarator
 	static constexpr NodeKind nt = NodeKind::TypeDeclarator;
 	std::vector<AstNode*> params;
 	AstNode* id;
+
+	enum class ImplKind
+	{
+		None,
+		Impl,
+	} impl_kind = ImplKind::None;
+
 	int indirection;
 
-	AstTypeDeclarator(std::vector<AstNode*> params, AstNode* id, int indirection)
-		: params(params)
+	AstTypeDeclarator(ImplKind kind, std::vector<AstNode*> params, AstNode* id, int indirection)
+		: impl_kind(kind)
+		, params(params)
 		, id(id)
 		, indirection(indirection){};
 };
@@ -186,21 +194,27 @@ struct AstFuncProto
 		None
 	};
 
+	enum class Routine
+	{
+		Subroutine,
+		Coroutine
+	};
+
 	static constexpr NodeKind nt = NodeKind::FuncProto;
 
 	Linkage linkage = Linkage::None;
+	Routine routine = Routine::Subroutine;
 
 	AstNode* id;
 	std::vector<AstNode*> parameters;
 	AstNode* rt_type_declarator;
 
 	AstFuncProto(
-		Linkage linkage, AstNode* id, std::vector<AstNode*> parameters, AstNode* rt_type_declarator)
-		: linkage(linkage)
-		, parameters(parameters)
-		, id(id)
-		, rt_type_declarator(rt_type_declarator)
-	{}
+		Linkage linkage,
+		Routine routine,
+		AstNode* id,
+		std::vector<AstNode*> parameters,
+		AstNode* rt_type_declarator);
 };
 struct AstFuncCall
 {
@@ -450,6 +464,28 @@ struct AstBreak
 	AstBreak() {}
 };
 
+struct AstYield
+{
+	static constexpr NodeKind nt = NodeKind::Yield;
+
+	AstNode* expr;
+
+	AstYield(AstNode* expr)
+		: expr(expr){};
+};
+
+struct AstUsing
+{
+	static constexpr NodeKind nt = NodeKind::Using;
+
+	AstNode* id_lhs;
+	AstNode* id_rhs;
+
+	AstUsing(AstNode* id_lhs, AstNode* id_rhs)
+		: id_lhs(id_lhs)
+		, id_rhs(id_rhs){};
+};
+
 struct AstDefault
 {
 	static constexpr NodeKind nt = NodeKind::Default;
@@ -604,9 +640,101 @@ struct AstNode
 		AstTemplate ast_template;
 		AstTemplateId ast_template_id;
 		AstInterface ast_interface;
+		AstYield ast_yield;
+		AstUsing ast_using;
 
 		// Attention! This leaks!
 		NodeData() {}
 		~NodeData() {}
 	} data;
 };
+
+std::string to_string(NodeKind type);
+
+template<typename Node, typename AstTy>
+auto&
+ast_cast(AstTy* ast_node)
+{
+	assert(ast_node->kind == Node::nt && "Bad ast_cast");
+
+	if constexpr( std::is_same_v<AstModule, Node> )
+		return ast_node->data.ast_module;
+	else if constexpr( std::is_same_v<AstId, Node> )
+		return ast_node->data.ast_id;
+	else if constexpr( std::is_same_v<AstVarDecl, Node> )
+		return ast_node->data.ast_var_decl;
+	else if constexpr( std::is_same_v<AstBlock, Node> )
+		return ast_node->data.ast_block;
+	else if constexpr( std::is_same_v<AstFunc, Node> )
+		return ast_node->data.ast_func;
+	else if constexpr( std::is_same_v<AstFuncProto, Node> )
+		return ast_node->data.ast_func_proto;
+	else if constexpr( std::is_same_v<AstTypeDeclarator, Node> )
+		return ast_node->data.ast_type_declarator;
+	else if constexpr( std::is_same_v<AstReturn, Node> )
+		return ast_node->data.ast_return;
+	else if constexpr( std::is_same_v<AstExpr, Node> )
+		return ast_node->data.ast_expr;
+	else if constexpr( std::is_same_v<AstStmt, Node> )
+		return ast_node->data.ast_stmt;
+	else if constexpr( std::is_same_v<AstNumberLiteral, Node> )
+		return ast_node->data.ast_number_literal;
+	else if constexpr( std::is_same_v<AstFuncCall, Node> )
+		return ast_node->data.ast_func_call;
+	else if constexpr( std::is_same_v<AstBinOp, Node> )
+		return ast_node->data.ast_bin_op;
+	else if constexpr( std::is_same_v<AstLet, Node> )
+		return ast_node->data.ast_let;
+	else if constexpr( std::is_same_v<AstIf, Node> )
+		return ast_node->data.ast_if;
+	else if constexpr( std::is_same_v<AstStruct, Node> )
+		return ast_node->data.ast_struct;
+	else if constexpr( std::is_same_v<AstUnion, Node> )
+		return ast_node->data.ast_union;
+	else if constexpr( std::is_same_v<AstEnum, Node> )
+		return ast_node->data.ast_enum;
+	else if constexpr( std::is_same_v<AstSizeOf, Node> )
+		return ast_node->data.ast_sizeof;
+	else if constexpr( std::is_same_v<AstAddressOf, Node> )
+		return ast_node->data.ast_addressof;
+	else if constexpr( std::is_same_v<AstEnumMember, Node> )
+		return ast_node->data.ast_enum_member;
+	else if constexpr( std::is_same_v<AstArrayAccess, Node> )
+		return ast_node->data.ast_array_access;
+	else if constexpr( std::is_same_v<AstMemberAccess, Node> )
+		return ast_node->data.ast_member_access;
+	else if constexpr( std::is_same_v<AstDeref, Node> )
+		return ast_node->data.ast_deref;
+	else if constexpr( std::is_same_v<AstBoolNot, Node> )
+		return ast_node->data.ast_boolnot;
+	else if constexpr( std::is_same_v<AstSwitch, Node> )
+		return ast_node->data.ast_switch;
+	else if constexpr( std::is_same_v<AstCase, Node> )
+		return ast_node->data.ast_case;
+	else if constexpr( std::is_same_v<AstDefault, Node> )
+		return ast_node->data.ast_default;
+	else if constexpr( std::is_same_v<AstBreak, Node> )
+		return ast_node->data.ast_break;
+	else if constexpr( std::is_same_v<AstFor, Node> )
+		return ast_node->data.ast_for;
+	else if constexpr( std::is_same_v<AstWhile, Node> )
+		return ast_node->data.ast_while;
+	else if constexpr( std::is_same_v<AstAssign, Node> )
+		return ast_node->data.ast_assign;
+	else if constexpr( std::is_same_v<AstDiscriminatingBlock, Node> )
+		return ast_node->data.ast_discriminating_block;
+	else if constexpr( std::is_same_v<AstIs, Node> )
+		return ast_node->data.ast_is;
+	else if constexpr( std::is_same_v<AstTemplate, Node> )
+		return ast_node->data.ast_template;
+	else if constexpr( std::is_same_v<AstTemplateId, Node> )
+		return ast_node->data.ast_template_id;
+	else if constexpr( std::is_same_v<AstInterface, Node> )
+		return ast_node->data.ast_interface;
+	else if constexpr( std::is_same_v<AstYield, Node> )
+		return ast_node->data.ast_yield;
+	else if constexpr( std::is_same_v<AstUsing, Node> )
+		return ast_node->data.ast_using;
+	else
+		static_assert("Cannot create node of type " + to_string(Node::nt));
+}

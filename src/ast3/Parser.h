@@ -44,13 +44,16 @@ public:
 	ParseResult<AstNode*> parse_case();
 	ParseResult<AstNode*> parse_default();
 	ParseResult<AstNode*> parse_break();
+	ParseResult<AstNode*> parse_yield();
 	ParseResult<AstNode*> parse_interface();
+	ParseResult<AstNode*> parse_interface_member();
 	ParseResult<AstNode*> parse_struct();
 	ParseResult<AstNode*> parse_union();
 	ParseResult<AstNode*> parse_enum();
 	ParseResult<AstNode*> parse_enum_member();
 	ParseResult<AstNode*> parse_let();
 	ParseResult<AstNode*> parse_if();
+	ParseResult<AstNode*> parse_using();
 	ParseResult<AstNode*> parse_is(AstNode* base);
 	ParseResult<AstNode*> parse_number_literal();
 	ParseResult<AstNode*> parse_postfix_expr();
@@ -59,6 +62,8 @@ public:
 	ParseResult<AstNode*> parse_expr_stmt();
 	ParseResult<AstNode*> parse_expr();
 	ParseResult<AstNode*> parse_expr_any();
+	// non-'yield' expressions
+	ParseResult<AstNode*> parse_expr_interior();
 	ParseResult<AstNode*> parse_statement();
 
 	static ParseResult<AstNode*> parse(Ast& ast, Cursor& cursor);

@@ -18,6 +18,7 @@ enum class HirNodeKind
 	Id,
 	Subscript, // arr[]
 	Member,	   // a.b or a->b
+	Yield,
 	Return,
 	Struct,
 	Union,
@@ -94,13 +95,21 @@ struct HirFuncProto
 		None
 	};
 
+	enum class Routine
+	{
+		Subroutine,
+		Coroutine,
+	};
+
 	Linkage linkage = Linkage::None;
+	Routine kind = Routine::Subroutine;
 	std::vector<HirNode*> parameters;
 
 	Sym* sym;
 
-	HirFuncProto(Linkage linkage, Sym* sym, std::vector<HirNode*> parameters)
-		: linkage(linkage)
+	HirFuncProto(Linkage linkage, Routine kind, Sym* sym, std::vector<HirNode*> parameters)
+		: kind(kind)
+		, linkage(linkage)
 		, parameters(parameters)
 		, sym(sym)
 	{}
@@ -113,6 +122,17 @@ struct HirReturn
 	HirNode* expr;
 
 	HirReturn(HirNode* expr)
+		: expr(expr)
+	{}
+};
+
+struct HirYield
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Yield;
+
+	HirNode* expr;
+
+	HirYield(HirNode* expr)
 		: expr(expr)
 	{}
 };
@@ -249,8 +269,9 @@ struct HirEnum
 };
 
 // This is similar to Struct except its members are functions.
-// VTable struct definitions are generated
-// as a result of this node.
+// VTable struct definitions and
+// interface "Fat Pointers" struct defintions
+// are generated as a result of this node.
 struct HirInterface
 {
 	static constexpr HirNodeKind nt = HirNodeKind::Interface;
@@ -417,6 +438,7 @@ struct HirNode
 		HirFunc hir_func;
 		HirFuncProto hir_func_proto;
 		HirReturn hir_return;
+		HirYield hir_yield;
 		HirId hir_id;
 		HirNumberLiteral hir_number_literal;
 		HirCall hir_call;
@@ -478,6 +500,8 @@ hir_cast(HirNode* hir_node)
 		return hir_node->data.hir_loop;
 	else if constexpr( std::is_same_v<HirInterface, Node> )
 		return hir_node->data.hir_interface;
+	else if constexpr( std::is_same_v<HirYield, Node> )
+		return hir_node->data.hir_yield;
 	else
 		static_assert("Cannot create hir node of type ");
 }

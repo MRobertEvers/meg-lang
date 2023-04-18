@@ -55,7 +55,7 @@ main(int argc, char* argv[])
 	Hir hir;
 	Types types;
 	SymTab sym_tab;
-	Sema sema(hir, types, sym_tab);
+	Sema sema(ast, hir, types, sym_tab);
 
 	SemaResult<HirNode*> hir_root = sema.sema_module(root.unwrap());
 	if( !hir_root.ok() )
