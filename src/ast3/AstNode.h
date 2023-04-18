@@ -35,6 +35,8 @@ enum class NodeKind
 	Let,
 	If,
 	Is,
+	Initializer,
+	Designator,
 	Return,
 	VarDecl,
 	Assign,
@@ -560,6 +562,30 @@ struct AstIs
 		, type_decl(type_decl){};
 };
 
+struct AstDesignator
+{
+	static constexpr NodeKind nt = NodeKind::Designator;
+
+	AstNode* id;
+	AstNode* expr;
+
+	AstDesignator(AstNode* id, AstNode* expr)
+		: id(id)
+		, expr(expr){};
+};
+
+struct AstInitializer
+{
+	static constexpr NodeKind nt = NodeKind::Initializer;
+
+	AstNode* id;
+	std::vector<AstNode*> designators;
+
+	AstInitializer(AstNode* id, std::vector<AstNode*> designators)
+		: id(id)
+		, designators(designators){};
+};
+
 struct AstTemplate
 {
 	static constexpr NodeKind nt = NodeKind::Template;
@@ -642,6 +668,8 @@ struct AstNode
 		AstInterface ast_interface;
 		AstYield ast_yield;
 		AstUsing ast_using;
+		AstDesignator ast_designator;
+		AstInitializer ast_initializer;
 
 		// Attention! This leaks!
 		NodeData() {}
@@ -735,6 +763,10 @@ ast_cast(AstTy* ast_node)
 		return ast_node->data.ast_yield;
 	else if constexpr( std::is_same_v<AstUsing, Node> )
 		return ast_node->data.ast_using;
+	else if constexpr( std::is_same_v<AstDesignator, Node> )
+		return ast_node->data.ast_designator;
+	else if constexpr( std::is_same_v<AstInitializer, Node> )
+		return ast_node->data.ast_initializer;
 	else
 		static_assert("Cannot create node of type " + to_string(Node::nt));
 }

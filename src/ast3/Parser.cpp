@@ -246,9 +246,9 @@ Parser::parse_identifier(AstId::IdKind mode)
 	 */
 	auto template_parse_result = parse_template_identifer(ast_id);
 	if( template_parse_result.ok() )
-		return template_parse_result;
-	else
-		return ast_id;
+		ast_id = template_parse_result.unwrap();
+
+	return ast_id;
 }
 
 ParseResult<AstNode*>
@@ -1158,6 +1158,61 @@ Parser::parse_is(AstNode* base)
 }
 
 ParseResult<AstNode*>
+Parser::parse_initializer(AstNode* base)
+{
+	if( base->kind != NodeKind::Id )
+		return base;
+
+	auto tokc = cursor.consume(TokenKind::OpenCurly);
+	if( !tokc.ok() )
+		return ParseError("Expected '{'", tokc.token());
+
+	std::vector<AstNode*> designators;
+
+	Token tok = cursor.peek();
+	while( tok.kind != TokenKind::CloseCurly )
+	{
+		auto designator_result = parse_designator();
+		if( !designator_result.ok() )
+			return MoveError(designator_result);
+
+		designators.push_back(designator_result.unwrap());
+
+		cursor.consume_if_expected(TokenKind::Comma);
+
+		tok = cursor.peek();
+	}
+
+	tokc = cursor.consume(TokenKind::CloseCurly);
+	if( !tokc.ok() )
+		return ParseError("Expected '}'", tokc.token());
+
+	return ast.create<AstInitializer>(Span(), base, designators);
+}
+
+ParseResult<AstNode*>
+Parser::parse_designator()
+{
+	auto tokc = cursor.consume(TokenKind::Dot);
+	if( !tokc.ok() )
+		return ParseError("Expected '.'", tokc.token());
+
+	auto id_result = parse_identifier(AstId::IdKind::Simple);
+	if( !id_result.ok() )
+		return id_result;
+
+	tokc = cursor.consume(TokenKind::Eq);
+	if( !tokc.ok() )
+		return ParseError("Expected '='", tokc.token());
+
+	auto expr_result = parse_expr();
+	if( !expr_result.ok() )
+		return expr_result;
+
+	return ast.create<AstDesignator>(Span(), id_result.unwrap(), expr_result.unwrap());
+}
+
+ParseResult<AstNode*>
 Parser::parse_number_literal()
 {
 	auto tok = cursor.consume(TokenKind::NumberLiteral);
@@ -1189,6 +1244,8 @@ Parser::parse_postfix_expr()
 		return parse_is(simple_expr);
 	case TokenKind::SkinnyArrow:
 		return parse_indirect_member_access(simple_expr);
+	case TokenKind::OpenCurly:
+		return parse_initializer(simple_expr);
 	case TokenKind::Dot:
 		return parse_member_access(simple_expr);
 	default:

@@ -55,6 +55,8 @@ public:
 	ParseResult<AstNode*> parse_if();
 	ParseResult<AstNode*> parse_using();
 	ParseResult<AstNode*> parse_is(AstNode* base);
+	ParseResult<AstNode*> parse_initializer(AstNode* base);
+	ParseResult<AstNode*> parse_designator();
 	ParseResult<AstNode*> parse_number_literal();
 	ParseResult<AstNode*> parse_postfix_expr();
 	ParseResult<AstNode*> parse_simple_expr();

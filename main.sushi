@@ -28,5 +28,9 @@ fn func(a: i32): i32 {
 }
 
 fn main(): i32 {
+    let p = Point {
+        .x = 11,
+        .y =  12
+    };
     return func(2) * 4;
 }

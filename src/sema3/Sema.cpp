@@ -762,6 +762,7 @@ Sema::sema_assign(AstNode* ast_assign)
 	if( !coercion_result.ok() )
 		return coercion_result;
 
+	// TODO: Insert copy constructor?
 	return hir.create<HirCall>(
 		QualifiedTy(builtins.void_ty), BinOp::Assign, std::vector<HirNode*>({lhs, rhs}));
 }
@@ -985,6 +986,55 @@ Sema::sema_if(AstNode* ast_if)
 }
 
 SemaResult<HirNode*>
+Sema::sema_initializer(AstNode* ast_initializer)
+{
+	AstInitializer& init = ast_cast<AstInitializer>(ast_initializer);
+
+	AstId& id = ast_cast<AstId>(init.id);
+
+	SymLookupResult sym_lu = sym_tab.lookup(id.name_parts);
+	if( !sym_lu.found() || !sym_lu.first_of(SymKind::Type) )
+		return SemaError("Not found.");
+	Sym* sym = sym_lu.first_of(SymKind::Type);
+	SymType& ty_sym = sym_cast<SymType>(sym);
+
+	std::vector<HirNode*> designators;
+	for( auto& ast_designator : init.designators )
+	{
+		AstDesignator& designator = ast_cast<AstDesignator>(ast_designator);
+		AstId& designator_id = ast_cast<AstId>(designator.id);
+
+		Sym* member_sym = ty_sym.scope.find(to_simple(designator_id));
+		if( !member_sym )
+			return SemaError(to_simple(designator_id) + " is not a member of type");
+
+		QualifiedTy needed_qty = sym_qty(builtins, member_sym);
+		auto rhs_result = sema_expr(designator.expr);
+		if( !rhs_result.ok() )
+			return rhs_result;
+
+		auto coercion_result = equal_coercion(needed_qty, rhs_result.unwrap());
+		if( !coercion_result.ok() )
+			return coercion_result;
+
+		std::vector<HirNode*> args{
+			hir.create<HirId>(needed_qty, member_sym), //
+			coercion_result.unwrap()				   //
+		};
+
+		// TODO: Insert copy constructor?
+		// Struct assignment is memcpy for now?
+		designators.push_back(hir.create<HirCall>(
+			// Assignment is a void type
+			QualifiedTy(builtins.void_ty),
+			BinOp::Assign,
+			args));
+	}
+
+	return hir.create<HirInitializer>(sym_qty(builtins, sym), sym, designators);
+}
+
+SemaResult<HirNode*>
 Sema::sema_is(AstNode* ast_is)
 {
 	AstIs& is = ast_cast<AstIs>(ast_is);
@@ -1121,6 +1171,8 @@ Sema::sema_expr_any(AstNode* ast_expr)
 		return sema_array_access(ast_expr);
 	case NodeKind::Yield:
 		return sema_yield(ast_expr);
+	case NodeKind::Initializer:
+		return sema_initializer(ast_expr);
 	// We can end up with next expr->expr->expr due to parens.
 	case NodeKind::Expr:
 		return sema_expr(ast_expr);

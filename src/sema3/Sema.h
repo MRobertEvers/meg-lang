@@ -47,6 +47,7 @@ public:
 	SemaResult<HirNode*> sema_member_access(AstNode* ast_member_access);
 	SemaResult<HirNode*> sema_let(AstNode* ast_let);
 	SemaResult<HirNode*> sema_if(AstNode* ast_if);
+	SemaResult<HirNode*> sema_initializer(AstNode* ast_initializer);
 	SemaResult<HirNode*> sema_is(AstNode* ast_is);
 	SemaResult<HirNode*> sema_using(AstNode* ast_using);
 	SemaResult<HirNode*> sema_expr(AstNode* ast_expr);
