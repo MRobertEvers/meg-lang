@@ -315,6 +315,7 @@ struct HirLet
  * Used to perform pointer arithmetic.
  * Binary operations on pointers are transformed into HirSubscript
  *
+ * elem[subscript]
  */
 struct HirSubscript
 {

@@ -27,7 +27,7 @@ QualifiedTy::is_int() const
 bool
 QualifiedTy::is_pointer() const
 {
-	return indirection != 1;
+	return indirection != 0;
 }
 
 bool

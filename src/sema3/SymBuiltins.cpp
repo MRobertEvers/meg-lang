@@ -62,6 +62,10 @@ SymBuiltins::create_builtins(SymTab& sym_tab, Types& types, Ast& ast)
 {
 	SymBuiltins builtins;
 	Ty const* ty = nullptr;
+	ty = types.create<TyInt>("iAny", TyInt::IntKind::iX);
+	sym_tab.create<SymType>(ty);
+	builtins.ix_ty = ty;
+
 	ty = types.create<TyInt>("i64", TyInt::IntKind::i64);
 	sym_tab.create_named<SymType>("i64", ty);
 	builtins.i64_ty = ty;

@@ -91,7 +91,7 @@ Sema::equal_coercion(QualifiedTy target, HirNode* node)
 		TyInt const& target_ty = ty_cast<TyInt>(target.ty);
 		TyInt const& source_ty = ty_cast<TyInt>(node->qty.ty);
 
-		if( target_ty.width > source_ty.width )
+		if( target_ty.width > source_ty.width || source_ty.kind == TyInt::IntKind::iX )
 		{
 			auto ty_sym_lu = sym_tab.lookup(target.ty);
 			std::vector<HirNode*> args{hir.create<HirId>(target, ty_sym_lu.first()), node};
@@ -383,6 +383,8 @@ Sema::type_declarator(AstNode* ast_type_declarator)
 	QualifiedTy qty = sym_qty(builtins, sym);
 	if( type_declarator.impl_kind == AstTypeDeclarator::ImplKind::Impl )
 		qty.impl = QualifiedTy::ImplKind::Impl;
+
+	qty.indirection = type_declarator.indirection;
 
 	return TypeDeclResult{.qty = qty, .sym = sym};
 }
@@ -772,7 +774,7 @@ Sema::sema_array_access(AstNode* ast_array_access)
 {
 	AstArrayAccess& array_access = ast_cast<AstArrayAccess>(ast_array_access);
 
-	auto callee_result = sema_expr(array_access.callee);
+	auto callee_result = sema_expr_any(array_access.callee);
 	if( !callee_result.ok() )
 		return callee_result;
 
@@ -1648,6 +1650,11 @@ Sema::sema_bin_op_long(AstNode* ast_bin_op)
 		args.push_back(arg_result.unwrap());
 	}
 
+	bool some_ptr =
+		std::any_of(args.begin(), args.end(), [&](HirNode* hir) { return hir->qty.is_pointer(); });
+	if( (bin_op.op == BinOp::Add || bin_op.op == BinOp::Sub) && some_ptr )
+		return ptr_arithmetic(bin_op.op, args);
+
 	// TODO: LHS might be convertable to rhs.
 	auto coercion_result = equal_coercion(args[0]->qty, args[1]);
 	if( !coercion_result.ok() )
@@ -1721,7 +1728,7 @@ Sema::sema_number_literal(AstNode* ast_number_literal)
 {
 	AstNumberLiteral& literal = ast_cast<AstNumberLiteral>(ast_number_literal);
 	// TODO: Check the number size and choose the type appropriately.
-	return hir.create<HirNumberLiteral>(QualifiedTy(builtins.i8_ty), literal.value);
+	return hir.create<HirNumberLiteral>(QualifiedTy(builtins.ix_ty), literal.value);
 }
 
 SemaResult<Sym*>
@@ -1806,4 +1813,26 @@ Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 	sym_tab.restore_state(save_state);
 
 	return sym;
+}
+
+SemaResult<HirNode*>
+Sema::ptr_arithmetic(BinOp op, std::vector<HirNode*> args)
+{
+	if( std::all_of(args.begin(), args.end(), [&](HirNode* hir) { return hir->qty.is_pointer(); }) )
+		return SemaError("Cannot perform arithmetic between two pointers.");
+
+	HirNode* ptr = args[0]->qty.is_pointer() ? args[0] : args[1];
+	HirNode* number = args[0]->qty.is_pointer() ? args[1] : args[0];
+
+	auto number_coercion = equal_coercion(QualifiedTy(builtins.i32_ty), number);
+	if( !number_coercion.ok() )
+		return number_coercion;
+
+	number = number_coercion.unwrap();
+
+	// ptr-qty is dummy here.
+	HirNode* ptr_deref = hir.create<HirSubscript>(ptr->qty, ptr, number);
+
+	return hir.create<HirCall>(
+		ptr->qty, HirCall::BuiltinKind::AddressOf, std::vector<HirNode*>({ptr_deref}));
 }

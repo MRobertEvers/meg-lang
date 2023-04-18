@@ -1,9 +1,13 @@
 
 
+struct Wind {
+    i: i32;
+}
 
 struct Point {
     x: i8;
     y: i8;
+    w: Wind;
 }
 
 async fn range(a: i32, b: i32): impl generator<i32, void, void> {
@@ -17,20 +21,10 @@ enum AstNode {
     Func { id: i32 }
 }
 
-fn P(p: Point): Point {
-    return p;
-}
-
-fn func(a: i32): i32 {
-    let p: Point;
-    P(p);
-    return a;
-}
-
 fn main(): i32 {
-    let p = Point {
-        .x = 11,
-        .y =  12
-    };
-    return func(2) * 4;
+    let arr: i8*;
+
+    let elem = arr[4];
+
+    return 4;
 }
