@@ -133,6 +133,12 @@ sym_qty(SymBuiltins const& builtins, Sym* sym)
 	}
 }
 
+Ty const*
+sym_ty(SymBuiltins const& builtins, Sym* sym)
+{
+	return sym_qty(builtins, sym).ty;
+}
+
 QualifiedTy
 int_qty(SymBuiltins const& builtins, int width, bool is_signed)
 {

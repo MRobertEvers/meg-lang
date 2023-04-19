@@ -28,4 +28,5 @@ public:
 };
 
 QualifiedTy sym_qty(SymBuiltins const& builtins, Sym* sym);
+Ty const* sym_ty(SymBuiltins const& builtins, Sym* sym);
 QualifiedTy int_qty(SymBuiltins const& builtins, int width, bool is_signed);

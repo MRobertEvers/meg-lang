@@ -106,12 +106,12 @@ Sema::equal_coercion(QualifiedTy target, HirNode* node)
 	return SemaError("Not coercable");
 }
 
-Sema::Sema(Ast& ast, Hir& hir, Types& types, SymTab& sym_tab)
+Sema::Sema(Ast& ast, Hir& hir, Types& types, SymTab& sym_tab, SymBuiltins& builtins)
 	: ast(ast)
 	, hir(hir)
 	, types(types)
 	, sym_tab(sym_tab)
-	, builtins(SymBuiltins::create_builtins(sym_tab, types, ast))
+	, builtins(builtins)
 {}
 
 SemaResult<HirNode*>
@@ -254,9 +254,13 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	// from that??
 	// TODO: Enter the function in the symbol table
 	// The function in the symbol table acts as an overload set
-	Ty const* func_ty = types.create<TyFunc>(to_simple(id), arg_qtys, rt_type_declarator);
-	Sym* sym = sym_tab.create_named<SymFunc>(to_simple(id), func_ty);
+	std::string name = to_simple(id);
+	Ty const* func_ty = types.create<TyFunc>(name, arg_qtys, rt_type_declarator);
+	Sym* sym = sym_tab.create_named<SymFunc>(name, func_ty);
+	if( name == "main" )
+		linkage = HirFuncProto::Linkage::Extern;
 
+	SymFunc& sym_func = sym->data.sym_func;
 	std::vector<HirNode*> parameters;
 	for( int i = 0; i < func_proto.parameters.size(); i++ )
 	{
@@ -268,8 +272,9 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 		QualifiedTy qty = arg_qtys.at(i);
 		Sym* sym_var = sym_tab.create_named<SymVar>(to_simple(ast_id), qty);
 
-		SymFunc& sym_func = sym->data.sym_func;
 		sym_func.scope.insert(to_simple(ast_id), sym_var);
+
+		parameters.push_back(hir.create<HirId>(qty, sym_var));
 	}
 
 	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, routine_kind, sym, parameters);

@@ -56,7 +56,8 @@ main(int argc, char* argv[])
 	Hir hir;
 	Types types;
 	SymTab sym_tab;
-	Sema sema(ast, hir, types, sym_tab);
+	SymBuiltins builtins = SymBuiltins::create_builtins(sym_tab, types, ast);
+	Sema sema(ast, hir, types, sym_tab, builtins);
 
 	SemaResult<HirNode*> hir_root = sema.sema_module(root.unwrap());
 	if( !hir_root.ok() )
@@ -65,7 +66,7 @@ main(int argc, char* argv[])
 		return -1;
 	}
 
-	auto cg = Codegen::codegen(hir_root.unwrap());
+	auto cg = Codegen::codegen(builtins, hir_root.unwrap());
 	cg.print();
 
 	return 0;

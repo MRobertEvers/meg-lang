@@ -60,6 +60,7 @@ add_executable(sushi
   src/codegen3/Expr.cpp
   src/codegen3/RValue.cpp
   src/codegen3/Codegen.cpp
+  src/codegen3/Function.cpp
 )
 
 # Now build our tools

@@ -16,14 +16,14 @@ class Sema
 	Types& types;
 	SymTab& sym_tab;
 
-	SymBuiltins builtins;
+	SymBuiltins& builtins;
 
 	// Used during template instantiation to inject top level statements.
 	std::vector<HirNode*>* current_module = nullptr;
 	HirFuncProto* current_function = nullptr;
 
 public:
-	Sema(Ast& ast, Hir& hir, Types& types, SymTab& sym_tab);
+	Sema(Ast& ast, Hir& hir, Types& types, SymTab& sym_tab, SymBuiltins& builtins);
 
 	SemaResult<HirNode*> sema_module(AstNode* ast_module);
 	SemaResult<HirNode*> sema_module_stmt_any(AstNode* ast_module_stmt);
