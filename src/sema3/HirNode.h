@@ -33,7 +33,8 @@ enum class HirNodeKind
 	VarDecl,
 	Expr,
 	Stmt,
-	NumberLiteral
+	NumberLiteral,
+	StringLiteral,
 };
 
 struct HirNode;
@@ -245,6 +246,17 @@ struct HirNumberLiteral
 	long long value = 0;
 
 	HirNumberLiteral(long long value)
+		: value(value)
+	{}
+};
+
+struct HirStringLiteral
+{
+	static constexpr HirNodeKind nt = HirNodeKind::StringLiteral;
+
+	std::string value = 0;
+
+	HirStringLiteral(std::string value)
 		: value(value)
 	{}
 };
@@ -471,6 +483,7 @@ struct HirNode
 		HirYield hir_yield;
 		HirId hir_id;
 		HirNumberLiteral hir_number_literal;
+		HirStringLiteral hir_string_literal;
 		HirCall hir_call;
 		HirLet hir_let;
 		HirIf hir_if;
@@ -501,6 +514,8 @@ hir_cast(HirNode* hir_node)
 		return hir_node->data.hir_return;
 	else if constexpr( std::is_same_v<HirNumberLiteral, Node> )
 		return hir_node->data.hir_number_literal;
+	else if constexpr( std::is_same_v<HirStringLiteral, Node> )
+		return hir_node->data.hir_string_literal;
 	else if constexpr( std::is_same_v<HirBlock, Node> )
 		return hir_node->data.hir_block;
 	else if constexpr( std::is_same_v<HirFunc, Node> )

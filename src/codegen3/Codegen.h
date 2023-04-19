@@ -46,6 +46,7 @@ public:
 	Expr codegen_expr(HirNode*);
 	Expr codegen_return(HirNode*);
 	Expr codegen_number_literal(HirNode*);
+	Expr codegen_string_literal(HirNode*);
 
 	llvm::Value* codegen_memcpy(Expr expr, llvm::Value* dest);
 	llvm::Value* codegen_eval(Expr expr);

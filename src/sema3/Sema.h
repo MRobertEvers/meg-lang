@@ -64,6 +64,7 @@ public:
 	SemaResult<HirNode*> sema_bin_op_long(AstNode* ast_bin_op);
 	SemaResult<HirNode*> sema_bin_op_short_circuit(AstNode* ast_bin_op);
 	SemaResult<HirNode*> sema_number_literal(AstNode* ast_number_literal);
+	SemaResult<HirNode*> sema_string_literal(AstNode* ast_string_literal);
 
 private:
 	struct TypeDeclResult

@@ -108,6 +108,8 @@ to_string(NodeKind type)
 		return "Designator";
 	case NodeKind::Initializer:
 		return "Initializer";
+	case NodeKind::StringLiteral:
+		return "StringLiteral";
 	}
 
 	return "Bad";

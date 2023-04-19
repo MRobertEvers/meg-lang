@@ -32,6 +32,9 @@ Lex::next()
 	case TokenKind::NumberLiteral:
 		token = tok_number_literal();
 		break;
+	case TokenKind::StringLiteral:
+		token = tok_quote();
+		break;
 	case TokenKind::Pipe:
 	case TokenKind::Ampersand:
 	case TokenKind::Minus:
@@ -86,6 +89,9 @@ Lex::tok_start()
 		break;
 	case CHAR_IDENTIFIER_START_CASES:
 		tok_kind = TokenKind::Identifier;
+		break;
+	case '"':
+		tok_kind = TokenKind::StringLiteral;
 		break;
 	case '[':
 		tok_kind = TokenKind::OpenSquare;
@@ -293,6 +299,36 @@ done:
 	TokenKind tok_kind = get_identifier_or_keyword_type(tok_view);
 
 	return Token(tok_view, tok_kind);
+}
+
+Token
+Lex::tok_quote()
+{
+	TokenView tok_view(head());
+	tok_view.size = 1;
+	cursor_++;
+
+	while( !is_done() )
+	{
+		char c = current();
+
+		switch( c )
+		{
+		case '"':
+			cursor_++;
+			tok_view.size += 1;
+			goto done;
+			break;
+		default:
+			tok_view.size += 1;
+			break;
+		}
+
+		cursor_++;
+	}
+
+done:
+	return Token(tok_view, TokenKind::StringLiteral);
 }
 
 Token

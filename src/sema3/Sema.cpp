@@ -250,12 +250,9 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	{
 		AstVarDecl& var_decl = ast_cast<AstVarDecl>(param);
 		AstTypeDeclarator& ast_ty = ast_cast<AstTypeDeclarator>(var_decl.type_declarator);
+		auto type_declarator_result = type_declarator(var_decl.type_declarator);
 
-		SymLookupResult ty_lu = sym_tab.lookup(ast_cast<AstId>(ast_ty.id).name_parts);
-		if( !ty_lu.found() )
-			return SemaError("Unrecognized type.");
-
-		arg_qtys.push_back(sym_qty(builtins, ty_lu.first()));
+		arg_qtys.push_back(type_declarator_result.unwrap().qty);
 	}
 
 	auto rt_type_declarator_result = type_declarator(func_proto.rt_type_declarator);
@@ -270,7 +267,8 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	// TODO: Enter the function in the symbol table
 	// The function in the symbol table acts as an overload set
 	std::string name = to_simple(id);
-	Ty const* func_ty = types.create<TyFunc>(name, arg_qtys, rt_type_declarator);
+	Ty const* func_ty = types.create<TyFunc>(
+		name, arg_qtys, rt_type_declarator, func_proto.var_arg == AstFuncProto::VarArg::VarArg);
 	Sym* sym = sym_tab.create_named<SymFunc>(name, func_ty);
 	if( name == "main" )
 		linkage = HirFuncProto::Linkage::Extern;
@@ -1178,6 +1176,8 @@ Sema::sema_expr_any(AstNode* ast_expr)
 	{
 	case NodeKind::NumberLiteral:
 		return sema_number_literal(ast_expr);
+	case NodeKind::StringLiteral:
+		return sema_string_literal(ast_expr);
 	case NodeKind::Id:
 		return sema_id(ast_expr);
 	case NodeKind::FuncCall:
@@ -1587,10 +1587,22 @@ Sema::sema_func_call(AstNode* ast_func_call)
 		if( !qty.is_function() )
 			return SemaError("...is not a function.");
 
+		TyFunc const& func_ty = ty_cast<TyFunc>(qty.ty);
+		if( args.size() < func_ty.args_qtys.size() )
+			return SemaError("Not enough args");
+
 		for( int i = 0; i < args.size(); i++ )
 		{
 			QualifiedTy const& arg_qty = args.at(i)->qty;
-			QualifiedTy const& expected_qty = ty_cast<TyFunc>(qty.ty).args_qtys.at(i);
+			if( i == func_ty.args_qtys.size() )
+			{
+				if( func_ty.is_var_arg )
+					break;
+				else
+					return SemaError("Too many arguments");
+			}
+
+			QualifiedTy const& expected_qty = func_ty.args_qtys.at(i);
 
 			auto coercion_result = equal_coercion(expected_qty, args.at(i));
 			if( !coercion_result.ok() )
@@ -1754,6 +1766,15 @@ Sema::sema_number_literal(AstNode* ast_number_literal)
 	AstNumberLiteral& literal = ast_cast<AstNumberLiteral>(ast_number_literal);
 	// TODO: Check the number size and choose the type appropriately.
 	return hir.create<HirNumberLiteral>(QualifiedTy(builtins.ix_ty), literal.value);
+}
+
+SemaResult<HirNode*>
+Sema::sema_string_literal(AstNode* ast_string_literal)
+{
+	AstStringLiteral& literal = ast_cast<AstStringLiteral>(ast_string_literal);
+	// TODO: Check the number size and choose the type appropriately.
+	return hir.create<HirStringLiteral>(
+		QualifiedTy(builtins.i8_ty, 1), literal.value.substr(1, literal.value.size() - 2));
 }
 
 SemaResult<Sym*>

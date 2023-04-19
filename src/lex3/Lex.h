@@ -27,6 +27,7 @@ private:
 	Token tok_ambiguous(TokenKind unmatched);
 	bool match(TokenView& view, char const* matcher);
 	Token tok_identifier();
+	Token tok_quote();
 	Token tok_number_literal();
 
 	void consume_whitespace(Token& tok);

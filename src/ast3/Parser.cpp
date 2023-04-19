@@ -1236,6 +1236,17 @@ Parser::parse_number_literal()
 }
 
 ParseResult<AstNode*>
+Parser::parse_string_literal()
+{
+	auto tok = cursor.consume(TokenKind::StringLiteral);
+	if( !tok.ok() )
+		return ParseError("Expected string literal", tok.token());
+
+	std::string sz = to_string(tok.token());
+	return ast.create<AstStringLiteral>(Span(), sz);
+}
+
+ParseResult<AstNode*>
 Parser::parse_postfix_expr()
 {
 	auto simple_expr_result = parse_simple_expr();
@@ -1278,6 +1289,14 @@ Parser::parse_simple_expr()
 		if( !expr_result.ok() )
 			return expr_result;
 		result = expr_result.unwrap();
+		break;
+	}
+	case TokenKind::StringLiteral:
+	{
+		auto sl_result = parse_string_literal();
+		if( !sl_result.ok() )
+			return sl_result;
+		result = sl_result.unwrap();
 		break;
 	}
 	case TokenKind::Identifier:

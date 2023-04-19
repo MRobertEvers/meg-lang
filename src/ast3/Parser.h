@@ -58,6 +58,7 @@ public:
 	ParseResult<AstNode*> parse_initializer(AstNode* base);
 	ParseResult<AstNode*> parse_designator();
 	ParseResult<AstNode*> parse_number_literal();
+	ParseResult<AstNode*> parse_string_literal();
 	ParseResult<AstNode*> parse_postfix_expr();
 	ParseResult<AstNode*> parse_simple_expr();
 	ParseResult<AstNode*> parse_bin_op(int precidence, AstNode* lhs);

@@ -107,10 +107,13 @@ struct TyFunc
 
 	std::vector<QualifiedTy> args_qtys;
 	QualifiedTy rt_qty;
+	bool is_var_arg;
 
-	TyFunc(std::string name, std::vector<QualifiedTy> args_qtys, QualifiedTy rt_qty)
+	TyFunc(
+		std::string name, std::vector<QualifiedTy> args_qtys, QualifiedTy rt_qty, bool is_var_arg)
 		: name(name)
 		, args_qtys(args_qtys)
+		, is_var_arg(is_var_arg)
 		, rt_qty(rt_qty){};
 };
 

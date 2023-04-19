@@ -30,6 +30,7 @@ enum class NodeKind
 	Enum,
 	EnumMember,
 	NumberLiteral,
+	StringLiteral,
 	BoolLiteral,
 	TypeDeclarator,
 	Let,
@@ -157,6 +158,17 @@ struct AstNumberLiteral
 	long long value;
 
 	AstNumberLiteral(long long value)
+		: value(value)
+	{}
+};
+
+struct AstStringLiteral
+{
+	static constexpr NodeKind nt = NodeKind::StringLiteral;
+
+	std::string value;
+
+	AstStringLiteral(std::string value)
 		: value(value)
 	{}
 };
@@ -647,6 +659,7 @@ struct AstNode
 		AstExpr ast_expr;
 		AstStmt ast_stmt;
 		AstNumberLiteral ast_number_literal;
+		AstStringLiteral ast_string_literal;
 		AstBoolLiteral ast_bool_literal;
 		AstFuncCall ast_func_call;
 		AstBinOp ast_bin_op;
@@ -715,6 +728,8 @@ ast_cast(AstTy* ast_node)
 		return ast_node->data.ast_stmt;
 	else if constexpr( std::is_same_v<AstNumberLiteral, Node> )
 		return ast_node->data.ast_number_literal;
+	else if constexpr( std::is_same_v<AstStringLiteral, Node> )
+		return ast_node->data.ast_string_literal;
 	else if constexpr( std::is_same_v<AstFuncCall, Node> )
 		return ast_node->data.ast_func_call;
 	else if constexpr( std::is_same_v<AstBinOp, Node> )

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <vector>
 
 Codegen::Codegen(SymBuiltins& builtins)
@@ -72,6 +73,9 @@ Codegen::codegen_item(HirNode* hir_item)
 	{
 	case HirNodeKind::Func:
 		return codegen_func(hir_item);
+	case HirNodeKind::FuncProto:
+		codegen_func_proto(hir_item);
+		return Expr::Empty();
 	default:
 		return Expr::Empty();
 	}
@@ -260,6 +264,17 @@ Codegen::codegen_func_call(HirNode* hir_call)
 		}
 		else
 		{
+			llvm_arg_values.push_back(codegen_eval(expr));
+		}
+	}
+
+	// Var args.
+	if( call_nod.args.size() > callee.ir_arg_count() )
+	{
+		for( int i = callee.ir_arg_count(); i < call_nod.args.size(); i++ )
+		{
+			HirNode* hir_expr = call_nod.args.at(i);
+			Expr expr = codegen_expr(hir_expr);
 			llvm_arg_values.push_back(codegen_eval(expr));
 		}
 	}
@@ -478,6 +493,8 @@ Codegen::codegen_expr(HirNode* hir_expr)
 	{
 	case HirNodeKind::NumberLiteral:
 		return codegen_number_literal(hir_expr);
+	case HirNodeKind::StringLiteral:
+		return codegen_string_literal(hir_expr);
 	case HirNodeKind::Call:
 		return codegen_call(hir_expr);
 	case HirNodeKind::Id:
@@ -519,6 +536,93 @@ Codegen::codegen_number_literal(HirNode* hir_nl)
 	llvm::Value* llvm_const_int = llvm::ConstantInt::get(*context, llvm::APInt(32, nl.value, true));
 
 	return Expr(RValue(llvm_const_int, llvm_const_int->getType()));
+}
+
+static char
+escape_char(char c)
+{
+	// \a	07	Alert (Beep, Bell) (added in C89)[1]
+	// \b	08	Backspace
+	// \e	1B	Escape character
+	// \f	0C	Formfeed Page Break
+	// \n	0A	Newline (Line Feed); see notes below
+	// \r	0D	Carriage Return
+	// \t	09	Horizontal Tab
+	// \v	0B	Vertical Tab
+	// \\	5C	Backslash
+	// \'	27	Apostrophe or single quotation mark
+	// \"	22	Double quotation mark
+	// \?	3F	Question mark (used to avoid trigraphs)
+
+	switch( c )
+	{
+	case 'a':
+		return 0x07;
+	case 'b':
+		return 0x08;
+	case 'e':
+		return 0x1B;
+	case 'f':
+		return 0x0C;
+	case 'n':
+		return 0x0A;
+	case 'r':
+		return 0x0D;
+	case 't':
+		return 0x09;
+	case 'v':
+		return 0x0B;
+	case '\\':
+		return '\\';
+	case '\'':
+		return '\'';
+	case '"':
+		return '"';
+	case '?':
+		return '?';
+	default:
+		return c;
+	}
+}
+
+static std::string
+escape_string(std::string s)
+{
+	std::string res;
+	res.reserve(s.size());
+	bool escape = false;
+	for( auto c : s )
+	{
+		if( !escape && c == '\\' )
+		{
+			escape = true;
+			continue;
+		}
+
+		res.push_back(escape ? escape_char(c) : c);
+		escape = false;
+	}
+
+	return res;
+}
+
+Expr
+Codegen::codegen_string_literal(HirNode* hir_str)
+
+{
+	HirStringLiteral& str = hir_cast<HirStringLiteral>(hir_str);
+
+	auto llvm_literal =
+		llvm::ConstantDataArray::getString(*context, escape_string(str.value).c_str(), true);
+
+	llvm::GlobalVariable* llvm_global = new llvm::GlobalVariable(
+		*mod, llvm_literal->getType(), true, llvm::GlobalValue::InternalLinkage, llvm_literal);
+	llvm::Constant* zero = llvm::Constant::getNullValue(llvm::IntegerType::getInt32Ty(*context));
+	llvm::Constant* indices[] = {zero, zero};
+	llvm::Constant* llvm_str =
+		llvm::ConstantExpr::getGetElementPtr(llvm_literal->getType(), llvm_global, indices);
+
+	return RValue(llvm_str);
 }
 
 llvm::Value*
