@@ -1,5 +1,6 @@
 #include "ast3/Ast.h"
 #include "ast3/Parser.h"
+#include "codegen3/Codegen.h"
 #include "lex3/Lex.h"
 #include "lex3/Token.h"
 #include "lex3/print_token.h"
@@ -63,5 +64,9 @@ main(int argc, char* argv[])
 		hir_root.unwrap_error()->print();
 		return -1;
 	}
+
+	auto cg = Codegen::codegen(hir_root.unwrap());
+	cg.print();
+
 	return 0;
 }

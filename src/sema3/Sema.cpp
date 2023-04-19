@@ -1829,8 +1829,8 @@ Sema::ptr_arithmetic(BinOp op, std::vector<HirNode*> args)
 	if( one_of )
 		return SemaError("Cannot perform arithmetic between two pointers.");
 
-	HirNode* ptr = args[0]->qty.is_pointer() || hir->qty.is_array ? args[0] : args[1];
-	HirNode* number = args[0]->qty.is_pointer() || hir->qty.is_array ? args[1] : args[0];
+	HirNode* ptr = args[0]->qty.is_pointer() || args[0]->qty.is_array ? args[0] : args[1];
+	HirNode* number = args[0]->qty.is_pointer() || args[0]->qty.is_array ? args[1] : args[0];
 
 	auto number_coercion = equal_coercion(QualifiedTy(builtins.i32_ty), number);
 	if( !number_coercion.ok() )
@@ -1868,8 +1868,8 @@ Sema::int_arithmetic(BinOp op, std::vector<HirNode*> args)
 	HirNode* rhs = args[1];
 	QualifiedTy lhs_qty = lhs->qty;
 	QualifiedTy rhs_qty = rhs->qty;
-	TyInt& lhs_ty = ty_cast<TyInt>(lhs_qty.ty);
-	TyInt& rhs_ty = ty_cast<TyInt>(rhs_qty.ty);
+	TyInt const& lhs_ty = ty_cast<TyInt>(lhs_qty.ty);
+	TyInt const& rhs_ty = ty_cast<TyInt>(rhs_qty.ty);
 	QualifiedTy qty;
 
 	if( lhs_ty.width <= 32 && rhs_ty.width <= 32 )

@@ -39,6 +39,8 @@ get_token_precedence(BinOp bin_op_type)
 		return 10;
 	case BinOp::Assign:
 		return 5;
+	case BinOp::Bad:
+		return -1;
 	}
 }
 

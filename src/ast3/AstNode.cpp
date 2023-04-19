@@ -102,6 +102,10 @@ to_string(NodeKind type)
 		return "Yield";
 	case NodeKind::Using:
 		return "Using";
+	case NodeKind::Designator:
+		return "Designator";
+	case NodeKind::Initializer:
+		return "Initializer";
 	}
 
 	return "Bad";

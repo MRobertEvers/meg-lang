@@ -146,7 +146,9 @@ int_qty(SymBuiltins const& builtins, int width, bool is_signed)
 		return QualifiedTy(is_signed ? builtins.i32_ty : builtins.u32_ty);
 	case 64:
 		return QualifiedTy(is_signed ? builtins.i64_ty : builtins.u64_ty);
-	case 128:
-		return QualifiedTy(is_signed ? builtins.i128_ty : builtins.u128_ty);
+	// case 128:
+	// 	return QualifiedTy(is_signed ? builtins.i128_ty : builtins.u128_ty);
+	default:
+		return QualifiedTy(builtins.void_ty);
 	}
 }

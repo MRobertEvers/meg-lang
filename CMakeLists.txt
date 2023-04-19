@@ -56,6 +56,10 @@ add_executable(sushi
   src/sema3/SymLookup.cpp
   src/sema3/SymBuiltins.cpp
   src/sema3/QualifiedTy.cpp
+  src/codegen3/Address.cpp
+  src/codegen3/Expr.cpp
+  src/codegen3/RValue.cpp
+  src/codegen3/Codegen.cpp
 )
 
 # Now build our tools
