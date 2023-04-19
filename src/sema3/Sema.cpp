@@ -1671,9 +1671,8 @@ Sema::sema_bin_op_long(AstNode* ast_bin_op)
 		args.push_back(arg_result.unwrap());
 	}
 
-	bool some_ptr = std::any_of(args.begin(), args.end(), [&](HirNode* hir) {
-		return hir->qty.is_pointer() || hir->qty.is_array;
-	});
+	bool some_ptr = std::any_of(
+		args.begin(), args.end(), [&](HirNode* hir) { return hir->qty.is_subscriptable(); });
 	if( (bin_op.op == BinOp::Add || bin_op.op == BinOp::Sub) && some_ptr )
 		return ptr_arithmetic(bin_op.op, args);
 
@@ -1844,14 +1843,13 @@ Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 SemaResult<HirNode*>
 Sema::ptr_arithmetic(BinOp op, std::vector<HirNode*> args)
 {
-	bool one_of = std::all_of(args.begin(), args.end(), [&](HirNode* hir) {
-		return hir->qty.is_pointer() || hir->qty.is_array;
-	});
+	bool one_of = std::all_of(
+		args.begin(), args.end(), [&](HirNode* hir) { return hir->qty.is_subscriptable(); });
 	if( one_of )
 		return SemaError("Cannot perform arithmetic between two pointers.");
 
-	HirNode* ptr = args[0]->qty.is_pointer() || args[0]->qty.is_array ? args[0] : args[1];
-	HirNode* number = args[0]->qty.is_pointer() || args[0]->qty.is_array ? args[1] : args[0];
+	HirNode* ptr = args[0]->qty.is_subscriptable() ? args[0] : args[1];
+	HirNode* number = args[0]->qty.is_subscriptable() ? args[1] : args[0];
 
 	auto number_coercion = equal_coercion(QualifiedTy(builtins.i32_ty), number);
 	if( !number_coercion.ok() )

@@ -4,9 +4,10 @@ class Ty;
 
 class QualifiedTy
 {
+	bool is_array_ = false;
+
 public:
 	Ty const* ty = nullptr;
-	bool is_array = false;
 	int array_size = 0;
 
 	int indirection = 0;
@@ -33,6 +34,25 @@ public:
 	bool is_pointer() const;
 	bool is_function() const;
 	bool is_enum() const;
+	bool is_struct() const;
+	bool is_union() const;
+
+	/**
+	 * Pointers and arrays
+	 *
+	 * @return true
+	 * @return false
+	 */
+	bool is_subscriptable() const;
+
+	/**
+	 * Aggregate types are treated differently
+	 * in function passing.
+	 *
+	 * @return true
+	 * @return false
+	 */
+	bool is_aggregate_type() const;
 
 	QualifiedTy deref() const;
 

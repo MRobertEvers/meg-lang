@@ -71,7 +71,7 @@ Codegen::codegen_item(HirNode* hir_item)
 	switch( hir_item->kind )
 	{
 	case HirNodeKind::Func:
-		return codegen_function(hir_item);
+		return codegen_func(hir_item);
 	default:
 		return Expr::Empty();
 	}
@@ -105,50 +105,108 @@ linkage(HirFuncProto::Linkage link)
 }
 
 Expr
-Codegen::codegen_function(HirNode* hir_func)
+Codegen::codegen_func(HirNode* hir_func)
 {
 	//
-	HirFunc& func = hir_cast<HirFunc>(hir_func);
-	HirFuncProto& proto = hir_cast<HirFuncProto>(func.proto);
+	HirFunc& func_nod = hir_cast<HirFunc>(hir_func);
+
+	Function* func = codegen_func_proto(func_nod.proto);
+	current_func = func;
+
+	llvm::Function* llvm_fn = func->llvm_func;
+	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "", llvm_fn);
+	builder->SetInsertPoint(llvm_entry_bb);
+
+	for( int i = 0; i < func->ir_arg_count(); i++ )
+	{
+		Arg& arg = func->ir_arg(i);
+		assert(arg.sym);
+
+		int llvm_arg_index = func->llvm_arg_index(i);
+		llvm::Value* val = nullptr;
+
+		if( arg.is_byval() )
+			val = llvm_fn->getArg(llvm_arg_index);
+		else
+		{
+			val = builder->CreateAlloca(arg.type);
+			builder->CreateStore(llvm_fn->getArg(llvm_arg_index), val);
+		}
+
+		vars.emplace(arg.sym, Address(val, arg.type));
+	}
+
+	codegen_block(func_nod.body);
+
+	vars.clear();
+	current_func = nullptr;
+
+	return Expr::Empty();
+}
+
+static std::vector<llvm::Type*>
+to_llvm_arg_tys(std::vector<Arg> const& args)
+{
+	std::vector<llvm::Type*> arg_tys;
+	for( Arg const& arg : args )
+	{
+		if( arg.is_byval() || arg.is_sret() )
+			arg_tys.push_back(arg.type->getPointerTo());
+		else
+			arg_tys.push_back(arg.type);
+	}
+	return arg_tys;
+}
+
+static Sym*
+param_sym(HirNode* hir_param)
+{
+	HirId& id = hir_cast<HirId>(hir_param);
+
+	return id.sym;
+}
+
+Function*
+Codegen::codegen_func_proto(HirNode* hir_proto)
+{
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
 	TyFunc const& ty_func = func_ty(proto.sym);
 
 	llvm::Type* ret_ty = get_type(ty_func.rt_qty);
-	std::vector<llvm::Type*> arg_tys;
-	for( auto arg_qty : ty_func.args_qtys )
+	std::vector<Arg> args;
+
+	if( ty_func.rt_qty.is_aggregate_type() )
 	{
-		llvm::Type* arg_ty = get_type(arg_qty);
-		arg_tys.push_back(arg_ty);
+		args.push_back(Arg(nullptr, ret_ty, true, false));
+		ret_ty = llvm::Type::getVoidTy(*context);
 	}
 
-	llvm::FunctionType* llvm_fn_ty =
-		llvm::FunctionType::get(ret_ty, arg_tys, proto.var_arg == HirFuncProto::VarArg::VarArg);
+	for( int i = 0; i < ty_func.args_qtys.size(); i++ )
+	{
+		Sym* sym = param_sym(proto.parameters.at(i));
+		QualifiedTy qty = ty_func.args_qtys.at(i);
+		llvm::Type* ty = get_type(qty);
+		args.push_back(Arg(sym, ty, false, qty.is_aggregate_type()));
+	}
+
+	llvm::FunctionType* llvm_fn_ty = llvm::FunctionType::get(
+		ret_ty, to_llvm_arg_tys(args), proto.var_arg == HirFuncProto::VarArg::VarArg);
 
 	llvm::Function* llvm_fn =
 		llvm::Function::Create(llvm_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
 
-	auto emplaced = funcs.emplace(proto.sym, Function(llvm_fn));
-	current_func = &emplaced.first->second;
-
-	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "", llvm_fn);
-	builder->SetInsertPoint(llvm_entry_bb);
-
-	for( int i = 0; i < arg_tys.size(); i++ )
+	for( int i = 0; i < args.size(); i++ )
 	{
-		HirNode* arg = proto.parameters.at(i);
-		llvm::Type* ty = arg_tys.at(i);
-		HirId& arg_id = hir_cast<HirId>(arg);
-
-		llvm::Value* alloca = builder->CreateAlloca(ty);
-		builder->CreateStore(llvm_fn->getArg(i), alloca);
-		vars.emplace(arg_id.sym, Address(alloca, ty));
+		Arg& arg = args.at(i);
+		if( arg.is_sret() )
+			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addStructRetAttr(arg.type));
+		else if( arg.is_byval() )
+			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addByValAttr(arg.type));
 	}
 
-	codegen_block(func.body);
-
-	vars.clear();
-
-	return Expr::Empty();
+	auto emplaced = funcs.emplace(proto.sym, Function::FromArgs(llvm_fn, args));
+	return &emplaced.first->second;
 }
 
 Expr
@@ -173,8 +231,42 @@ Codegen::codegen_call(HirNode* hir_call)
 Expr
 Codegen::codegen_func_call(HirNode* hir_call)
 {
-	HirCall& call = hir_cast<HirCall>(hir_call);
-	assert(call.kind == HirCall::CallKind::Static);
+	HirCall& call_nod = hir_cast<HirCall>(hir_call);
+	assert(call_nod.kind == HirCall::CallKind::Static);
+
+	Function& callee = funcs.at(call_nod.callee);
+
+	std::vector<llvm::Value*> llvm_arg_values;
+	if( !callee.sret.is_void() )
+	{
+		Address sret = callee.sret.address();
+		llvm::Value* val = builder->CreateAlloca(sret.llvm_allocated_type());
+		llvm_arg_values.push_back(val);
+	}
+
+	for( int i = 0; i < callee.ir_arg_count(); i++ )
+	{
+		HirNode* hir_expr = call_nod.args.at(i);
+		Arg& arg = callee.ir_arg(i);
+		Expr expr = codegen_expr(hir_expr);
+
+		if( arg.is_byval() )
+		{
+			llvm::Value* val = builder->CreateAlloca(arg.type);
+
+			codegen_memcpy(expr, val);
+
+			llvm_arg_values.push_back(val);
+		}
+		else
+		{
+			llvm_arg_values.push_back(codegen_eval(expr));
+		}
+	}
+
+	llvm::Value* call = builder->CreateCall(callee.llvm_func, llvm_arg_values);
+
+	return RValue(call);
 }
 
 Expr
@@ -233,14 +325,25 @@ Codegen::codegen_intcast(HirNode* hir_call)
 	assert(value);
 
 	TyInt const& ty_int = ty_cast<TyInt>(ty);
+
 	switch( ty_int.sign )
 	{
 	case TyInt::Sign::Signed:
-		// S is for Signed-Extend
-		return RValue(builder->CreateSExt(value, dest));
+	{
+		if( value->getType()->getIntegerBitWidth() < dest->getIntegerBitWidth() )
+			// S is for Signed-Extend
+			return RValue(builder->CreateSExt(value, dest));
+		else
+			return RValue(builder->CreateTrunc(value, dest));
+	}
 	case TyInt::Sign::Unsigned:
-		// Z is for Zero-Extend
-		return RValue(builder->CreateZExt(value, dest));
+	{
+		if( value->getType()->getIntegerBitWidth() < dest->getIntegerBitWidth() )
+			// Z is for Zero-Extend
+			return RValue(builder->CreateZExt(value, dest));
+		else
+			return RValue(builder->CreateTrunc(value, dest));
+	}
 	case TyInt::Sign::Any:
 		return Expr::Empty();
 	}
@@ -416,6 +519,20 @@ Codegen::codegen_number_literal(HirNode* hir_nl)
 	llvm::Value* llvm_const_int = llvm::ConstantInt::get(*context, llvm::APInt(32, nl.value, true));
 
 	return Expr(RValue(llvm_const_int, llvm_const_int->getType()));
+}
+
+llvm::Value*
+Codegen::codegen_memcpy(Expr expr, llvm::Value* dest)
+{
+	assert(expr.is_address());
+	Address src_address = expr.address();
+
+	auto llvm_size = mod->getDataLayout().getTypeAllocSize(src_address.llvm_allocated_type());
+	auto llvm_align = mod->getDataLayout().getPrefTypeAlign(src_address.llvm_allocated_type());
+
+	builder->CreateMemCpy(dest, llvm_align, src_address.llvm_pointer(), llvm_align, llvm_size);
+
+	return dest;
 }
 
 llvm::Value*

@@ -31,7 +31,8 @@ public:
 
 	Expr codegen_module(HirNode*);
 	Expr codegen_item(HirNode*);
-	Expr codegen_function(HirNode*);
+	Expr codegen_func(HirNode*);
+	Function* codegen_func_proto(HirNode*);
 	Expr codegen_call(HirNode*);
 	Expr codegen_func_call(HirNode*);
 	Expr codegen_binop(HirNode* hir_call);
@@ -46,6 +47,7 @@ public:
 	Expr codegen_return(HirNode*);
 	Expr codegen_number_literal(HirNode*);
 
+	llvm::Value* codegen_memcpy(Expr expr, llvm::Value* dest);
 	llvm::Value* codegen_eval(Expr expr);
 	llvm::Type* get_type(QualifiedTy qty);
 	llvm::Type* get_type(Ty const* ty);
