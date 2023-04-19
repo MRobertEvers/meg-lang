@@ -4,8 +4,7 @@
 
 class Function
 {
-	llvm::Function* llvm_func;
-
 public:
+	llvm::Function* llvm_func;
 	Function(llvm::Function* llvm_func);
 };

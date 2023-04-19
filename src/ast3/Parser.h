@@ -73,5 +73,5 @@ public:
 private:
 	ParseResult<std::vector<AstNode*>> parse_struct_body();
 	ParseResult<std::vector<std::string>> parse_name_parts(AstId::IdKind mode);
-	ParseResult<std::vector<AstNode*>> parse_decl_list();
+	ParseResult<std::vector<AstNode*>> parse_decl_list(bool stop_on_ellipsis);
 };

@@ -157,6 +157,8 @@ Sema::sema_module_stmt_any(AstNode* ast_stmt)
 	{
 	case NodeKind::Func:
 		return sema_func(ast_stmt);
+	case NodeKind::FuncProto:
+		return sema_func_proto(ast_stmt);
 	case NodeKind::Struct:
 		return sema_struct(ast_stmt);
 	case NodeKind::Union:
@@ -218,6 +220,18 @@ translate_routine_kind(AstFuncProto::Routine ast_routine)
 	}
 }
 
+static HirFuncProto::VarArg
+translate_var_arg(AstFuncProto::VarArg ast_var_arg)
+{
+	switch( ast_var_arg )
+	{
+	case AstFuncProto::VarArg::VarArg:
+		return HirFuncProto::VarArg::VarArg;
+	case AstFuncProto::VarArg::None:
+		return HirFuncProto::VarArg::None;
+	}
+}
+
 SemaResult<HirNode*>
 Sema::sema_func_proto(AstNode* ast_func_proto)
 {
@@ -225,6 +239,7 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 
 	HirFuncProto::Linkage linkage = translate_linkage(func_proto.linkage);
 	HirFuncProto::Routine routine_kind = translate_routine_kind(func_proto.routine);
+	HirFuncProto::VarArg var_arg = translate_var_arg(func_proto.var_arg);
 
 	AstId& id = ast_cast<AstId>(func_proto.id);
 
@@ -277,7 +292,8 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 		parameters.push_back(hir.create<HirId>(qty, sym_var));
 	}
 
-	return hir.create<HirFuncProto>(sym_qty(builtins, sym), linkage, routine_kind, sym, parameters);
+	return hir.create<HirFuncProto>(
+		sym_qty(builtins, sym), linkage, routine_kind, sym, parameters, var_arg);
 }
 
 SemaResult<HirNode*>
@@ -1695,7 +1711,7 @@ Sema::sema_bin_op_short_circuit(AstNode* ast_bin_op)
 	if( !rhs_result.ok() )
 		return rhs_result;
 
-	HirNode* hir_rhs = lhs_result.unwrap();
+	HirNode* hir_rhs = rhs_result.unwrap();
 	if( !QualifiedTy::equals(hir_rhs->qty, QualifiedTy(builtins.bool_ty)) )
 		return SemaError("Expected bool");
 
@@ -1899,6 +1915,8 @@ Sema::int_arithmetic(BinOp op, std::vector<HirNode*> args)
 
 	args[0] = lhs;
 	args[1] = rhs;
+
+	qty = bin_op_qty(builtins, op, lhs);
 
 	return hir.create<HirCall>(qty, op, args);
 }

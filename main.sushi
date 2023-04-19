@@ -1,5 +1,11 @@
+extern fn printf(c: i8*, ...): void;
+
 fn add(a: i16, b: i32): i32 {
-    return a + b;
+    if (a > 16 && b < 7)
+        {}
+    else
+        {}
+    return 4;
 }
 
 fn main(): i32 {

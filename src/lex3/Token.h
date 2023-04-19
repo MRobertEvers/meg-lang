@@ -31,6 +31,7 @@ enum class TokenKind
 	SkinnyArrow,
 	FatArrow,
 	Dot,
+	Ellipsis,
 	Percent,
 	Colon,
 	ColonColon,

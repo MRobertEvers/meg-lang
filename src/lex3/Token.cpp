@@ -151,6 +151,8 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "GtGt";
 	case TokenKind::LtLt:
 		return "LtLt";
+	case TokenKind::Ellipsis:
+		return "Ellipsis";
 	case TokenKind::Eof:
 		return "Eof";
 	}

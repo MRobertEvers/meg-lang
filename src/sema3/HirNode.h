@@ -97,6 +97,12 @@ struct HirFuncProto
 		None
 	};
 
+	enum class VarArg
+	{
+		VarArg,
+		None
+	};
+
 	enum class Routine
 	{
 		Subroutine,
@@ -105,14 +111,17 @@ struct HirFuncProto
 
 	Linkage linkage = Linkage::None;
 	Routine kind = Routine::Subroutine;
+	VarArg var_arg = VarArg::None;
 	std::vector<HirNode*> parameters;
 
 	Sym* sym;
 
-	HirFuncProto(Linkage linkage, Routine kind, Sym* sym, std::vector<HirNode*> parameters)
+	HirFuncProto(
+		Linkage linkage, Routine kind, Sym* sym, std::vector<HirNode*> parameters, VarArg var_arg)
 		: kind(kind)
 		, linkage(linkage)
 		, parameters(parameters)
+		, var_arg(var_arg)
 		, sym(sym)
 	{}
 };

@@ -5,11 +5,13 @@ AstFuncProto::AstFuncProto(
 	Routine routine,
 	AstNode* id,
 	std::vector<AstNode*> parameters,
+	VarArg var_arg,
 	AstNode* rt_type_declarator)
 	: routine(routine)
 	, linkage(linkage)
 	, parameters(parameters)
 	, id(id)
+	, var_arg(var_arg)
 	, rt_type_declarator(rt_type_declarator)
 {}
 

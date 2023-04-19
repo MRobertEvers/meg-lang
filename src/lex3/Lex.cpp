@@ -40,6 +40,7 @@ Lex::next()
 	case TokenKind::Gt:
 	case TokenKind::Exclam:
 	case TokenKind::Colon:
+	case TokenKind::Dot:
 		token = tok_ambiguous(tok_kind);
 		break;
 	default:
@@ -122,7 +123,6 @@ Lex::tok_start()
 		break;
 	case '.':
 		tok_kind = TokenKind::Dot;
-		cursor_ += 1;
 		break;
 	case '*':
 		tok_kind = TokenKind::Star;
@@ -218,6 +218,10 @@ Lex::tok_ambiguous(TokenKind kind)
 	case TokenKind::Exclam:
 		if( match(view, "!=") )
 			kind = TokenKind::ExclamEq;
+		break;
+	case TokenKind::Dot:
+		if( match(view, "...") )
+			kind = TokenKind::Ellipsis;
 		break;
 	default:
 		break;

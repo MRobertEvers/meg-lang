@@ -88,7 +88,7 @@ Parser::parse_name_parts(AstId::IdKind mode)
 }
 
 ParseResult<std::vector<AstNode*>>
-Parser::parse_decl_list()
+Parser::parse_decl_list(bool stop_on_ellipsis)
 {
 	// auto trail = get_parse_trail();
 	std::vector<AstNode*> params;
@@ -96,6 +96,9 @@ Parser::parse_decl_list()
 	Token curr_tok = cursor.peek();
 	while( curr_tok.kind != TokenKind::CloseParen )
 	{
+		if( curr_tok.kind == TokenKind::Ellipsis )
+			break;
+
 		auto decl = parse_var_decl(false);
 		if( !decl.ok() )
 			return MoveError(decl);
@@ -489,7 +492,7 @@ Parser::parse_discriminating_block()
 	if( !tokc.ok() )
 		return ParseError("Expected '('", tokc.token());
 
-	auto parameters = parse_decl_list();
+	auto parameters = parse_decl_list(false);
 	if( !parameters.ok() )
 		return ParseError("Failed parsing func params");
 
@@ -526,6 +529,10 @@ Parser::parse_func()
 	auto proto = parse_func_proto();
 	if( !proto.ok() )
 		return proto;
+
+	auto tokc = cursor.consume_if_expected(TokenKind::SemiColon);
+	if( tokc.ok() )
+		return proto.unwrap();
 
 	auto definition = parse_func_body();
 	if( !definition.ok() )
@@ -589,9 +596,12 @@ Parser::parse_func_proto()
 	if( !tokc.ok() )
 		return ParseError("Expected '('", tokc.token());
 
-	auto parameters = parse_decl_list();
+	auto parameters = parse_decl_list(true);
 	if( !parameters.ok() )
 		return ParseError("Failed parsing func params");
+
+	tokc = cursor.consume_if_expected(TokenKind::Ellipsis);
+	bool is_var_arg = tokc.ok();
 
 	tokc = cursor.consume(TokenKind::CloseParen);
 	if( !tokc.ok() )
@@ -612,6 +622,7 @@ Parser::parse_func_proto()
 		decorators.is_async ? AstFuncProto::Routine::Coroutine : AstFuncProto::Routine::Subroutine,
 		id_result.unwrap(),
 		parameters.unwrap(),
+		is_var_arg ? AstFuncProto::VarArg::VarArg : AstFuncProto::VarArg::None,
 		return_type_decl.unwrap());
 }
 

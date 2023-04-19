@@ -196,6 +196,12 @@ struct AstFuncProto
 		None
 	};
 
+	enum class VarArg
+	{
+		VarArg,
+		None
+	};
+
 	enum class Routine
 	{
 		Subroutine,
@@ -206,6 +212,7 @@ struct AstFuncProto
 
 	Linkage linkage = Linkage::None;
 	Routine routine = Routine::Subroutine;
+	VarArg var_arg = VarArg::None;
 
 	AstNode* id;
 	std::vector<AstNode*> parameters;
@@ -216,6 +223,7 @@ struct AstFuncProto
 		Routine routine,
 		AstNode* id,
 		std::vector<AstNode*> parameters,
+		VarArg var_arg,
 		AstNode* rt_type_declarator);
 };
 struct AstFuncCall

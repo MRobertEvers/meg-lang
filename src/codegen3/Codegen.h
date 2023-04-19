@@ -18,6 +18,7 @@ private:
 	std::unique_ptr<llvm::IRBuilder<>> builder;
 	std::unique_ptr<llvm::Module> mod;
 
+	Function* current_func = nullptr;
 	std::map<Sym*, Address> vars;
 	std::map<Sym*, Function> funcs;
 	std::map<Ty const*, llvm::Type*> tys;
@@ -26,17 +27,21 @@ public:
 	Codegen(SymBuiltins& builtins);
 
 	void print();
+	int emit();
 
 	Expr codegen_module(HirNode*);
 	Expr codegen_item(HirNode*);
 	Expr codegen_function(HirNode*);
 	Expr codegen_call(HirNode*);
+	Expr codegen_func_call(HirNode*);
 	Expr codegen_binop(HirNode* hir_call);
 	Expr codegen_builtin(HirNode* hir_call);
 	Expr codegen_intcast(HirNode* hir_call);
 	Expr codegen_block(HirNode*);
+	Expr codegen_if(HirNode*);
+	Expr codegen_if_chain(HirNode*);
+	Expr codegen_if_phi(HirNode*);
 	Expr codegen_var(HirNode*);
-	Expr codegen_statement(HirNode*);
 	Expr codegen_expr(HirNode*);
 	Expr codegen_return(HirNode*);
 	Expr codegen_number_literal(HirNode*);
