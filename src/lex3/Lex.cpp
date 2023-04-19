@@ -206,10 +206,14 @@ Lex::tok_ambiguous(TokenKind kind)
 	case TokenKind::Lt:
 		if( match(view, "<=") )
 			kind = TokenKind::LtEq;
+		else if( match(view, "<<") )
+			kind = TokenKind::LtLt;
 		break;
 	case TokenKind::Gt:
 		if( match(view, ">=") )
 			kind = TokenKind::GtEq;
+		else if( match(view, ">>") )
+			kind = TokenKind::GtGt;
 		break;
 	case TokenKind::Exclam:
 		if( match(view, "!=") )

@@ -147,6 +147,10 @@ get_tokentype_string(TokenKind const& tok_kind)
 		return "Percent";
 	case TokenKind::UsingKw:
 		return "UsingKw";
+	case TokenKind::GtGt:
+		return "GtGt";
+	case TokenKind::LtLt:
+		return "LtLt";
 	case TokenKind::Eof:
 		return "Eof";
 	}

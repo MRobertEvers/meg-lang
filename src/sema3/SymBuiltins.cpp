@@ -132,3 +132,21 @@ sym_qty(SymBuiltins const& builtins, Sym* sym)
 		return QualifiedTy(builtins.void_ty);
 	}
 }
+
+QualifiedTy
+int_qty(SymBuiltins const& builtins, int width, bool is_signed)
+{
+	switch( width )
+	{
+	case 8:
+		return QualifiedTy(is_signed ? builtins.i8_ty : builtins.u8_ty);
+	case 16:
+		return QualifiedTy(is_signed ? builtins.i16_ty : builtins.u16_ty);
+	case 32:
+		return QualifiedTy(is_signed ? builtins.i32_ty : builtins.u32_ty);
+	case 64:
+		return QualifiedTy(is_signed ? builtins.i64_ty : builtins.u64_ty);
+	case 128:
+		return QualifiedTy(is_signed ? builtins.i128_ty : builtins.u128_ty);
+	}
+}

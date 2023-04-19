@@ -157,7 +157,10 @@ struct HirCall
 	enum class BuiltinKind
 	{
 		Invalid,
-		Cast,
+		// Args { HirId, any }
+		// HirId contains symbol of target type.
+		// any expression to be casted.
+		IntCast,
 		SizeOf,
 		AddressOf,
 		BoolNot,

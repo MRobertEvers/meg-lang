@@ -95,7 +95,7 @@ Sema::equal_coercion(QualifiedTy target, HirNode* node)
 		{
 			auto ty_sym_lu = sym_tab.lookup(target.ty);
 			std::vector<HirNode*> args{hir.create<HirId>(target, ty_sym_lu.first()), node};
-			return hir.create<HirCall>(target, HirCall::BuiltinKind::Cast, args);
+			return hir.create<HirCall>(target, HirCall::BuiltinKind::IntCast, args);
 		}
 		else
 		{
@@ -1650,19 +1650,24 @@ Sema::sema_bin_op_long(AstNode* ast_bin_op)
 		args.push_back(arg_result.unwrap());
 	}
 
-	bool some_ptr =
-		std::any_of(args.begin(), args.end(), [&](HirNode* hir) { return hir->qty.is_pointer(); });
+	bool some_ptr = std::any_of(args.begin(), args.end(), [&](HirNode* hir) {
+		return hir->qty.is_pointer() || hir->qty.is_array;
+	});
 	if( (bin_op.op == BinOp::Add || bin_op.op == BinOp::Sub) && some_ptr )
 		return ptr_arithmetic(bin_op.op, args);
 
-	// TODO: LHS might be convertable to rhs.
-	auto coercion_result = equal_coercion(args[0]->qty, args[1]);
-	if( !coercion_result.ok() )
-		return coercion_result;
+	// We are performing operations on numbers. If the types are ints,
+	// then perform integer promotion
+	// Promotion rules:
+	// 1. If both operands are smaller than i32, convert to i32.
+	// 2. Otherwise promote to the larger size.
+	bool all_ints = std::all_of(args.begin(), args.end(), [&](HirNode* hir) {
+		return hir->qty.is_int(); //
+	});
+	if( all_ints )
+		return int_arithmetic(bin_op.op, args);
 
-	args[1] = coercion_result.unwrap();
-
-	return hir.create<HirCall>(bin_op_qty(builtins, bin_op.op, args[0]), bin_op.op, args);
+	return NotImpl();
 }
 
 SemaResult<HirNode*>
@@ -1818,11 +1823,14 @@ Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 SemaResult<HirNode*>
 Sema::ptr_arithmetic(BinOp op, std::vector<HirNode*> args)
 {
-	if( std::all_of(args.begin(), args.end(), [&](HirNode* hir) { return hir->qty.is_pointer(); }) )
+	bool one_of = std::all_of(args.begin(), args.end(), [&](HirNode* hir) {
+		return hir->qty.is_pointer() || hir->qty.is_array;
+	});
+	if( one_of )
 		return SemaError("Cannot perform arithmetic between two pointers.");
 
-	HirNode* ptr = args[0]->qty.is_pointer() ? args[0] : args[1];
-	HirNode* number = args[0]->qty.is_pointer() ? args[1] : args[0];
+	HirNode* ptr = args[0]->qty.is_pointer() || hir->qty.is_array ? args[0] : args[1];
+	HirNode* number = args[0]->qty.is_pointer() || hir->qty.is_array ? args[1] : args[0];
 
 	auto number_coercion = equal_coercion(QualifiedTy(builtins.i32_ty), number);
 	if( !number_coercion.ok() )
@@ -1835,4 +1843,57 @@ Sema::ptr_arithmetic(BinOp op, std::vector<HirNode*> args)
 
 	return hir.create<HirCall>(
 		ptr->qty, HirCall::BuiltinKind::AddressOf, std::vector<HirNode*>({ptr_deref}));
+}
+
+HirNode*
+Sema::int_cast(HirNode* node, int width)
+{
+	QualifiedTy qty = int_qty(builtins, width, true);
+	Sym* sym = sym_tab.lookup(qty.ty).first();
+
+	std::vector<HirNode*> args{hir.create<HirId>(int_qty(builtins, width, true), sym), node};
+	return hir.create<HirCall>(int_qty(builtins, width, true), HirCall::BuiltinKind::IntCast, args);
+}
+
+SemaResult<HirNode*>
+Sema::int_arithmetic(BinOp op, std::vector<HirNode*> args)
+{
+	bool all_ints = std::all_of(args.begin(), args.end(), [&](HirNode* hir) {
+		return hir->qty.is_int(); //
+	});
+	if( !all_ints || args.size() != 2 )
+		return SemaError("Integer arithmetic can only be performed on ints");
+
+	HirNode* lhs = args[0];
+	HirNode* rhs = args[1];
+	QualifiedTy lhs_qty = lhs->qty;
+	QualifiedTy rhs_qty = rhs->qty;
+	TyInt& lhs_ty = ty_cast<TyInt>(lhs_qty.ty);
+	TyInt& rhs_ty = ty_cast<TyInt>(rhs_qty.ty);
+	QualifiedTy qty;
+
+	if( lhs_ty.width <= 32 && rhs_ty.width <= 32 )
+	{
+		if( lhs_ty.width <= 32 )
+			lhs = int_cast(lhs, 32);
+		if( rhs_ty.width <= 32 )
+			rhs = int_cast(rhs, 32);
+
+		qty = int_qty(builtins, 32, true);
+	}
+	else
+	{
+		int max_width = lhs_ty.width > rhs_ty.width ? lhs_ty.width : rhs_ty.width;
+		if( lhs_ty.width <= max_width )
+			lhs = int_cast(lhs, max_width);
+		if( rhs_ty.width <= max_width )
+			rhs = int_cast(rhs, max_width);
+
+		qty = int_qty(builtins, max_width, true);
+	}
+
+	args[0] = lhs;
+	args[1] = rhs;
+
+	return hir.create<HirCall>(qty, op, args);
 }

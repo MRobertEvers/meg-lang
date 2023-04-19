@@ -77,4 +77,6 @@ private:
 	SemaResult<HirNode*> equal_coercion(QualifiedTy target, HirNode* node);
 	SemaResult<Sym*> lookup_or_instantiate_template(AstNode* ast_template_id);
 	SemaResult<HirNode*> ptr_arithmetic(BinOp op, std::vector<HirNode*> args);
+	HirNode* int_cast(HirNode*, int width);
+	SemaResult<HirNode*> int_arithmetic(BinOp op, std::vector<HirNode*> args);
 };

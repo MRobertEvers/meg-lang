@@ -1355,25 +1355,26 @@ Parser::parse_bin_op(int expr_precidence, AstNode* lhs)
 	// If this is a binop, find its precedence.
 	while( true )
 	{
-		// This is a binary operation because TokPrec would be less than ExprPrec if
-		// the next token was not a bin op (e.g. if statement or so.)
-
 		ConsumeResult consume = cursor.consume({
 			TokenKind::Star,
 			TokenKind::Slash,
 			TokenKind::Plus,
 			TokenKind::Minus,
 			TokenKind::EqEq,
+			TokenKind::ExclamEq,
 			TokenKind::Gt,
+			TokenKind::GtGt,
 			TokenKind::GtEq,
 			TokenKind::Lt,
+			TokenKind::LtLt,
 			TokenKind::LtEq,
 			TokenKind::AmpAmp,
 			TokenKind::PipePipe,
-			TokenKind::ExclamEq,
-			TokenKind::IsKw //
+			TokenKind::Pipe,
+			TokenKind::Ampersand,
+			TokenKind::Caret,
+			TokenKind::Percent,
 		});
-		// TODO: Other assignment exprs.
 		if( !consume.ok() )
 			return lhs;
 
@@ -1401,7 +1402,7 @@ Parser::parse_bin_op(int expr_precidence, AstNode* lhs)
 		int next_precidence = get_token_precedence(next_op);
 		if( tok_precidence < next_precidence )
 		{
-			rhs_result = parse_bin_op(tok_precidence + 1, rhs_result.unwrap());
+			rhs_result = parse_bin_op(tok_precidence, rhs_result.unwrap());
 			if( !rhs_result.ok() )
 				return rhs_result;
 		}

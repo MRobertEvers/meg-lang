@@ -44,7 +44,9 @@ enum class TokenKind
 	Eq,
 	ExclamEq,
 	Gt,
+	GtGt,
 	Lt,
+	LtLt,
 	GtEq,
 	LtEq,
 

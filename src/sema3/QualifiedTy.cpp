@@ -52,7 +52,8 @@ QualifiedTy::deref() const
 bool
 QualifiedTy::equals(QualifiedTy lqty, QualifiedTy rqty)
 {
-	if( lqty.indirection == rqty.indirection && lqty.ty == rqty.ty )
+	if( lqty.indirection == rqty.indirection && lqty.ty == rqty.ty &&
+		lqty.is_array == rqty.is_array )
 		return true;
 
 	return false;

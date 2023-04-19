@@ -28,3 +28,4 @@ public:
 };
 
 QualifiedTy sym_qty(SymBuiltins const& builtins, Sym* sym);
+QualifiedTy int_qty(SymBuiltins const& builtins, int width, bool signed);

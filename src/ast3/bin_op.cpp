@@ -10,26 +10,35 @@ get_token_precedence(BinOp bin_op_type)
 	{
 	case BinOp::Mul:
 	case BinOp::Div:
-		return 320;
+	case BinOp::Remainder:
+		return 40;
 	case BinOp::Add:
 	case BinOp::Sub:
-		return 160;
+		return 35;
+	case BinOp::BitShiftDown:
+	case BinOp::BitShiftUp:
 	case BinOp::Is:
-		return 80;
-	case BinOp::And:
-		return 40;
-	case BinOp::Or:
-		return 20;
-	case BinOp::Eq:
+		return 30;
 	case BinOp::Gt:
 	case BinOp::Gte:
-	case BinOp::Lte:
 	case BinOp::Lt:
+	case BinOp::Lte:
+		return 25;
+	case BinOp::Eq:
+	case BinOp::Neq:
+		return 20;
+	case BinOp::BitwiseAnd:
+		return 16;
+	case BinOp::BitwiseXor:
+		return 15;
+	case BinOp::BitwiseOr:
+		return 14;
+	case BinOp::And:
+		return 11;
+	case BinOp::Or:
 		return 10;
 	case BinOp::Assign:
 		return 5;
-	default:
-		return -1;
 	}
 }
 
@@ -80,6 +89,24 @@ get_bin_op_from_token_type(TokenKind token_type)
 		break;
 	case TokenKind::PipePipe:
 		op = BinOp::Or;
+		break;
+	case TokenKind::LtLt:
+		op = BinOp::BitShiftUp;
+		break;
+	case TokenKind::GtGt:
+		op = BinOp::BitShiftDown;
+		break;
+	case TokenKind::Pipe:
+		op = BinOp::BitwiseOr;
+		break;
+	case TokenKind::Ampersand:
+		op = BinOp::BitwiseAnd;
+		break;
+	case TokenKind::Caret:
+		op = BinOp::BitwiseXor;
+		break;
+	case TokenKind::Percent:
+		op = BinOp::Remainder;
 		break;
 	default:
 		break;
