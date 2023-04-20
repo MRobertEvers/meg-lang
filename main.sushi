@@ -1,5 +1,10 @@
 extern fn printf(c: i8*, ...): void;
 
+struct Point {
+    x: i32;
+    y: i32;
+}
+
 fn add(a: i16, b: i32): i32 {
 
     if (a > 16 && b < 7)
@@ -9,6 +14,11 @@ fn add(a: i16, b: i32): i32 {
     return 4;
 }
 
+fn add_point(a: Point, b: Point): Point {
+    return 43;
+}
+
 fn main(): i32 {
+    add(23, 3);
     return add(6, 7);
 }

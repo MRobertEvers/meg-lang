@@ -76,9 +76,32 @@ Codegen::codegen_item(HirNode* hir_item)
 	case HirNodeKind::FuncProto:
 		codegen_func_proto(hir_item);
 		return Expr::Empty();
+	case HirNodeKind::Struct:
+		codegen_struct(hir_item);
+		return Expr::Empty();
 	default:
 		return Expr::Empty();
 	}
+}
+
+Expr
+Codegen::codegen_struct(HirNode* hir_struct)
+{
+	HirStruct& struct_nod = hir_cast<HirStruct>(hir_struct);
+	SymType& sym_type = sym_cast<SymType>(struct_nod.sym);
+	TyStruct const& ty_struct = ty_cast<TyStruct>(sym_type.ty);
+
+	std::vector<llvm::Type*> members;
+	for( auto& [member, qty] : ty_struct.members )
+		members.push_back(get_type(qty));
+
+	// TODO: Need unique name for syms
+	std::string name_str = ty_struct.name;
+	llvm::StructType* llvm_struct_type = llvm::StructType::create(*context, members, name_str);
+
+	tys.emplace(sym_type.ty, llvm_struct_type);
+
+	return Expr::Empty();
 }
 
 static TyFunc const&
@@ -300,10 +323,20 @@ Codegen::codegen_binop(HirNode* hir_call)
 	{
 	case BinOp::Add:
 		return Expr(RValue(builder->CreateNSWAdd(llvm_lhs, llvm_rhs)));
+	case BinOp::Sub:
+		return Expr(RValue(builder->CreateNSWSub(llvm_lhs, llvm_rhs)));
 	case BinOp::Gt:
 		return Expr(RValue(builder->CreateICmpSGT(llvm_lhs, llvm_rhs)));
+	case BinOp::Gte:
+		return Expr(RValue(builder->CreateICmpSGE(llvm_lhs, llvm_rhs)));
 	case BinOp::Lt:
 		return Expr(RValue(builder->CreateICmpSLT(llvm_lhs, llvm_rhs)));
+	case BinOp::Lte:
+		return Expr(RValue(builder->CreateICmpSLE(llvm_lhs, llvm_rhs)));
+	case BinOp::Eq:
+		return Expr(RValue(builder->CreateICmpEQ(llvm_lhs, llvm_rhs)));
+	case BinOp::Neq:
+		return Expr(RValue(builder->CreateICmpNE(llvm_lhs, llvm_rhs)));
 	default:
 		return Expr::Empty();
 	}

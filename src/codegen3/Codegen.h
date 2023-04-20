@@ -31,6 +31,7 @@ public:
 
 	Expr codegen_module(HirNode*);
 	Expr codegen_item(HirNode*);
+	Expr codegen_struct(HirNode*);
 	Expr codegen_func(HirNode*);
 	Function* codegen_func_proto(HirNode*);
 	Expr codegen_call(HirNode*);
