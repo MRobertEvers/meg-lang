@@ -43,11 +43,13 @@ public:
 	SemaResult<HirNode*> sema_addressof(AstNode* ast_addressof);
 	SemaResult<HirNode*> sema_boolnot(AstNode* ast_boolnot);
 	SemaResult<HirNode*> sema_assign(AstNode* ast_assign);
+	SemaResult<HirNode*> sema_assign(HirNode* hir_lhs, AstNode* ast_rhs);
 	SemaResult<HirNode*> sema_array_access(AstNode* ast_array_access);
 	SemaResult<HirNode*> sema_member_access(AstNode* ast_member_access);
 	SemaResult<HirNode*> sema_let(AstNode* ast_let);
 	SemaResult<HirNode*> sema_if(AstNode* ast_if);
 	SemaResult<HirNode*> sema_initializer(AstNode* ast_initializer);
+	SemaResult<HirNode*> sema_initializer(AstNode* ast_initializer, HirNode* id);
 	SemaResult<HirNode*> sema_is(AstNode* ast_is);
 	SemaResult<HirNode*> sema_using(AstNode* ast_using);
 	SemaResult<HirNode*> sema_expr(AstNode* ast_expr);
@@ -60,6 +62,7 @@ public:
 	SemaResult<HirNode*> sema_while(AstNode* ast_while);
 	SemaResult<HirNode*> sema_switch(AstNode* ast_switch);
 	SemaResult<HirNode*> sema_func_call(AstNode* ast_func_call);
+	SemaResult<HirNode*> sema_func_call(AstNode* ast_func_call, HirNode* hir_lhs);
 	SemaResult<HirNode*> sema_bin_op(AstNode* ast_bin_op);
 	SemaResult<HirNode*> sema_bin_op_long(AstNode* ast_bin_op);
 	SemaResult<HirNode*> sema_bin_op_short_circuit(AstNode* ast_bin_op);
@@ -73,8 +76,9 @@ private:
 		QualifiedTy qty;
 	};
 	SemaResult<TypeDeclResult> type_declarator(AstNode* ast_type_declarator);
-	SemaResult<std::map<std::string, QualifiedTy>> decl_list(std::vector<AstNode*>& ast_decls);
+	SemaResult<std::map<std::string, Member>> decl_list(std::vector<AstNode*>& ast_decls);
 	// Checks if two types can be equal after coercing the subject type.
+	SemaResult<HirNode*> equal_coercion(HirNode* lhs, HirNode* node);
 	SemaResult<HirNode*> equal_coercion(QualifiedTy target, HirNode* node);
 	SemaResult<Sym*> lookup_or_instantiate_template(AstNode* ast_template_id);
 	SemaResult<HirNode*> ptr_arithmetic(BinOp op, std::vector<HirNode*> args);

@@ -29,9 +29,8 @@ SymFunc::SymFunc(Ty const* ty)
 SymType::SymType(Ty const* ty)
 	: ty(ty){};
 
-SymMember::SymMember(QualifiedTy qty, int position)
-	: qty(qty)
-	, position(position){};
+SymMember::SymMember(Member mem)
+	: member(mem){};
 
 SymEnumMember::SymEnumMember(long long value, Ty const* struct_ty)
 	: value(value)

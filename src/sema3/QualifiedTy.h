@@ -55,6 +55,7 @@ public:
 	bool is_aggregate_type() const;
 
 	QualifiedTy deref() const;
+	QualifiedTy pointer_to() const;
 
 	// TODO: compatible function not equals
 	static bool equals(QualifiedTy lqty, QualifiedTy rqty);

@@ -47,12 +47,10 @@ struct SymTypeAlias
 struct SymMember
 {
 	static constexpr SymKind sk = SymKind::Member;
-	QualifiedTy qty;
 
-	// For structs this is used to order members in memory.
-	int position = 0;
+	Member member;
 
-	SymMember(QualifiedTy qty, int position);
+	SymMember(Member member);
 };
 
 struct SymEnumMember

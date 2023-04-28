@@ -99,6 +99,10 @@ SymBuiltins::create_builtins(SymTab& sym_tab, Types& types, Ast& ast)
 	sym_tab.create_named<SymType>("void", ty);
 	builtins.void_ty = ty;
 
+	ty = types.create<TyInfer>();
+	sym_tab.create<SymType>(ty);
+	builtins.infer_ty = ty;
+
 	create_generator_builtin(sym_tab, types, ast);
 
 	return builtins;
@@ -116,7 +120,7 @@ sym_qty(SymBuiltins const& builtins, Sym* sym)
 	case SymKind::Type:
 		return QualifiedTy(sym->data.sym_type.ty);
 	case SymKind::Member:
-		return sym->data.sym_member.qty;
+		return sym->data.sym_member.member.qty;
 	case SymKind::Template:
 		return QualifiedTy(builtins.void_ty);
 	case SymKind::Alias:

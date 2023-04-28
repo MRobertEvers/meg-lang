@@ -8,6 +8,7 @@ class Ast;
 struct SymBuiltins
 {
 	// Primitives
+	Ty const* infer_ty;
 	Ty const* void_ty;
 	Ty const* bool_ty;
 	Ty const* ix_ty;

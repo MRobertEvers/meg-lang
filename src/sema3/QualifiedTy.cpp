@@ -76,6 +76,12 @@ QualifiedTy::deref() const
 	return QualifiedTy(ty, indirection - 1);
 }
 
+QualifiedTy
+QualifiedTy::pointer_to() const
+{
+	return QualifiedTy(ty, indirection + 1);
+}
+
 bool
 QualifiedTy::equals(QualifiedTy lqty, QualifiedTy rqty)
 {

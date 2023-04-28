@@ -23,6 +23,9 @@ enum class TyKind
 	// annoted with the 'async' keyword.
 	// Frames are "impl generator<Iter, Send, Ret>"
 	Frame,
+
+	// For when the type is supposed to be assigned
+	Infer
 };
 
 class Ty;
@@ -87,15 +90,26 @@ struct TyFloat
 		, width(width){};
 };
 
+class Member
+{
+public:
+	int ind;
+	QualifiedTy qty;
+
+	Member(int ind, QualifiedTy qty)
+		: ind(ind)
+		, qty(qty){};
+};
+
 struct TyInterface
 {
 	static constexpr TyKind tk = TyKind::Interface;
 	std::string name;
 
 	// Function members
-	std::map<std::string, QualifiedTy> members;
+	std::map<std::string, Member> members;
 
-	TyInterface(std::string name, std::map<std::string, QualifiedTy> members)
+	TyInterface(std::string name, std::map<std::string, Member> members)
 		: name(name)
 		, members(members){};
 };
@@ -126,9 +140,9 @@ struct TyStruct
 
 	std::string name;
 
-	std::map<std::string, QualifiedTy> members;
+	std::map<std::string, Member> members;
 
-	TyStruct(std::string name, std::map<std::string, QualifiedTy> members)
+	TyStruct(std::string name, std::map<std::string, Member> members)
 		: name(name)
 		, members(members){};
 };
@@ -138,9 +152,9 @@ struct TyUnion
 	static constexpr TyKind tk = TyKind::Union;
 	std::string name;
 
-	std::map<std::string, QualifiedTy> members;
+	std::map<std::string, Member> members;
 
-	TyUnion(std::string name, std::map<std::string, QualifiedTy> members)
+	TyUnion(std::string name, std::map<std::string, Member> members)
 		: name(name)
 		, members(members){};
 };
@@ -163,6 +177,13 @@ struct TyFrame
 		: name(name){};
 };
 
+struct TyInfer
+{
+	static constexpr TyKind tk = TyKind::Infer;
+
+	TyInfer(){};
+};
+
 struct Ty
 {
 	TyKind kind = TyKind::Invalid;
@@ -178,6 +199,7 @@ struct Ty
 		TyEnum ty_enum;
 		TyFrame ty_frame;
 		TyInterface ty_interface;
+		TyInfer ty_infer;
 
 		// Attention! This leaks!
 		TyData() {}
@@ -209,6 +231,8 @@ ty_cast(TyTy* ty)
 		return ty->data.ty_float;
 	else if constexpr( std::is_same_v<TyInterface, Node> )
 		return ty->data.ty_interface;
+	else if constexpr( std::is_same_v<TyInfer, Node> )
+		return ty->data.ty_infer;
 	else
 		static_assert("Bad ty cast");
 }

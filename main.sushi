@@ -5,20 +5,30 @@ struct Point {
     y: i32;
 }
 
-fn add(a: i16, b: i32): i32 {
-
-    if (a > 16 && b < 7)
-        printf("Hello %i\n", 3);
-    else
-        printf("Hello %i\n", 1);
-    return 4;
-}
 
 fn add_point(a: Point, b: Point): Point {
-    return 43;
+    return Point {
+        .x = a.x + b.x,
+        .y = a.y + b.y
+    };
+}
+
+fn x(a: Point*): i32 {
+    return a->x;
 }
 
 fn main(): i32 {
-    add(23, 3);
-    return add(6, 7);
+    let p: Point = Point {
+        .x = 5,
+        .y = 6
+    };
+
+    let p2 = add_point(p, p);
+
+    let l: i32 = x(&p2);
+    printf("%d\n", l);
+    printf("Point 1 (%d, %d)\n", p.x, p.y);
+    printf("Point 2 (%d, %d)\n", p2.x, p2.y);
+
+    return 1;
 }

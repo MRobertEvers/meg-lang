@@ -12,6 +12,8 @@ enum class HirNodeKind
 	Invalid,
 	Module,
 	Block,
+	// Like "Call", but has a provided lhs.
+	Construct,
 	Call,
 	Func,
 	FuncProto,
@@ -24,8 +26,6 @@ enum class HirNodeKind
 	Union,
 	Enum,
 	Interface,
-	// Plain initializer or initializer list if in constructor.
-	Initializer,
 	Let,
 	If,
 	Loop,
@@ -158,6 +158,21 @@ struct HirId
 	HirId(Sym* sym)
 		: sym(sym)
 	{}
+};
+
+struct HirConstruct
+{
+	static constexpr HirNodeKind nt = HirNodeKind::Construct;
+
+	HirNode* call;
+	// Note! This is different than 'this'.
+	// 'this' is passed as an argument. 'self' is
+	// passed in the return slot.
+	HirNode* self;
+
+	HirConstruct(HirNode* self, HirNode* call)
+		: self(self)
+		, call(call){};
 };
 
 struct HirCall
@@ -309,20 +324,20 @@ struct HirInterface
 	{}
 };
 
-struct HirInitializer
-{
-	static constexpr HirNodeKind nt = HirNodeKind::Initializer;
+// struct HirInitializer
+// {
+// 	static constexpr HirNodeKind nt = HirNodeKind::Initializer;
 
-	Sym* sym; // Type sym
+// 	Sym* sym; // Type sym
 
-	// These should be BinOp::Assign calls
-	std::vector<HirNode*> initializer_assignments;
+// 	// These should be BinOp::Assign calls
+// 	std::vector<HirNode*> initializer_assignments;
 
-	HirInitializer(Sym* sym, std::vector<HirNode*> initializer_assignments)
-		: sym(sym)
-		, initializer_assignments(initializer_assignments)
-	{}
-};
+// 	HirInitializer(Sym* sym, std::vector<HirNode*> initializer_assignments)
+// 		: sym(sym)
+// 		, initializer_assignments(initializer_assignments)
+// 	{}
+// };
 
 struct HirLet
 {
@@ -422,20 +437,13 @@ struct HirMember
 {
 	static constexpr HirNodeKind nt = HirNodeKind::Member;
 
-	enum AccessKind
-	{
-		Direct,
-		Indirect
-	} kind;
-
 	HirNode* self;
+	// Enum member sym
 	Sym* member;
 
-	HirMember(HirNode* self, Sym* member, AccessKind kind)
+	HirMember(HirNode* self, Sym* member)
 		: self(self)
-		, member(member)
-		, kind(kind)
-	{}
+		, member(member){};
 };
 
 struct HirLoop
@@ -495,7 +503,8 @@ struct HirNode
 		HirMember hir_member;
 		HirSwitch hir_switch;
 		HirLoop hir_loop;
-		HirInitializer hir_initializer;
+		HirConstruct hir_construct;
+		// HirInitializer hir_initializer;
 
 		// Attention! This leaks!
 		NodeData() {}
@@ -548,8 +557,10 @@ hir_cast(HirNode* hir_node)
 		return hir_node->data.hir_interface;
 	else if constexpr( std::is_same_v<HirYield, Node> )
 		return hir_node->data.hir_yield;
-	else if constexpr( std::is_same_v<HirInitializer, Node> )
-		return hir_node->data.hir_initializer;
+	else if constexpr( std::is_same_v<HirConstruct, Node> )
+		return hir_node->data.hir_construct;
+	// else if constexpr( std::is_same_v<HirInitializer, Node> )
+	// 	return hir_node->data.hir_initializer;
 	else
 		static_assert("Cannot create hir node of type ");
 }
