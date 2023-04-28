@@ -811,7 +811,8 @@ Sema::sema_assign(HirNode* lhs, AstNode* ast_rhs)
 	if( expr_any->kind == NodeKind::Initializer || expr_any->kind == NodeKind::FuncCall )
 		return coercion_result;
 	else
-		return hir.create<HirBinOp>(QualifiedTy(builtins.void_ty), BinOp::Assign, lhs, rhs);
+		return hir.create<HirBinOp>(
+			QualifiedTy(builtins.void_ty), BinOp::Assign, lhs, coercion_result.unwrap());
 }
 
 SemaResult<HirNode*>
@@ -917,22 +918,7 @@ Sema::sema_let(AstNode* ast_let)
 
 		HirNode* rhs = assign_result.unwrap();
 
-		// If the specified type does not match the rhs type,
-		// then this is an error.
-		if( qty.ty->kind != TyKind::Infer )
-		{
-			auto type_expr_result = equal_coercion(lhs, rhs);
-			if( !type_expr_result.ok() )
-				return SemaError("Cannot initialize variable with bad expr type.");
-
-			rhs = type_expr_result.unwrap();
-		}
 		stmts.push_back(rhs);
-
-		// else
-		// {
-		// 	qty = rhs->qty;
-		// }
 	}
 
 	// AstId& id = ast_cast<AstId>(var_decl.id);
@@ -2001,8 +1987,6 @@ Sema::int_arithmetic(BinOp op, std::vector<HirNode*> args)
 
 		qty = int_qty(builtins, max_width, true);
 	}
-
-	qty = bin_op_qty(builtins, op, lhs);
 
 	return hir.create<HirBinOp>(qty, op, lhs, rhs);
 }

@@ -323,6 +323,14 @@ Codegen::codegen_func_call_static(HirNode* hir_call, Expr sret)
 	return RValue(call);
 }
 
+static llvm::Value*
+pointer_of(Expr expr)
+{
+	llvm::Value* llvm_lhs =
+		expr.is_address() ? expr.address().llvm_pointer() : expr.rvalue().llvm_pointer();
+	return llvm_lhs;
+}
+
 Expr
 Codegen::codegen_binop(HirNode* hir_call)
 {
@@ -331,13 +339,18 @@ Codegen::codegen_binop(HirNode* hir_call)
 	Expr rhs_expr = codegen_expr(call.rhs);
 
 	llvm::Value* llvm_rhs = codegen_eval(rhs_expr);
-	if( call.op == BinOp::Assign )
-		return Expr(RValue(builder->CreateStore(llvm_rhs, lhs_expr.address().llvm_pointer())));
+
+	if( llvm::Value* llvm_lhs = pointer_of(lhs_expr); call.op == BinOp::Assign )
+		return Expr(RValue(builder->CreateStore(llvm_rhs, llvm_lhs)));
 
 	llvm::Value* llvm_lhs = codegen_eval(lhs_expr);
 
 	switch( call.op )
 	{
+	case BinOp::Mul:
+		return Expr(RValue(builder->CreateNSWMul(llvm_lhs, llvm_rhs)));
+	case BinOp::Div:
+		return Expr(RValue(builder->CreateSDiv(llvm_lhs, llvm_rhs)));
 	case BinOp::Add:
 		return Expr(RValue(builder->CreateNSWAdd(llvm_lhs, llvm_rhs)));
 	case BinOp::Sub:

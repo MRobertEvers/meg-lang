@@ -15,7 +15,7 @@ fn main(): i32 {
         .y = 6
     };
 
-    let l: i64 = x(&p);
+    let l: i64 = x(&p) * 3;
     printf("%d\n", l);
 
     return 1;
