@@ -5,14 +5,6 @@ struct Point {
     y: i32;
 }
 
-
-fn add_point(a: Point, b: Point): Point {
-    return Point {
-        .x = a.x + b.x,
-        .y = a.y + b.y
-    };
-}
-
 fn x(a: Point*): i32 {
     return a->x;
 }
@@ -23,12 +15,8 @@ fn main(): i32 {
         .y = 6
     };
 
-    let p2 = add_point(p, p);
-
-    let l: i32 = x(&p2);
+    let l: i64 = x(&p);
     printf("%d\n", l);
-    printf("Point 1 (%d, %d)\n", p.x, p.y);
-    printf("Point 2 (%d, %d)\n", p2.x, p2.y);
 
     return 1;
 }

@@ -35,9 +35,8 @@ public:
 	Expr codegen_func(HirNode*);
 	Function* codegen_func_proto(HirNode*);
 	Expr codegen_construct(HirNode*);
-	Expr codegen_call(HirNode*);
-	// Some 'call' nodes are not function calls but rather builtins.
 	Expr codegen_func_call(HirNode*, Expr sret);
+	Expr codegen_func_call_static(HirNode*, Expr sret);
 	Expr codegen_binop(HirNode* hir_call);
 	Expr codegen_builtin(HirNode* hir_call);
 	Expr codegen_intcast(HirNode* hir_call);
@@ -52,6 +51,7 @@ public:
 	Expr codegen_var(HirNode*);
 	Expr codegen_var_member(HirNode*);
 	Expr codegen_expr(HirNode*);
+	Expr codegen_expr(HirNode* node, Expr lhs);
 	Expr codegen_return(HirNode*);
 	Expr codegen_number_literal(HirNode*);
 	Expr codegen_string_literal(HirNode*);

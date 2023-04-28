@@ -107,7 +107,7 @@ Sema::equal_coercion(QualifiedTy target, HirNode* node)
 		{
 			auto ty_sym_lu = sym_tab.lookup(target.ty);
 			std::vector<HirNode*> args{hir.create<HirId>(target, ty_sym_lu.first()), node};
-			return hir.create<HirCall>(target, HirCall::BuiltinKind::IntCast, args);
+			return hir.create<HirBuiltin>(target, HirBuiltin::BuiltinKind::IntCast, args);
 		}
 		else
 		{
@@ -734,7 +734,8 @@ Sema::sema_sizeof(AstNode* ast_sizeof)
 
 	std::vector<HirNode*> args{hir_expr};
 
-	return hir.create<HirCall>(QualifiedTy(builtins.i32_ty), HirCall::BuiltinKind::SizeOf, args);
+	return hir.create<HirBuiltin>(
+		QualifiedTy(builtins.i32_ty), HirBuiltin::BuiltinKind::SizeOf, args);
 }
 
 SemaResult<HirNode*>
@@ -749,8 +750,8 @@ Sema::sema_addressof(AstNode* ast_addressof)
 	// TODO: Ensure lvalueness?
 	HirNode* expr = expr_result.unwrap();
 
-	return hir.create<HirCall>(
-		expr->qty.pointer_to(), HirCall::BuiltinKind::AddressOf, std::vector<HirNode*>{expr});
+	return hir.create<HirBuiltin>(
+		expr->qty.pointer_to(), HirBuiltin::BuiltinKind::AddressOf, std::vector<HirNode*>{expr});
 }
 
 SemaResult<HirNode*>
@@ -768,9 +769,9 @@ Sema::sema_boolnot(AstNode* ast_boolnot)
 	if( !coercion_result.ok() )
 		return coercion_result;
 
-	return hir.create<HirCall>(
+	return hir.create<HirBuiltin>(
 		QualifiedTy(builtins.bool_ty),
-		HirCall::BuiltinKind::BoolNot,
+		HirBuiltin::BuiltinKind::BoolNot,
 		std::vector<HirNode*>{coercion_result.unwrap()});
 }
 
@@ -791,20 +792,13 @@ Sema::sema_assign(AstNode* ast_assign)
 SemaResult<HirNode*>
 Sema::sema_assign(HirNode* lhs, AstNode* ast_rhs)
 {
-	// auto lhs_result = sema_expr(ast_lhs);
-	// if( !lhs_result.ok() )
-	// 	return lhs_result;
-
-	// HirNode* lhs = lhs_result.unwrap();
 	AstNode* expr_any = ast_cast<AstExpr>(ast_rhs).expr;
-	SemaResult<HirNode*> rhs_result = nullptr;
-	if( expr_any->kind == NodeKind::Initializer )
-		rhs_result = sema_initializer(expr_any, lhs);
-	else if( expr_any->kind == NodeKind::FuncCall )
-		rhs_result = sema_func_call(expr_any, lhs);
-	else
-		rhs_result = sema_expr_any(expr_any);
+	if( expr_any->kind == NodeKind::FuncCall )
+		return sema_func_call(expr_any, lhs);
+	else if( expr_any->kind == NodeKind::Initializer )
+		return sema_initializer(expr_any, lhs);
 
+	auto rhs_result = sema_expr_any(expr_any);
 	if( !rhs_result.ok() )
 		return rhs_result;
 
@@ -817,8 +811,7 @@ Sema::sema_assign(HirNode* lhs, AstNode* ast_rhs)
 	if( expr_any->kind == NodeKind::Initializer || expr_any->kind == NodeKind::FuncCall )
 		return coercion_result;
 	else
-		return hir.create<HirCall>(
-			QualifiedTy(builtins.void_ty), BinOp::Assign, std::vector<HirNode*>({lhs, rhs}));
+		return hir.create<HirBinOp>(QualifiedTy(builtins.void_ty), BinOp::Assign, lhs, rhs);
 }
 
 SemaResult<HirNode*>
@@ -879,8 +872,8 @@ Sema::sema_member_access(AstNode* ast_member_access)
 
 	if( member_access.kind == AstMemberAccess::AccessKind::Indirect )
 	{
-		callee = hir.create<HirCall>(
-			callee->qty.deref(), HirCall::BuiltinKind::Deref, std::vector<HirNode*>({callee}));
+		callee = hir.create<HirBuiltin>(
+			callee->qty.deref(), HirBuiltin::BuiltinKind::Deref, std::vector<HirNode*>({callee}));
 	}
 
 	return hir.create<HirMember>(sym_qty(builtins, member_sym), callee, member_sym);
@@ -1138,9 +1131,9 @@ Sema::sema_is(AstNode* ast_is)
 		Sym* sym = hir_cast<HirId>(hir_id).sym;
 
 		// A particular id is descriminated, no lowering is needed.
-		HirNode* hir_is = hir.create<HirCall>(
+		HirNode* hir_is = hir.create<HirBuiltin>(
 			QualifiedTy(builtins.bool_ty),
-			HirCall::BuiltinKind::Is,
+			HirBuiltin::BuiltinKind::Is,
 			std::vector<HirNode*>{
 				hir.create<HirId>(qty, sym),									  //
 				hir.create<HirNumberLiteral>(QualifiedTy(builtins.i32_ty), value) //
@@ -1167,21 +1160,25 @@ Sema::sema_is(AstNode* ast_is)
 		// 	a = expr
 		// 	a
 		// }
+
+		// TODO: Not sure about this, assignment might need the same treatment
+		// as sema_assign, where we pass values etc. func_call vs initializer.
 		std::vector<HirNode*> lowering({
 			hir.create<HirLet>(expr->qty, sym), //
-			hir.create<HirCall>(
+			hir.create<HirBinOp>(
 				QualifiedTy(builtins.void_ty),
 				BinOp::Assign,
-				std::vector<HirNode*>{hir.create<HirId>(qty, sym), expr}), //
-			hir.create<HirId>(qty, sym)									   //
+				hir.create<HirId>(qty, sym),
+				expr),					//
+			hir.create<HirId>(qty, sym) //
 		});
 
 		HirNode* hir_lowering_block =
 			hir.create<HirBlock>(qty, lowering, HirBlock::Scoping::Inherit);
 
-		HirNode* hir_is = hir.create<HirCall>(
+		HirNode* hir_is = hir.create<HirBuiltin>(
 			QualifiedTy(builtins.bool_ty),
-			HirCall::BuiltinKind::Is,
+			HirBuiltin::BuiltinKind::Is,
 			std::vector<HirNode*>{
 				hir.create<HirId>(qty, sym),									  //
 				hir.create<HirNumberLiteral>(QualifiedTy(builtins.i32_ty), value) //
@@ -1585,7 +1582,13 @@ Sema::sema_func_call(AstNode* ast_func_call, HirNode* hir_lhs)
 
 	HirNode* hir_call = func_call_resullt.unwrap();
 
-	return hir.create<HirConstruct>(hir_call->qty, hir_lhs, hir_call);
+	auto coercion_result = equal_coercion(hir_lhs, hir_call);
+	if( !coercion_result.ok() )
+		return coercion_result;
+
+	HirNode* assignment = coercion_result.unwrap();
+
+	return hir.create<HirConstruct>(assignment->qty, hir_lhs, assignment);
 }
 
 SemaResult<HirNode*>
@@ -1639,7 +1642,7 @@ Sema::sema_func_call(AstNode* ast_func_call)
 		SymFunc& sym_func = sym_cast<SymFunc>(sym);
 		auto& ty_func = ty_cast<TyFunc>(sym_func.ty);
 
-		return hir.create<HirCall>(ty_func.rt_qty, sym, args);
+		return hir.create<HirFuncCall>(ty_func.rt_qty, sym, args);
 		break;
 	}
 	case NodeKind::Id:
@@ -1679,7 +1682,7 @@ Sema::sema_func_call(AstNode* ast_func_call)
 
 		auto& ty_func = ty_cast<TyFunc>(sym_cast<SymFunc>(sym_lu.first()).ty);
 
-		return hir.create<HirCall>(ty_func.rt_qty, sym_lu.first(), args);
+		return hir.create<HirFuncCall>(ty_func.rt_qty, sym_lu.first(), args);
 	}
 	case NodeKind::MemberAccess:
 	{
@@ -1798,8 +1801,8 @@ Sema::sema_bin_op_short_circuit(AstNode* ast_bin_op)
 	case BinOp::Or:
 	{
 		std::vector<HirNode*> args({hir_lhs});
-		HirNode* hir_sc =
-			hir.create<HirCall>(QualifiedTy(builtins.bool_ty), HirCall::BuiltinKind::BoolNot, args);
+		HirNode* hir_sc = hir.create<HirBuiltin>(
+			QualifiedTy(builtins.bool_ty), HirBuiltin::BuiltinKind::BoolNot, args);
 
 		elsifs.push_back(HirIf::CondThen{.cond = hir_sc, .then = hir_rhs});
 
@@ -1947,8 +1950,8 @@ Sema::ptr_arithmetic(BinOp op, std::vector<HirNode*> args)
 	// ptr-qty is dummy here.
 	HirNode* ptr_deref = hir.create<HirSubscript>(ptr->qty, ptr, number);
 
-	return hir.create<HirCall>(
-		ptr->qty, HirCall::BuiltinKind::AddressOf, std::vector<HirNode*>({ptr_deref}));
+	return hir.create<HirBuiltin>(
+		ptr->qty, HirBuiltin::BuiltinKind::AddressOf, std::vector<HirNode*>({ptr_deref}));
 }
 
 HirNode*
@@ -1958,7 +1961,8 @@ Sema::int_cast(HirNode* node, int width)
 	Sym* sym = sym_tab.lookup(qty.ty).first();
 
 	std::vector<HirNode*> args{hir.create<HirId>(int_qty(builtins, width, true), sym), node};
-	return hir.create<HirCall>(int_qty(builtins, width, true), HirCall::BuiltinKind::IntCast, args);
+	return hir.create<HirBuiltin>(
+		int_qty(builtins, width, true), HirBuiltin::BuiltinKind::IntCast, args);
 }
 
 SemaResult<HirNode*>
@@ -1998,10 +2002,7 @@ Sema::int_arithmetic(BinOp op, std::vector<HirNode*> args)
 		qty = int_qty(builtins, max_width, true);
 	}
 
-	args[0] = lhs;
-	args[1] = rhs;
-
 	qty = bin_op_qty(builtins, op, lhs);
 
-	return hir.create<HirCall>(qty, op, args);
+	return hir.create<HirBinOp>(qty, op, lhs, rhs);
 }

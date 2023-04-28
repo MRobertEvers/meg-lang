@@ -14,7 +14,11 @@ enum class HirNodeKind
 	Block,
 	// Like "Call", but has a provided lhs.
 	Construct,
-	Call,
+	Builtin,
+	FuncCall,
+	// Only used for primitive types
+	// For "Binary Operations" on non-primitive types, that is "FuncCall"
+	BinOp,
 	Func,
 	FuncProto,
 	Id,
@@ -175,9 +179,9 @@ struct HirConstruct
 		, call(call){};
 };
 
-struct HirCall
+struct HirBuiltin
 {
-	static constexpr HirNodeKind nt = HirNodeKind::Call;
+	static constexpr HirNodeKind nt = HirNodeKind::Builtin;
 
 	enum class BuiltinKind
 	{
@@ -197,6 +201,20 @@ struct HirCall
 		Is
 	};
 
+	BuiltinKind builtin;
+
+	std::vector<HirNode*> args;
+
+	HirBuiltin(BuiltinKind builtin, std::vector<HirNode*> args)
+		: builtin(builtin)
+		, args(args)
+	{}
+};
+
+struct HirFuncCall
+{
+	static constexpr HirNodeKind nt = HirNodeKind::FuncCall;
+
 	enum class CallKind
 	{
 		Invalid,
@@ -207,15 +225,6 @@ struct HirCall
 		// When a function is called with ptr indirection
 		// e.g. a.b() or let x = &my_func; x();
 		PtrCall,
-
-		// Similar to Builtin, but separated because
-		// BinOps are all fairly similar. BuiltIn's can
-		// do weird things.
-		BinOp,
-
-		// Catchall for Builtin Functions that do special things
-		// during codegen.
-		BuiltIn
 	} kind = CallKind::Invalid;
 
 	// Only one is populated
@@ -223,34 +232,36 @@ struct HirCall
 	{
 		Sym* callee;
 		HirNode* callee_expr;
-		BinOp op;
-		BuiltinKind builtin;
 	};
 
 	std::vector<HirNode*> args;
 
-	HirCall(Sym* callee, std::vector<HirNode*> args)
+	HirFuncCall(Sym* callee, std::vector<HirNode*> args)
 		: callee(callee)
 		, args(args)
 		, kind(CallKind::Static)
 	{}
 
-	HirCall(BinOp op, std::vector<HirNode*> args)
-		: op(op)
-		, args(args)
-		, kind(CallKind::BinOp)
-	{}
-
-	HirCall(BuiltinKind builtin, std::vector<HirNode*> args)
-		: builtin(builtin)
-		, args(args)
-		, kind(CallKind::BuiltIn)
-	{}
-
-	HirCall(HirNode* callee_expr, std::vector<HirNode*> args)
+	HirFuncCall(HirNode* callee_expr, std::vector<HirNode*> args)
 		: callee_expr(callee_expr)
 		, args(args)
 		, kind(CallKind::PtrCall)
+	{}
+};
+
+struct HirBinOp
+{
+	static constexpr HirNodeKind nt = HirNodeKind::BinOp;
+
+	BinOp op;
+
+	HirNode* lhs;
+	HirNode* rhs;
+
+	HirBinOp(BinOp op, HirNode* lhs, HirNode* rhs)
+		: op(op)
+		, lhs(lhs)
+		, rhs(rhs)
 	{}
 };
 
@@ -492,7 +503,9 @@ struct HirNode
 		HirId hir_id;
 		HirNumberLiteral hir_number_literal;
 		HirStringLiteral hir_string_literal;
-		HirCall hir_call;
+		HirFuncCall hir_func_call;
+		HirBinOp hir_binop;
+		HirBuiltin hir_builtin;
 		HirLet hir_let;
 		HirIf hir_if;
 		HirStruct hir_struct;
@@ -533,8 +546,12 @@ hir_cast(HirNode* hir_node)
 		return hir_node->data.hir_func_proto;
 	else if constexpr( std::is_same_v<HirId, Node> )
 		return hir_node->data.hir_id;
-	else if constexpr( std::is_same_v<HirCall, Node> )
-		return hir_node->data.hir_call;
+	else if constexpr( std::is_same_v<HirBinOp, Node> )
+		return hir_node->data.hir_binop;
+	else if constexpr( std::is_same_v<HirFuncCall, Node> )
+		return hir_node->data.hir_func_call;
+	else if constexpr( std::is_same_v<HirBuiltin, Node> )
+		return hir_node->data.hir_builtin;
 	else if constexpr( std::is_same_v<HirLet, Node> )
 		return hir_node->data.hir_let;
 	else if constexpr( std::is_same_v<HirIf, Node> )

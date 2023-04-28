@@ -244,33 +244,34 @@ Codegen::codegen_construct(HirNode* hir_construct)
 
 	Expr lhs = codegen_expr(construct.self);
 
-	return codegen_func_call(construct.call, lhs);
+	Expr called = codegen_expr(construct.call, lhs);
+
+	if( llvm::Value* value = codegen_eval(called); !value->getType()->isVoidTy() )
+		builder->CreateStore(value, lhs.address().llvm_pointer());
+
+	return Expr::Empty();
 }
 
 Expr
-Codegen::codegen_call(HirNode* hir_call)
+Codegen::codegen_func_call(HirNode* hir_call, Expr sret)
 {
-	HirCall& call = hir_cast<HirCall>(hir_call);
-	assert(call.kind != HirCall::CallKind::Invalid);
+	HirFuncCall& call = hir_cast<HirFuncCall>(hir_call);
+	assert(call.kind != HirFuncCall::CallKind::Invalid);
 
 	switch( call.kind )
 	{
-	case HirCall::CallKind::BinOp:
-		return codegen_binop(hir_call);
-	case HirCall::CallKind::Static:
-		return codegen_func_call(hir_call, Expr::Empty());
-	case HirCall::CallKind::BuiltIn:
-		return codegen_builtin(hir_call);
+	case HirFuncCall::CallKind::Static:
+		return codegen_func_call_static(hir_call, sret);
 	default:
 		return Expr::Empty();
 	}
 }
 
 Expr
-Codegen::codegen_func_call(HirNode* hir_call, Expr sret)
+Codegen::codegen_func_call_static(HirNode* hir_call, Expr sret)
 {
-	HirCall& call_nod = hir_cast<HirCall>(hir_call);
-	assert(call_nod.kind == HirCall::CallKind::Static);
+	HirFuncCall& call_nod = hir_cast<HirFuncCall>(hir_call);
+	assert(call_nod.kind == HirFuncCall::CallKind::Static);
 
 	Function& callee = funcs.at(call_nod.callee);
 
@@ -319,22 +320,15 @@ Codegen::codegen_func_call(HirNode* hir_call, Expr sret)
 
 	llvm::Value* call = builder->CreateCall(callee.llvm_func, llvm_arg_values);
 
-	// If codegen didn't change the call to an sret call,
-	// then we should store the result value in sret.
-	if( callee.sret.is_void() && !sret.is_void() )
-		builder->CreateStore(call, sret.address().llvm_pointer());
-
 	return RValue(call);
 }
 
 Expr
 Codegen::codegen_binop(HirNode* hir_call)
 {
-	HirCall& call = hir_cast<HirCall>(hir_call);
-	assert(call.kind == HirCall::CallKind::BinOp);
-	assert(call.args.size() == 2);
-	Expr lhs_expr = codegen_expr(call.args.at(0));
-	Expr rhs_expr = codegen_expr(call.args.at(1));
+	HirBinOp& call = hir_cast<HirBinOp>(hir_call);
+	Expr lhs_expr = codegen_expr(call.lhs);
+	Expr rhs_expr = codegen_expr(call.rhs);
 
 	llvm::Value* llvm_rhs = codegen_eval(rhs_expr);
 	if( call.op == BinOp::Assign )
@@ -368,16 +362,15 @@ Codegen::codegen_binop(HirNode* hir_call)
 Expr
 Codegen::codegen_builtin(HirNode* hir_call)
 {
-	HirCall& call = hir_cast<HirCall>(hir_call);
-	assert(call.kind == HirCall::CallKind::BuiltIn);
+	HirBuiltin& call = hir_cast<HirBuiltin>(hir_call);
 
 	switch( call.builtin )
 	{
-	case HirCall::BuiltinKind::IntCast:
+	case HirBuiltin::BuiltinKind::IntCast:
 		return codegen_intcast(hir_call);
-	case HirCall::BuiltinKind::Deref:
+	case HirBuiltin::BuiltinKind::Deref:
 		return codegen_deref(hir_call);
-	case HirCall::BuiltinKind::AddressOf:
+	case HirBuiltin::BuiltinKind::AddressOf:
 		return codegen_addressof(hir_call);
 	default:
 		return Expr::Empty();
@@ -387,9 +380,8 @@ Codegen::codegen_builtin(HirNode* hir_call)
 Expr
 Codegen::codegen_intcast(HirNode* hir_call)
 {
-	HirCall& call = hir_cast<HirCall>(hir_call);
-	assert(call.kind == HirCall::CallKind::BuiltIn);
-	assert(call.builtin == HirCall::BuiltinKind::IntCast);
+	HirBuiltin& call = hir_cast<HirBuiltin>(hir_call);
+	assert(call.builtin == HirBuiltin::BuiltinKind::IntCast);
 
 	HirId& id = hir_cast<HirId>(call.args.at(0));
 	Ty const* ty = sym_cast<SymType>(id.sym).ty;
@@ -427,9 +419,8 @@ Codegen::codegen_intcast(HirNode* hir_call)
 Expr
 Codegen::codegen_deref(HirNode* hir_call)
 {
-	HirCall& call = hir_cast<HirCall>(hir_call);
-	assert(call.kind == HirCall::CallKind::BuiltIn);
-	assert(call.builtin == HirCall::BuiltinKind::Deref);
+	HirBuiltin& call = hir_cast<HirBuiltin>(hir_call);
+	assert(call.builtin == HirBuiltin::BuiltinKind::Deref);
 
 	Expr dest = codegen_expr(call.args.at(0));
 
@@ -442,9 +433,8 @@ Codegen::codegen_deref(HirNode* hir_call)
 Expr
 Codegen::codegen_addressof(HirNode* hir_call)
 {
-	HirCall& call = hir_cast<HirCall>(hir_call);
-	assert(call.kind == HirCall::CallKind::BuiltIn);
-	assert(call.builtin == HirCall::BuiltinKind::AddressOf);
+	HirBuiltin& call = hir_cast<HirBuiltin>(hir_call);
+	assert(call.builtin == HirBuiltin::BuiltinKind::AddressOf);
 
 	Expr dest = codegen_expr(call.args.at(0));
 
@@ -637,9 +627,14 @@ Codegen::codegen_var(HirNode* hir_id)
 // 	llvm::Type* mem_ty = get_type(mem.member.qty);
 // 	return Expr(Address(val, mem_ty));
 // }
-
 Expr
 Codegen::codegen_expr(HirNode* hir_expr)
+{
+	return codegen_expr(hir_expr, Expr::Empty());
+}
+
+Expr
+Codegen::codegen_expr(HirNode* hir_expr, Expr lhs)
 {
 	switch( hir_expr->kind )
 	{
@@ -649,8 +644,12 @@ Codegen::codegen_expr(HirNode* hir_expr)
 		return codegen_string_literal(hir_expr);
 	case HirNodeKind::Construct:
 		return codegen_construct(hir_expr);
-	case HirNodeKind::Call:
-		return codegen_call(hir_expr);
+	case HirNodeKind::FuncCall:
+		return codegen_func_call(hir_expr, lhs);
+	case HirNodeKind::BinOp:
+		return codegen_binop(hir_expr);
+	case HirNodeKind::Builtin:
+		return codegen_builtin(hir_expr);
 	case HirNodeKind::Id:
 		return codegen_var(hir_expr);
 	case HirNodeKind::Return:
