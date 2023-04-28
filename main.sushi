@@ -6,7 +6,12 @@ struct Point {
 }
 
 fn x(a: Point*): i32 {
-    return a->x;
+    let r: i32 = 0;
+    if (a->x < 5)
+        r = a->x;
+    else
+        r = a->y;
+    return r;
 }
 
 fn main(): i32 {
@@ -15,8 +20,18 @@ fn main(): i32 {
         .y = 6
     };
 
-    let l: i64 = x(&p) * 3;
-    printf("%d\n", l);
+    let l: i64 = x(&p) / 9;
 
-    return 1;
+    let s: i32 = 0;
+    switch (p.x) {
+        case 5:
+            printf("Hello\n");
+        case 6:
+            printf("Wow\n");
+    }
+
+    
+    printf("%i\n", l);
+
+    return 0;
 }

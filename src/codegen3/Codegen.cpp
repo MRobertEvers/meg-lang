@@ -409,21 +409,9 @@ Codegen::codegen_intcast(HirNode* hir_call)
 	switch( ty_int.sign )
 	{
 	case TyInt::Sign::Signed:
-	{
-		if( value->getType()->getIntegerBitWidth() < dest->getIntegerBitWidth() )
-			// S is for Signed-Extend
-			return RValue(builder->CreateSExt(value, dest));
-		else
-			return RValue(builder->CreateTrunc(value, dest));
-	}
+		return RValue(builder->CreateSExtOrTrunc(value, dest));
 	case TyInt::Sign::Unsigned:
-	{
-		if( value->getType()->getIntegerBitWidth() < dest->getIntegerBitWidth() )
-			// Z is for Zero-Extend
-			return RValue(builder->CreateZExt(value, dest));
-		else
-			return RValue(builder->CreateTrunc(value, dest));
-	}
+		return RValue(builder->CreateSExtOrTrunc(value, dest));
 	case TyInt::Sign::Any:
 		return Expr::Empty();
 	}
@@ -513,6 +501,38 @@ Codegen::codegen_let(HirNode* hir_let)
 }
 
 Expr
+Codegen::codegen_switch(HirNode* hir_switch)
+{
+	HirSwitch& sw = hir_cast<HirSwitch>(hir_switch);
+
+	Expr expr = codegen_expr(sw.cond);
+
+	llvm::Function* llvm_fn = current_func->llvm_func;
+	llvm::BasicBlock* llvm_merge_bb = llvm::BasicBlock::Create(*context, "");
+
+	llvm::SwitchInst* llvm_sw = builder->CreateSwitch(codegen_eval(expr), llvm_merge_bb);
+
+	for( auto branch : sw.branches )
+	{
+		int jt_val = branch.value;
+		llvm::ConstantInt* llvm_const_int =
+			llvm::ConstantInt::get(*context, llvm::APInt(32, jt_val, true));
+
+		llvm::BasicBlock* llvm_case_bb = llvm::BasicBlock::Create(*context, "", llvm_fn);
+		builder->SetInsertPoint(llvm_case_bb);
+		Expr case_body = codegen_expr(branch.then);
+		builder->CreateBr(llvm_merge_bb);
+
+		llvm_sw->addCase(llvm_const_int, llvm_case_bb);
+	}
+
+	builder->SetInsertPoint(llvm_merge_bb);
+	llvm_merge_bb->insertInto(llvm_fn);
+
+	return Expr::Empty();
+}
+
+Expr
 Codegen::codegen_if(HirNode* hir_if)
 {
 	HirIf& if_nod = hir_cast<HirIf>(hir_if);
@@ -523,6 +543,20 @@ Codegen::codegen_if(HirNode* hir_if)
 		return codegen_if_chain(hir_if);
 }
 
+/**
+ * This renders if-elsif-else
+ *
+ * if (a) {
+ * 	...
+ * } else if (b) {
+ * 	...
+ * } else {
+ * 	...
+ * }
+ *
+ * @param hir_if
+ * @return Expr
+ */
 Expr
 Codegen::codegen_if_chain(HirNode* hir_if)
 {
@@ -675,6 +709,8 @@ Codegen::codegen_expr(HirNode* hir_expr, Expr lhs)
 		return codegen_block(hir_expr);
 	case HirNodeKind::Member:
 		return codegen_member_access(hir_expr);
+	case HirNodeKind::Switch:
+		return codegen_switch(hir_expr);
 	default:
 		return Expr::Empty();
 	}

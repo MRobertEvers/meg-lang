@@ -1680,7 +1680,7 @@ Sema::sema_func_call(AstNode* ast_func_call)
 }
 
 static QualifiedTy
-bin_op_qty(SymBuiltins& builtins, BinOp op, HirNode* lhs)
+bin_op_qty(SymBuiltins& builtins, BinOp op, QualifiedTy input_tys)
 {
 	switch( op )
 	{
@@ -1698,7 +1698,7 @@ bin_op_qty(SymBuiltins& builtins, BinOp op, HirNode* lhs)
 	case BinOp::Div:
 	case BinOp::Add:
 	case BinOp::Sub:
-		return lhs->qty;
+		return input_tys;
 	default:
 		return QualifiedTy(builtins.void_ty);
 	}
@@ -1987,6 +1987,8 @@ Sema::int_arithmetic(BinOp op, std::vector<HirNode*> args)
 
 		qty = int_qty(builtins, max_width, true);
 	}
+
+	qty = bin_op_qty(builtins, op, qty);
 
 	return hir.create<HirBinOp>(qty, op, lhs, rhs);
 }

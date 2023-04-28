@@ -45,6 +45,7 @@ public:
 	Expr codegen_member_access(HirNode*);
 	Expr codegen_block(HirNode*);
 	Expr codegen_let(HirNode*);
+	Expr codegen_switch(HirNode*);
 	Expr codegen_if(HirNode*);
 	Expr codegen_if_chain(HirNode*);
 	Expr codegen_if_phi(HirNode*);
