@@ -23,13 +23,13 @@ enum CloseResult {
 
 static char const generator_builtin[] = R"(
 template<typename IterTy, typename SendTy, typename RetTy>
-interface generator {
+interface Generator {
 	using Iter = IterTy;
 	using Send = SendTy;
 	using Ret = RetTy;
 
     fn begin(): SendResult<IterTy>;
-    fn send(a: Send): SendResult<SendTy>;
+    fn send(a: SendTy): SendResult<SendTy>;
     fn close(): CloseResult<RetTy>;
 }
 )";
@@ -54,7 +54,7 @@ create_generator_builtin(SymTab& sym_tab, Types& types, Ast& ast)
 {
 	create_builtin(sym_tab, types, ast, "SendResult", send_result_builtin);
 	create_builtin(sym_tab, types, ast, "CloseResult", close_result_builtin);
-	create_builtin(sym_tab, types, ast, "generator", generator_builtin);
+	create_builtin(sym_tab, types, ast, "Generator", generator_builtin);
 }
 
 SymBuiltins
@@ -125,8 +125,8 @@ sym_qty(SymBuiltins const& builtins, Sym* sym)
 		return QualifiedTy(builtins.void_ty);
 	case SymKind::Alias:
 		return sym_qty(builtins, sym_unalias(sym));
-	case SymKind::TypeAlias:
-		return sym->data.sym_type_alias.qty;
+	// case SymKind::TypeAlias:
+	// 	return sym->data.sym_type_alias.qty;
 	case SymKind::EnumMember:
 		// TODO: How to handle when stuct type?
 		return QualifiedTy(sym->data.sym_enum_member.struct_ty);

@@ -20,8 +20,8 @@ SymVar::SymVar(QualifiedTy qty)
 SymAlias::SymAlias(Sym* sym)
 	: sym(sym){};
 
-SymTypeAlias::SymTypeAlias(QualifiedTy qty)
-	: qty(qty){};
+// SymTypeAlias::SymTypeAlias(QualifiedTy qty)
+// 	: qty(qty){};
 
 SymFunc::SymFunc(Ty const* ty)
 	: ty(ty){};

@@ -407,8 +407,9 @@ Sema::type_declarator(AstNode* ast_type_declarator)
 		return NotImpl();
 	}
 
-	if( sym->kind != SymKind::TypeAlias && sym->kind != SymKind::Type &&
-		sym->kind != SymKind::EnumMember )
+	sym = sym_unalias(sym);
+
+	if( sym->kind != SymKind::Type && sym->kind != SymKind::EnumMember )
 		return SemaError("Could not find type.");
 
 	QualifiedTy qty = sym_qty(builtins, sym);
@@ -1832,6 +1833,15 @@ Sema::sema_string_literal(AstNode* ast_string_literal)
 		QualifiedTy(builtins.i8_ty, 1), literal.value.substr(1, literal.value.size() - 2));
 }
 
+static std::vector<QualifiedTy>
+types_from_decls(std::vector<Sema::TypeDeclResult>& type_param_decls)
+{
+	std::vector<QualifiedTy> l;
+	for( auto& tpd : type_param_decls )
+		l.push_back(tpd.qty);
+	return l;
+}
+
 SemaResult<Sym*>
 Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 {
@@ -1839,15 +1849,17 @@ Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 	AstId& id = ast_cast<AstId>(template_id.id);
 	NameParts& name = id.name_parts;
 
-	std::vector<QualifiedTy> type_params;
+	std::vector<Sema::TypeDeclResult> type_param_decls;
 	for( AstNode* ast_type_decl : template_id.types )
 	{
 		auto type_decl_result = type_declarator(ast_type_decl);
 		if( !type_decl_result.ok() )
 			return MoveError(type_decl_result);
 
-		type_params.push_back(type_decl_result.unwrap().qty);
+		type_param_decls.push_back(type_decl_result.unwrap());
 	}
+
+	std::vector<QualifiedTy> type_params = types_from_decls(type_param_decls);
 
 	SymLookupResult lu = sym_tab.lookup_template_instance(name, type_params);
 	if( lu.found() )
@@ -1869,14 +1881,22 @@ Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 	// TODO: Push the namespace that the symbol belongs.
 	sym_tab.push_scope();
 
+	// Match the symbol of the typename to the concrete type argument symbol.
+	// E.g. interface Blah<typename Har, typename Bar> {
+	//
+	// }
+	// =>
+	// usage_fn() { Blah<i32, i64>(); }
+	//
+	// map "Har" => "i32" and "Bar" => "i64"
 	for( int i = 0; i < sym_templ.typenames.size(); i++ )
 	{
 		AstNode* ast_typename = sym_templ.typenames.at(i);
-		QualifiedTy& qty = type_params.at(i);
+		Sym* typename_sym = type_param_decls.at(i).sym;
 
-		AstId& id = ast_cast<AstId>(ast_typename);
+		AstId& typename_id = ast_cast<AstId>(ast_typename);
 
-		sym_tab.create_named<SymTypeAlias>(to_simple(id), qty);
+		sym_tab.create_named<SymAlias>(to_simple(typename_id), typename_sym);
 	}
 
 	auto instantiation_result = sema_module_stmt_any(sym_templ.template_tree);

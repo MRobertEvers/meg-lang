@@ -69,12 +69,13 @@ public:
 	SemaResult<HirNode*> sema_number_literal(AstNode* ast_number_literal);
 	SemaResult<HirNode*> sema_string_literal(AstNode* ast_string_literal);
 
-private:
 	struct TypeDeclResult
 	{
 		Sym* sym;
 		QualifiedTy qty;
 	};
+
+private:
 	SemaResult<TypeDeclResult> type_declarator(AstNode* ast_type_declarator);
 	SemaResult<std::map<std::string, Member>> decl_list(std::vector<AstNode*>& ast_decls);
 	// Checks if two types can be equal after coercing the subject type.

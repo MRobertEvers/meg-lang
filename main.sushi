@@ -1,37 +1,11 @@
 extern fn printf(c: i8*, ...): void;
 
-struct Point {
-    x: i32;
-    y: i32;
-}
+async fn my_coro(a: i32): impl Generator<i32, i32, i32> {
+    let first = yield a;
 
-fn x(a: Point*): i32 {
-    let r: i32 = 0;
-    if (a->x < 5)
-        r = a->x;
-    else
-        r = a->y;
-    return r;
+    return first;
 }
 
 fn main(): i32 {
-    let p: Point = Point {
-        .x = 5,
-        .y = 6
-    };
-
-    let l: i64 = x(&p) / 9;
-
-    let s: i32 = 0;
-    switch (p.x) {
-        case 5:
-            printf("Hello\n");
-        case 6:
-            printf("Wow\n");
-    }
-
-    
-    printf("%i\n", l);
-
     return 0;
 }
