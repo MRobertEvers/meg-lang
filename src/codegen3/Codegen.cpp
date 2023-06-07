@@ -258,42 +258,25 @@ Codegen::codegen_async_proto(HirNode* hir_proto)
 	// Prepare the struct
 	llvm::Type* ret_ty = codegen_async_frame(hir_proto);
 
-	TyFunc const& ty_func = func_ty(proto.sym);
+	return nullptr;
+}
 
-	llvm::Type* llvm_ret_ty = get_type(ty_func.rt_qty);
-	std::vector<Arg> args;
+Expr
+Codegen::codegen_async_begin(HirNode*)
+{
+	return Expr::Empty();
+}
 
-	if( ty_func.rt_qty.is_aggregate_type() )
-	{
-		args.push_back(Arg(nullptr, llvm_ret_ty, true, false));
-		llvm_ret_ty = llvm::Type::getVoidTy(*context);
-	}
+Expr
+Codegen::codegen_async_send(HirNode*)
+{
+	return Expr::Empty();
+}
 
-	for( int i = 0; i < ty_func.args_qtys.size(); i++ )
-	{
-		Sym* sym = param_sym(proto.parameters.at(i));
-		QualifiedTy qty = ty_func.args_qtys.at(i);
-		llvm::Type* ty = get_type(qty);
-		args.push_back(Arg(sym, ty, false, qty.is_aggregate_type()));
-	}
-
-	llvm::FunctionType* llvm_fn_ty = llvm::FunctionType::get(
-		ret_ty, to_llvm_arg_tys(args), proto.var_arg == HirFuncProto::VarArg::VarArg);
-
-	llvm::Function* llvm_fn =
-		llvm::Function::Create(llvm_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
-
-	for( int i = 0; i < args.size(); i++ )
-	{
-		Arg& arg = args.at(i);
-		if( arg.is_sret() )
-			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addStructRetAttr(arg.type));
-		else if( arg.is_byval() )
-			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addByValAttr(arg.type));
-	}
-
-	auto emplaced = funcs.emplace(proto.sym, Function::FromArgs(llvm_fn, args));
-	return &emplaced.first->second;
+Expr
+Codegen::codegen_async_close(HirNode*)
+{
+	return Expr::Empty();
 }
 
 llvm::Type*
