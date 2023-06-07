@@ -376,6 +376,17 @@ Sema::sema_template(AstNode* ast_template)
 	return nullptr;
 }
 
+void
+inherit_scope(SymTab& sym_tab, SymScope& base, SymScope& in)
+{
+	for( auto& [name, sym] : in )
+	{
+		// Interfaces create function symbols for their function members so
+		// we can just clone those.
+		sym_tab.clone_symbol_to(&base, name, sym);
+	}
+}
+
 SemaResult<Sema::TypeDeclResult>
 Sema::type_declarator(AstNode* ast_type_declarator)
 {
@@ -431,7 +442,7 @@ Sema::type_declarator(AstNode* ast_type_declarator)
 		SymType& interface_sym = sym_cast<SymType>(sym);
 		sym = sym_tab.create<SymType>(impl_ty);
 		SymType& anonymous_sym = sym_cast<SymType>(sym);
-		anonymous_sym.scope = interface_sym.scope;
+		inherit_scope(sym_tab, anonymous_sym.scope, interface_sym.scope);
 
 		qty = QualifiedTy(impl_ty);
 

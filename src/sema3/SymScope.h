@@ -14,4 +14,7 @@ class SymScope
 public:
 	Sym* find(std::string const& name);
 	void insert(std::string const& name, Sym*);
+
+	auto begin() { return syms.begin(); }
+	auto end() { return syms.end(); }
 };

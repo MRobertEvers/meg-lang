@@ -30,6 +30,9 @@ public:
 	std::vector<SymScope*> save_state();
 	void restore_state(std::vector<SymScope*> stack);
 
+	// Shallow sym clone
+	Sym* clone_symbol_to(SymScope*, std::string const& name, Sym*);
+
 	template<typename Node, typename... Args>
 	Sym* create(Args&&... args);
 

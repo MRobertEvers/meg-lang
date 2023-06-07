@@ -74,7 +74,7 @@ Codegen::codegen_item(HirNode* hir_item)
 	case HirNodeKind::Func:
 		return codegen_func(hir_item);
 	case HirNodeKind::FuncProto:
-		codegen_func_proto(hir_item);
+		codegen_sync_proto(hir_item);
 		return Expr::Empty();
 	case HirNodeKind::Struct:
 		codegen_struct(hir_item);
@@ -138,13 +138,20 @@ Codegen::codegen_func(HirNode* hir_func)
 	//
 	HirFunc& func_nod = hir_cast<HirFunc>(hir_func);
 
-	Function* func = codegen_func_proto(func_nod.proto);
-	current_func = func;
+	HirFuncProto& proto = hir_cast<HirFuncProto>(func_nod.proto);
+	switch( proto.kind )
+	{
+	case HirFuncProto::Routine::Coroutine:
+		return codegen_async_func(hir_func);
+	case HirFuncProto::Routine::Subroutine:
+		return codegen_sync_func(hir_func);
+	}
+}
 
+void
+Codegen::codegen_func_entry(Function* func)
+{
 	llvm::Function* llvm_fn = func->llvm_func;
-	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "", llvm_fn);
-	builder->SetInsertPoint(llvm_entry_bb);
-
 	for( int i = 0; i < func->ir_arg_count(); i++ )
 	{
 		Arg& arg = func->ir_arg(i);
@@ -163,11 +170,47 @@ Codegen::codegen_func(HirNode* hir_func)
 
 		vars.emplace(arg.sym, Address(val, arg.type));
 	}
+}
+
+Expr
+Codegen::codegen_sync_func(HirNode* hir_func)
+{
+	HirFunc& func_nod = hir_cast<HirFunc>(hir_func);
+
+	Function* func = codegen_sync_proto(func_nod.proto);
+	current_func = func;
+
+	llvm::Function* llvm_fn = func->llvm_func;
+	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "", llvm_fn);
+	builder->SetInsertPoint(llvm_entry_bb);
+
+	codegen_func_entry(func);
 
 	codegen_block(func_nod.body);
 
 	vars.clear();
 	current_func = nullptr;
+
+	return Expr::Empty();
+}
+
+Expr
+Codegen::codegen_async_func(HirNode* hir_proto)
+{
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+
+	// Prepare the struct
+	llvm::Type* llvm_frame_struct_ty = codegen_async_frame(hir_proto);
+
+	codegen_async_constructor(hir_proto, llvm_frame_struct_ty);
+
+	// Return [llvm_fn_step, llvm_optional_send_ty];
+	codegen_async_step_t async_step = codegen_async_step(hir_proto, llvm_frame_struct_ty);
+
+	codegen_async_begin(hir_proto, llvm_frame_struct_ty, async_step);
+	codegen_async_send(hir_proto, llvm_frame_struct_ty, async_step);
+
+	codegen_async_close(hir_proto, llvm_frame_struct_ty);
 
 	return Expr::Empty();
 }
@@ -192,19 +235,6 @@ param_sym(HirNode* hir_param)
 	HirId& id = hir_cast<HirId>(hir_param);
 
 	return id.sym;
-}
-
-Function*
-Codegen::codegen_func_proto(HirNode* hir_proto)
-{
-	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
-	switch( proto.kind )
-	{
-	case HirFuncProto::Routine::Coroutine:
-		return codegen_async_proto(hir_proto);
-	case HirFuncProto::Routine::Subroutine:
-		return codegen_async_proto(hir_proto);
-	}
 }
 
 Function*
@@ -250,32 +280,196 @@ Codegen::codegen_sync_proto(HirNode* hir_proto)
 	return &emplaced.first->second;
 }
 
-Function*
-Codegen::codegen_async_proto(HirNode* hir_proto)
+Expr
+Codegen::codegen_async_constructor(HirNode* hir_proto, llvm::Type* llvm_frame_ty)
+{
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+	// The constructor uses the symbol of the function itself
+	Sym* proto_sym = proto.sym;
+
+	TyFunc const& ty_func = func_ty(proto_sym);
+
+	std::vector<Arg> args;
+
+	args.push_back(Arg(nullptr, llvm_frame_ty, true, false));
+	llvm::Type* llvm_ret_ty = llvm::Type::getVoidTy(*context);
+
+	for( int i = 0; i < ty_func.args_qtys.size(); i++ )
+	{
+		Sym* sym = param_sym(proto.parameters.at(i));
+		QualifiedTy qty = ty_func.args_qtys.at(i);
+		llvm::Type* ty = get_type(qty);
+		args.push_back(Arg(sym, ty, false, qty.is_aggregate_type()));
+	}
+
+	llvm::FunctionType* llvm_fn_ty = llvm::FunctionType::get(
+		llvm_ret_ty, to_llvm_arg_tys(args), proto.var_arg == HirFuncProto::VarArg::VarArg);
+
+	llvm::Function* llvm_fn =
+		llvm::Function::Create(llvm_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
+
+	for( int i = 0; i < args.size(); i++ )
+	{
+		Arg& arg = args.at(i);
+		if( arg.is_sret() )
+			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addStructRetAttr(arg.type));
+		else if( arg.is_byval() )
+			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addByValAttr(arg.type));
+	}
+
+	auto emplaced = funcs.emplace(proto.sym, Function::FromArgs(llvm_fn, args));
+	return Expr::Empty();
+}
+
+Codegen::codegen_async_step_t
+Codegen::codegen_async_step(HirNode* hir_proto, llvm::Type* llvm_frame_ty)
+{
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+	SymType& proto_sym = sym_cast<SymType>(proto.sym);
+	SymType& send_ty_sym = sym_cast<SymType>(proto_sym.scope.find("SendTy"));
+
+	llvm::Type* llvm_send_ty = get_type(send_ty_sym.ty);
+	llvm::Type* llvm_send_opt_ty = llvm::StructType::create(
+		*context, {llvm::Type::getInt1Ty(*context), llvm_send_ty->getPointerTo()}, "SendOpt");
+
+	SymType& iter_ty_sym = sym_cast<SymType>(proto_sym.scope.find("IterTy"));
+	llvm::Type* llvm_iter_ty = get_type(iter_ty_sym.ty);
+	llvm::Type* llvm_iter_res_ty = llvm::StructType::create(
+		*context, {llvm::Type::getInt1Ty(*context), llvm_iter_ty}, "IterRet");
+
+	// TODO: Function that takes
+	// 1. sret of llvm_iter_res_ty
+	// 2. implicit byval of llvm_frame_ty
+	// 3. byval of llvm send_opt_ty
+
+	return (codegen_async_step_t){
+		.send_ty = llvm_send_opt_ty, .iter_ty = llvm_iter_res_ty, .step_fn = nullptr};
+}
+
+Expr
+Codegen::codegen_async_begin(
+	HirNode* hir_proto, llvm::Type* llvm_frame_ty, codegen_async_step_t step)
+{
+	llvm::Function* llvm_step_fn = step.step_fn;
+	llvm::Type* llvm_send_opt_ty = step.send_ty;
+	llvm::Type* llvm_iter_ret_ty = step.iter_ty;
+
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+
+	std::vector<Arg> args;
+	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
+	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
+	args.push_back(Arg(nullptr, llvm_send_opt_ty, false, true));
+
+	llvm::FunctionType* llvm_begin_fn_ty =
+		llvm::FunctionType::get(llvm::Type::getVoidTy(*context), to_llvm_arg_tys(args), false);
+
+	llvm::Function* llvm_begin_fn = llvm::Function::Create(
+		llvm_begin_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
+
+	// Get the "begin" symbol
+	SymType& proto_sym = sym_cast<SymType>(proto.sym);
+	Sym* begin_sym = proto_sym.scope.find("begin");
+	assert(begin_sym);
+	auto emplaced = funcs.emplace(begin_sym, Function::FromArgs(llvm_begin_fn, args));
+	Function* func = &emplaced.first->second;
+
+	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "entry", llvm_begin_fn);
+	builder->SetInsertPoint(llvm_entry_bb);
+	codegen_func_entry(func);
+
+	llvm::Value* llvm_send_opt_struct_val = builder->CreateAlloca(llvm_send_opt_ty);
+
+	// The optional flag whether it's null is the 0th entry in the struct.
+	llvm::Value* llvm_send_opt_flag =
+		builder->CreateStructGEP(llvm_send_opt_ty, llvm_send_opt_struct_val, 0);
+
+	llvm::ConstantInt* llvm_zero_1bit = llvm::ConstantInt::get(*context, llvm::APInt(1, 0, true));
+
+	builder->CreateStore(llvm_zero_1bit, llvm_send_opt_flag);
+
+	builder->CreateCall(
+		llvm_step_fn,
+		// Step Return Type
+		// Frame as first arg
+		// Send Optional Type
+		// Note! Byval and sret args don't need to be allocad
+		{llvm_begin_fn->getArg(0), llvm_begin_fn->getArg(1), llvm_send_opt_struct_val});
+	builder->CreateRetVoid();
+
+	vars.clear();
+	current_func = nullptr;
+
+	return Expr::Empty();
+}
+
+Expr
+Codegen::codegen_async_send(
+	HirNode* hir_proto, llvm::Type* llvm_frame_ty, codegen_async_step_t step)
+{
+	llvm::Function* llvm_step_fn = step.step_fn;
+	llvm::Type* llvm_send_opt_ty = step.send_ty;
+	llvm::Type* llvm_iter_ret_ty = step.iter_ty;
+
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+
+	std::vector<Arg> args;
+	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
+	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
+	args.push_back(Arg(nullptr, llvm_send_opt_ty, false, true));
+
+	llvm::FunctionType* llvm_send_fn_ty =
+		llvm::FunctionType::get(llvm::Type::getVoidTy(*context), to_llvm_arg_tys(args), false);
+
+	llvm::Function* llvm_send_fn = llvm::Function::Create(
+		llvm_send_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
+
+	// Get the "send" symbol
+	SymType& proto_sym = sym_cast<SymType>(proto.sym);
+	Sym* send_sym = proto_sym.scope.find("send");
+	assert(send_sym);
+	auto emplaced = funcs.emplace(send_sym, Function::FromArgs(llvm_send_fn, args));
+	Function* func = &emplaced.first->second;
+
+	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "entry", llvm_send_fn);
+	builder->SetInsertPoint(llvm_entry_bb);
+	codegen_func_entry(func);
+
+	llvm::Value* llvm_send_opt_struct_val = builder->CreateAlloca(llvm_send_opt_ty);
+
+	// The optional flag whether it's null is the 0th entry in the struct.
+	llvm::Value* llvm_send_opt_flag =
+		builder->CreateStructGEP(llvm_send_opt_ty, llvm_send_opt_struct_val, 0);
+
+	llvm::ConstantInt* llvm_one_1bit = llvm::ConstantInt::get(*context, llvm::APInt(1, 1, true));
+
+	builder->CreateStore(llvm_one_1bit, llvm_send_opt_flag);
+
+	builder->CreateCall(
+		llvm_step_fn,
+		// Step Return Type
+		// Frame as first arg
+		// Send Optional Type
+		// Note! Byval and sret args don't need to be allocad
+		{llvm_send_fn->getArg(0), llvm_send_fn->getArg(1), llvm_send_opt_struct_val});
+	builder->CreateRetVoid();
+
+	vars.clear();
+	current_func = nullptr;
+
+	return Expr::Empty();
+}
+
+Expr
+Codegen::codegen_async_close(HirNode* hir_proto, llvm::Type* frame)
 {
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
-	// Prepare the struct
-	llvm::Type* ret_ty = codegen_async_frame(hir_proto);
+	// Get the "close" symbol
+	SymType& proto_sym = sym_cast<SymType>(proto.sym);
+	Sym* close_sym = proto_sym.scope.find("close");
+	assert(close_sym);
 
-	return nullptr;
-}
-
-Expr
-Codegen::codegen_async_begin(HirNode*)
-{
-	return Expr::Empty();
-}
-
-Expr
-Codegen::codegen_async_send(HirNode*)
-{
-	return Expr::Empty();
-}
-
-Expr
-Codegen::codegen_async_close(HirNode*)
-{
 	return Expr::Empty();
 }
 
@@ -317,10 +511,7 @@ Codegen::codegen_async_frame(HirNode* hir_proto)
 	llvm::StructType* llvm_struct_type =
 		llvm::StructType::create(*context, members, result_struct_name.c_str());
 
-	// async_fn.llvm_frame_type = llvm_struct_type;
-
 	return llvm_struct_type;
-	// return Expr::Empty();
 }
 
 Expr

@@ -33,23 +33,33 @@ public:
 	Expr codegen_item(HirNode*);
 	Expr codegen_struct(HirNode*);
 	Expr codegen_func(HirNode*);
-	Function* codegen_func_proto(HirNode*);
+	void codegen_func_entry(Function* func);
+	Expr codegen_sync_func(HirNode*);
+	Expr codegen_async_func(HirNode*);
 	Function* codegen_sync_proto(HirNode*);
-	Function* codegen_async_proto(HirNode*);
 
 	/**
+	 * codegen_async_constructor create the async frame which is used in the rest of the functions.
 	 * codegen_async_begin, and codegen_async_send, call into codegen_async_step.
-	 *
+	 * codegen_async_begin takes no arguments.
 	 * Async step takes an "optional" struct. It's because the first step doesn't have a yield
 	 * value.
 	 *
 	 * @return Expr
 	 */
-	Expr codegen_async_begin(HirNode*);
-	Expr codegen_async_send(HirNode*);
-	Expr codegen_async_step(HirNode*);
-	Expr codegen_async_close(HirNode*);
+	Expr codegen_async_constructor(HirNode*, llvm::Type* frame);
+	struct codegen_async_step_t
+	{
+		llvm::Function* step_fn;
+		llvm::Type* send_ty;
+		llvm::Type* iter_ty;
+	};
+	codegen_async_step_t codegen_async_step(HirNode*, llvm::Type* frame);
+	Expr codegen_async_begin(HirNode*, llvm::Type* frame, codegen_async_step_t step);
+	Expr codegen_async_send(HirNode*, llvm::Type* frame, codegen_async_step_t step);
+	Expr codegen_async_close(HirNode*, llvm::Type* frame);
 	llvm::Type* codegen_async_frame(HirNode*);
+
 	Expr codegen_construct(HirNode*);
 	Expr codegen_func_call(HirNode*, Expr sret);
 	Expr codegen_func_call_static(HirNode*, Expr sret);

@@ -141,6 +141,17 @@ SymTab::restore_state(std::vector<SymScope*> in)
 	stack = in;
 }
 
+Sym*
+SymTab::clone_symbol_to(SymScope* scope, std::string const& name, Sym* base)
+{
+	Sym& cloned = syms.emplace_back();
+	memcpy(&cloned, base, sizeof(Sym));
+
+	scope->insert(name, &cloned);
+
+	return &cloned;
+}
+
 SymScope*
 SymTab::current_scope()
 {
