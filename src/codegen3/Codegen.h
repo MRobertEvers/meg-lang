@@ -36,8 +36,18 @@ public:
 	Function* codegen_func_proto(HirNode*);
 	Function* codegen_sync_proto(HirNode*);
 	Function* codegen_async_proto(HirNode*);
+
+	/**
+	 * codegen_async_begin, and codegen_async_send, call into codegen_async_step.
+	 *
+	 * Async step takes an "optional" struct. It's because the first step doesn't have a yield
+	 * value.
+	 *
+	 * @return Expr
+	 */
 	Expr codegen_async_begin(HirNode*);
 	Expr codegen_async_send(HirNode*);
+	Expr codegen_async_step(HirNode*);
 	Expr codegen_async_close(HirNode*);
 	llvm::Type* codegen_async_frame(HirNode*);
 	Expr codegen_construct(HirNode*);
