@@ -51,6 +51,7 @@ public:
 	struct codegen_async_step_t
 	{
 		llvm::Function* step_fn;
+		llvm::Type* send_opt_ty;
 		llvm::Type* send_ty;
 		llvm::Type* iter_ty;
 	};

@@ -342,8 +342,17 @@ Codegen::codegen_async_step(HirNode* hir_proto, llvm::Type* llvm_frame_ty)
 	// 2. implicit byval of llvm_frame_ty
 	// 3. byval of llvm send_opt_ty
 
+	llvm::FunctionType* llvm_fn_ty = llvm::FunctionType::get(
+		llvm_ret_ty, to_llvm_arg_tys(args), proto.var_arg == HirFuncProto::VarArg::VarArg);
+
+	llvm::Function* llvm_fn = llvm::Function::Create(
+		llvm_fn_ty, linkage(proto.linkage), func_name(proto.sym) + "_step", mod.get());
+
 	return (codegen_async_step_t){
-		.send_ty = llvm_send_opt_ty, .iter_ty = llvm_iter_res_ty, .step_fn = nullptr};
+		.send_ty = llvm_send_ty,
+		.send_opt_ty = llvm_send_opt_ty,
+		.iter_ty = llvm_iter_res_ty,
+		.step_fn = nullptr};
 }
 
 Expr
@@ -351,7 +360,8 @@ Codegen::codegen_async_begin(
 	HirNode* hir_proto, llvm::Type* llvm_frame_ty, codegen_async_step_t step)
 {
 	llvm::Function* llvm_step_fn = step.step_fn;
-	llvm::Type* llvm_send_opt_ty = step.send_ty;
+	llvm::Type* llvm_send_opt_ty = step.send_opt_ty;
+	llvm::Type* llvm_send_ty = step.send_ty;
 	llvm::Type* llvm_iter_ret_ty = step.iter_ty;
 
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
@@ -359,7 +369,8 @@ Codegen::codegen_async_begin(
 	std::vector<Arg> args;
 	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
 	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
-	args.push_back(Arg(nullptr, llvm_send_opt_ty, false, true));
+	// TODO: Use qty.is_aggregate_ty()
+	args.push_back(Arg(nullptr, llvm_send_ty, false, llvm_send_ty->isAggregateType()));
 
 	llvm::FunctionType* llvm_begin_fn_ty =
 		llvm::FunctionType::get(llvm::Type::getVoidTy(*context), to_llvm_arg_tys(args), false);
@@ -408,7 +419,8 @@ Codegen::codegen_async_send(
 	HirNode* hir_proto, llvm::Type* llvm_frame_ty, codegen_async_step_t step)
 {
 	llvm::Function* llvm_step_fn = step.step_fn;
-	llvm::Type* llvm_send_opt_ty = step.send_ty;
+	llvm::Type* llvm_send_opt_ty = step.send_opt_ty;
+	llvm::Type* llvm_send_ty = step.send_ty;
 	llvm::Type* llvm_iter_ret_ty = step.iter_ty;
 
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
@@ -416,7 +428,8 @@ Codegen::codegen_async_send(
 	std::vector<Arg> args;
 	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
 	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
-	args.push_back(Arg(nullptr, llvm_send_opt_ty, false, true));
+	// TODO: Use qty.is_aggregate_ty()
+	args.push_back(Arg(nullptr, llvm_send_ty, false, llvm_send_ty->isAggregateType()));
 
 	llvm::FunctionType* llvm_send_fn_ty =
 		llvm::FunctionType::get(llvm::Type::getVoidTy(*context), to_llvm_arg_tys(args), false);
@@ -444,6 +457,8 @@ Codegen::codegen_async_send(
 	llvm::ConstantInt* llvm_one_1bit = llvm::ConstantInt::get(*context, llvm::APInt(1, 1, true));
 
 	builder->CreateStore(llvm_one_1bit, llvm_send_opt_flag);
+
+	// TODO: Store a pointer to the arg in the struct.
 
 	builder->CreateCall(
 		llvm_step_fn,
