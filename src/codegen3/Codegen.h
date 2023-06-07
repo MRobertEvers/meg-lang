@@ -34,6 +34,9 @@ public:
 	Expr codegen_struct(HirNode*);
 	Expr codegen_func(HirNode*);
 	Function* codegen_func_proto(HirNode*);
+	Function* codegen_sync_proto(HirNode*);
+	Function* codegen_async_proto(HirNode*);
+	llvm::Type* codegen_async_frame(HirNode*);
 	Expr codegen_construct(HirNode*);
 	Expr codegen_func_call(HirNode*, Expr sret);
 	Expr codegen_func_call_static(HirNode*, Expr sret);

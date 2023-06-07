@@ -198,6 +198,19 @@ Function*
 Codegen::codegen_func_proto(HirNode* hir_proto)
 {
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+	switch( proto.kind )
+	{
+	case HirFuncProto::Routine::Coroutine:
+		return codegen_async_proto(hir_proto);
+	case HirFuncProto::Routine::Subroutine:
+		return codegen_async_proto(hir_proto);
+	}
+}
+
+Function*
+Codegen::codegen_sync_proto(HirNode* hir_proto)
+{
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
 	TyFunc const& ty_func = func_ty(proto.sym);
 
@@ -235,6 +248,96 @@ Codegen::codegen_func_proto(HirNode* hir_proto)
 
 	auto emplaced = funcs.emplace(proto.sym, Function::FromArgs(llvm_fn, args));
 	return &emplaced.first->second;
+}
+
+Function*
+Codegen::codegen_async_proto(HirNode* hir_proto)
+{
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+
+	// Prepare the struct
+	llvm::Type* ret_ty = codegen_async_frame(hir_proto);
+
+	TyFunc const& ty_func = func_ty(proto.sym);
+
+	llvm::Type* llvm_ret_ty = get_type(ty_func.rt_qty);
+	std::vector<Arg> args;
+
+	if( ty_func.rt_qty.is_aggregate_type() )
+	{
+		args.push_back(Arg(nullptr, llvm_ret_ty, true, false));
+		llvm_ret_ty = llvm::Type::getVoidTy(*context);
+	}
+
+	for( int i = 0; i < ty_func.args_qtys.size(); i++ )
+	{
+		Sym* sym = param_sym(proto.parameters.at(i));
+		QualifiedTy qty = ty_func.args_qtys.at(i);
+		llvm::Type* ty = get_type(qty);
+		args.push_back(Arg(sym, ty, false, qty.is_aggregate_type()));
+	}
+
+	llvm::FunctionType* llvm_fn_ty = llvm::FunctionType::get(
+		ret_ty, to_llvm_arg_tys(args), proto.var_arg == HirFuncProto::VarArg::VarArg);
+
+	llvm::Function* llvm_fn =
+		llvm::Function::Create(llvm_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
+
+	for( int i = 0; i < args.size(); i++ )
+	{
+		Arg& arg = args.at(i);
+		if( arg.is_sret() )
+			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addStructRetAttr(arg.type));
+		else if( arg.is_byval() )
+			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addByValAttr(arg.type));
+	}
+
+	auto emplaced = funcs.emplace(proto.sym, Function::FromArgs(llvm_fn, args));
+	return &emplaced.first->second;
+}
+
+llvm::Type*
+Codegen::codegen_async_frame(HirNode* hir_proto)
+{
+	// // Codegen Frame
+	//
+	// struct Frame<TRet> {
+	//     i32 step;
+	//	   ...Args value;
+	//     ...Locals value;
+	// }
+	//
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+	SymFunc& sym_func = sym_cast<SymFunc>(proto.sym);
+	TyFunc const& ty_func = ty_cast<TyFunc>(sym_func.ty);
+
+	std::vector<llvm::Type*> members;
+
+	llvm::Type* llvm_step_idx_type = llvm::Type::getInt32Ty(*context);
+	members.push_back(llvm_step_idx_type);
+
+	llvm::Type* llvm_ret_ty = get_type(ty_func.rt_qty);
+	members.push_back(llvm_ret_ty);
+
+	for( auto& local : proto.locals )
+	{
+		llvm::Type* llvm_local_type = get_type(local->qty);
+		members.push_back(llvm_local_type);
+	}
+
+	// async_fn.return_val_idx = members.size() - 1;
+
+	std::string result_struct_name = "TEMP";
+	// result_struct_name += async_fn.sema_return_type.type->get_name();
+	// result_struct_name += ">";
+
+	llvm::StructType* llvm_struct_type =
+		llvm::StructType::create(*context, members, result_struct_name.c_str());
+
+	// async_fn.llvm_frame_type = llvm_struct_type;
+
+	return llvm_struct_type;
+	// return Expr::Empty();
 }
 
 Expr

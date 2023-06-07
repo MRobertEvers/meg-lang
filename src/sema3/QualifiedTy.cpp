@@ -49,6 +49,12 @@ QualifiedTy::is_struct() const
 }
 
 bool
+QualifiedTy::is_interface() const
+{
+	return ty->kind == TyKind::Interface && indirection == 0 && !is_array_;
+}
+
+bool
 QualifiedTy::is_union() const
 {
 	return ty->kind == TyKind::Union && indirection == 0 && !is_array_;

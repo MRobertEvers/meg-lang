@@ -142,9 +142,8 @@ struct TyStruct
 
 	std::map<std::string, Member> members;
 
-	TyStruct(std::string name, std::map<std::string, Member> members)
-		: name(name)
-		, members(members){};
+	TyStruct(std::string name, std::map<std::string, Member> members);
+	TyStruct(std::string name, std::vector<Ty const*> implements);
 };
 
 struct TyUnion

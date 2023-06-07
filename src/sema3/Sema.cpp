@@ -287,6 +287,9 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 
 	SymFunc& sym_func = sym->data.sym_func;
 	std::vector<HirNode*> parameters;
+
+	// Add all the function parameters to the function scope.
+	sym_tab.push_scope(&sym_func.scope);
 	for( int i = 0; i < func_proto.parameters.size(); i++ )
 	{
 		AstNode* param = func_proto.parameters.at(i);
@@ -297,10 +300,9 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 		QualifiedTy qty = arg_qtys.at(i);
 		Sym* sym_var = sym_tab.create_named<SymVar>(to_simple(ast_id), qty);
 
-		sym_func.scope.insert(to_simple(ast_id), sym_var);
-
 		parameters.push_back(hir.create<HirId>(qty, sym_var));
 	}
+	sym_tab.pop_scope();
 
 	return hir.create<HirFuncProto>(
 		sym_qty(builtins, sym), linkage, routine_kind, sym, parameters, var_arg);
@@ -414,7 +416,30 @@ Sema::type_declarator(AstNode* ast_type_declarator)
 
 	QualifiedTy qty = sym_qty(builtins, sym);
 	if( type_declarator.impl_kind == AstTypeDeclarator::ImplKind::Impl )
+	{
+		if( !qty.is_interface() )
+			return SemaError("Cannot 'impl' a non-interface.");
+
 		qty.impl = QualifiedTy::ImplKind::Impl;
+
+		std::string name = "impl " + ty_cast<TyInterface>(qty.ty).name;
+
+		// 'impl's create anonymous types of interfaces.
+		Ty const* impl_ty = types.create<TyStruct>(name, std::vector<Ty const*>{qty.ty});
+
+		// TODO: "Inherit scope!"
+		SymType& interface_sym = sym_cast<SymType>(sym);
+		sym = sym_tab.create<SymType>(impl_ty);
+		SymType& anonymous_sym = sym_cast<SymType>(sym);
+		anonymous_sym.scope = interface_sym.scope;
+
+		qty = QualifiedTy(impl_ty);
+
+		// Do not create a struct hir_node here, the codegen will use the rt_ty sym
+		// to generate the correct struct.
+		// HirNode* hir_impl_generator_struct = hir.create<HirStruct>(qty, sym);
+		// current_module->push_back(hir_impl_generator_struct);
+	}
 
 	qty.indirection = type_declarator.indirection;
 
@@ -905,7 +930,11 @@ Sema::sema_let(AstNode* ast_let)
 
 	AstId& id = ast_cast<AstId>(var_decl.id);
 	Sym* sym = sym_tab.create_named<SymVar>(to_simple(id), qty);
-	stmts.push_back(hir.create<HirLet>(QualifiedTy(builtins.void_ty), sym));
+
+	HirNode* hir_let = hir.create<HirLet>(QualifiedTy(builtins.void_ty), sym);
+
+	current_function->locals.push_back(hir_let);
+	stmts.push_back(hir_let);
 
 	// HirId is void?? Should be rhs
 	HirNode* lhs = hir.create<HirId>(qty, sym);
@@ -1396,7 +1425,6 @@ Sema::sema_yield(AstNode* ast_yield)
 
 	QualifiedTy send_qty = gen_send_qty(builtins, yield_ty_sym.first());
 	return hir.create<HirYield>(send_qty, coercion_result.unwrap());
-	// return hir.create<
 }
 
 SemaResult<HirNode*>

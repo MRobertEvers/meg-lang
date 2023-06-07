@@ -52,3 +52,11 @@ TyInt::TyInt(std::string name, IntKind kind)
 	, kind(kind)
 	, width(kind_width(kind))
 	, sign(kind_sign(kind)){};
+
+TyStruct::TyStruct(std::string name, std::map<std::string, Member> members)
+	: name(name)
+	, members(members){};
+
+TyStruct::TyStruct(std::string name, std::vector<Ty const*> implements)
+	: name(name)
+	, implements(implements){};

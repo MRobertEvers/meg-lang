@@ -118,6 +118,7 @@ struct HirFuncProto
 	Routine kind = Routine::Subroutine;
 	VarArg var_arg = VarArg::None;
 	std::vector<HirNode*> parameters;
+	std::vector<HirNode*> locals;
 
 	Sym* sym;
 

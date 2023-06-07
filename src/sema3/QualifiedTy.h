@@ -35,6 +35,7 @@ public:
 	bool is_function() const;
 	bool is_enum() const;
 	bool is_struct() const;
+	bool is_interface() const;
 	bool is_union() const;
 
 	/**
