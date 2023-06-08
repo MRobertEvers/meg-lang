@@ -27,12 +27,26 @@ public:
 	bool is_byval() const;
 };
 
+struct FunctionYieldPoint
+{
+	llvm::BasicBlock* suspend_bb;
+	llvm::BasicBlock* resume_bb;
+	Expr yield_expr;
+
+	FunctionYieldPoint(llvm::BasicBlock* suspend_bb, llvm::BasicBlock* resume_bb, Expr yield_expr);
+};
+
 class Function
 {
 public:
 	Expr sret;
 	std::vector<Arg> args;
 	std::vector<Address> allocas;
+	std::vector<FunctionYieldPoint> yield_points;
+
+	// For async functions only.
+	llvm::Type* llvm_send_opt_ty = nullptr;
+	llvm::Type* llvm_send_ty = nullptr;
 
 	llvm::Function* llvm_func;
 	Function(llvm::Function* llvm_func, std::vector<Arg> args, Expr sret);

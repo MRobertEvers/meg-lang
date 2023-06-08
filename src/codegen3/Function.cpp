@@ -19,6 +19,13 @@ Arg::is_byval() const
 	return is_byval_;
 }
 
+FunctionYieldPoint::FunctionYieldPoint(
+	llvm::BasicBlock* suspend_bb, llvm::BasicBlock* resume_bb, Expr yield_expr)
+	: suspend_bb(suspend_bb)
+	, resume_bb(resume_bb)
+	, yield_expr(yield_expr)
+{}
+
 Function::Function(llvm::Function* llvm_func, std::vector<Arg> args, Expr sret)
 	: llvm_func(llvm_func)
 	, args(args)

@@ -38,8 +38,8 @@ public:
 		lut.clear();
 	}
 
-	auto begin() { return vars.begin(); }
-	auto end() { return vars.end(); }
+	auto begin() { return lut.begin(); }
+	auto end() { return lut.end(); }
 };
 
 class Codegen
@@ -79,19 +79,33 @@ public:
 	 * @return Expr
 	 */
 	Expr codegen_async_constructor(HirNode*, llvm::Type* frame);
-	Expr codegen_async_step_rehydration(HirNode*, llvm::Type* frame);
+	Expr codegen_async_step_rehydration(HirNode*, llvm::BasicBlock*, codegen_async_frame_t frame);
 	struct codegen_async_step_t
 	{
 		llvm::Function* step_fn;
 		llvm::Type* send_opt_ty;
 		llvm::Type* send_ty;
+		llvm::Type* iter_done_ty;
 		llvm::Type* iter_ty;
 	};
-	codegen_async_step_t codegen_async_step(HirNode*, llvm::Type* frame);
+
+	llvm::SwitchInst*
+	codegen_async_step_jump_table(HirNode*, llvm::BasicBlock* body, codegen_async_frame_t frame);
+	Expr codegen_async_step_suspends_backpatch(
+		HirNode*, codegen_async_step_t step, codegen_async_frame_t frame);
+
+	codegen_async_step_t codegen_async_step(HirNode*, codegen_async_frame_t frame);
 	Expr codegen_async_begin(HirNode*, llvm::Type* frame, codegen_async_step_t step);
 	Expr codegen_async_send(HirNode*, llvm::Type* frame, codegen_async_step_t step);
 	Expr codegen_async_close(HirNode*, llvm::Type* frame);
-	llvm::Type* codegen_async_frame(HirNode*);
+	struct codegen_async_frame_t
+	{
+		llvm::Type* frame_ty;
+		int step_frame_idx;
+		std::map<Sym*, int> sym_frame_idx_lut;
+		int ret_frame_idx;
+	};
+	codegen_async_frame_t codegen_async_frame(HirNode*);
 
 	Expr codegen_construct(HirNode*);
 	Expr codegen_func_call(HirNode*, Expr sret);
@@ -113,6 +127,7 @@ public:
 	Expr codegen_expr(HirNode*);
 	Expr codegen_expr(HirNode* node, Expr lhs);
 	Expr codegen_return(HirNode*);
+	Expr codegen_yield(HirNode*);
 	Expr codegen_number_literal(HirNode*);
 	Expr codegen_string_literal(HirNode*);
 
@@ -120,5 +135,6 @@ public:
 	llvm::Value* codegen_eval(Expr expr);
 	llvm::Type* get_type(QualifiedTy qty);
 	llvm::Type* get_type(Ty const* ty);
+
 	static Codegen codegen(SymBuiltins& builtins, HirNode* module);
 };
