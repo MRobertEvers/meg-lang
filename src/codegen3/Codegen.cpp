@@ -168,7 +168,7 @@ Codegen::codegen_func_entry(Function* func)
 			builder->CreateStore(llvm_fn->getArg(llvm_arg_index), val);
 		}
 
-		vars.emplace(arg.sym, Address(val, arg.type));
+		vars.add(arg.sym, Address(val, arg.type));
 	}
 }
 
@@ -195,8 +195,11 @@ Codegen::codegen_sync_func(HirNode* hir_func)
 }
 
 Expr
-Codegen::codegen_async_func(HirNode* hir_proto)
+Codegen::codegen_async_func(HirNode* hir_func)
 {
+	HirFunc& func = hir_cast<HirFunc>(hir_func);
+	HirNode* hir_proto = func.proto;
+
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
 	// Prepare the struct
@@ -205,7 +208,7 @@ Codegen::codegen_async_func(HirNode* hir_proto)
 	codegen_async_constructor(hir_proto, llvm_frame_struct_ty);
 
 	// Return [llvm_fn_step, llvm_optional_send_ty];
-	codegen_async_step_t async_step = codegen_async_step(hir_proto, llvm_frame_struct_ty);
+	codegen_async_step_t async_step = codegen_async_step(hir_func, llvm_frame_struct_ty);
 
 	codegen_async_begin(hir_proto, llvm_frame_struct_ty, async_step);
 	codegen_async_send(hir_proto, llvm_frame_struct_ty, async_step);
@@ -321,9 +324,45 @@ Codegen::codegen_async_constructor(HirNode* hir_proto, llvm::Type* llvm_frame_ty
 	return Expr::Empty();
 }
 
-Codegen::codegen_async_step_t
-Codegen::codegen_async_step(HirNode* hir_proto, llvm::Type* llvm_frame_ty)
+Expr
+Codegen::codegen_async_step_rehydration(HirNode* hir_func, llvm::Type* llvm_frame_type)
 {
+	// Copy values from the frame onto the stack
+	assert(current_func);
+
+	llvm::Function* llvm_fn = current_func->llvm_func;
+	llvm::BasicBlock* llvm_rehydration_bb =
+		llvm::BasicBlock::Create(*context, "Rehydration", llvm_fn, &llvm_fn->getEntryBlock());
+	builder->SetInsertPoint(llvm_rehydration_bb);
+
+	// llvm::Argument* llvm_frame_arg = llvm_fn->getArg(1);
+
+	// int alloca_idx = 1;
+	// for( auto var : vars )
+	// {
+	// 	llvm::Value* llvm_gep =
+	// 		builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, alloca_idx);
+	// 	LLVMAddress frame_address(llvm_gep, stack_address.llvm_allocated_type());
+	// 	cg_copy(codegen, frame_address, stack_address);
+	// 	alloca_idx += 1;
+
+	// 	codegen.Builder->CreateBr(yield.llvm_resume_block);
+
+	// 	llvm::ConstantInt* llvm_idx =
+	// 		llvm::ConstantInt::get(*codegen.Context, llvm::APInt(32, jump_idx, true));
+	// 	llvm_switch->addCase(llvm_idx, llvm_before_resume);
+	// 	jump_idx += 1;
+	// }
+
+	return Expr::Empty();
+}
+
+Codegen::codegen_async_step_t
+Codegen::codegen_async_step(HirNode* hir_func, llvm::Type* llvm_frame_ty)
+{
+	HirFunc& func_nod = hir_cast<HirFunc>(hir_func);
+	HirNode* hir_proto = func_nod.proto;
+
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 	SymType& proto_sym = sym_cast<SymType>(proto.sym);
 	SymType& send_ty_sym = sym_cast<SymType>(proto_sym.scope.find("SendTy"));
@@ -337,16 +376,51 @@ Codegen::codegen_async_step(HirNode* hir_proto, llvm::Type* llvm_frame_ty)
 	llvm::Type* llvm_iter_res_ty = llvm::StructType::create(
 		*context, {llvm::Type::getInt1Ty(*context), llvm_iter_ty}, "IterRet");
 
+	llvm::Type* llvm_void_ty = llvm::Type::getVoidTy(*context);
+
+	std::vector<Arg> args;
+	args.push_back(Arg(nullptr, llvm_iter_res_ty, true, false));
+	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
+	args.push_back(Arg(nullptr, llvm_send_opt_ty, false, true));
+
 	// TODO: Function that takes
 	// 1. sret of llvm_iter_res_ty
 	// 2. implicit byval of llvm_frame_ty
 	// 3. byval of llvm send_opt_ty
 
 	llvm::FunctionType* llvm_fn_ty = llvm::FunctionType::get(
-		llvm_ret_ty, to_llvm_arg_tys(args), proto.var_arg == HirFuncProto::VarArg::VarArg);
+		llvm_void_ty, to_llvm_arg_tys(args), proto.var_arg == HirFuncProto::VarArg::VarArg);
 
 	llvm::Function* llvm_fn = llvm::Function::Create(
 		llvm_fn_ty, linkage(proto.linkage), func_name(proto.sym) + "_step", mod.get());
+
+	// We use a function on the stack here because there is no sym for the step function
+	// you cannot reference it.
+	Function func = Function::FromArgs(llvm_fn, args);
+
+	current_func = &func;
+
+	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "", llvm_fn);
+	builder->SetInsertPoint(llvm_entry_bb);
+
+	// 1. Function entry (in this case, that's just the implicit send arguments)
+	// 2. Create the rehydration block
+	// 	This occurs before the jump table.
+	// 3. Create the jump table
+	//  Keep reference to it so yield statements can add themselves.
+	// 4. Body (this is actually generated first.)
+
+	// We have to codegen the block first because this will record
+	// all the local variables and suspend blocks we need for
+	// rehydration.
+	codegen_func_entry(&func);
+	codegen_block(func_nod.body);
+
+	// Now backpatch the async stuff.
+	codegen_async_step_rehydration(hir_func, llvm_frame_ty);
+
+	vars.clear();
+	current_func = nullptr;
 
 	return (codegen_async_step_t){
 		.send_ty = llvm_send_ty,
@@ -495,6 +569,7 @@ Codegen::codegen_async_frame(HirNode* hir_proto)
 	//
 	// struct Frame<TRet> {
 	//     i32 step;
+	//	   Ret value;
 	//	   ...Args value;
 	//     ...Locals value;
 	// }
@@ -778,6 +853,22 @@ var_ty(Sym* sym)
 	return func.qty;
 }
 
+class InsertEntryBlock
+{
+	llvm::BasicBlock* llvm_restore_bb;
+	llvm::IRBuilder<>* builder;
+
+public:
+	InsertEntryBlock(llvm::IRBuilder<>* builder, llvm::Function* llvm_fn)
+		: builder(builder)
+	{
+		llvm_restore_bb = builder->GetInsertBlock();
+		builder->SetInsertPoint(&llvm_fn->getEntryBlock());
+	}
+
+	~InsertEntryBlock() { builder->SetInsertPoint(llvm_restore_bb); }
+};
+
 Expr
 Codegen::codegen_let(HirNode* hir_let)
 {
@@ -785,9 +876,13 @@ Codegen::codegen_let(HirNode* hir_let)
 
 	llvm::Type* type = get_type(var_ty(let.sym));
 
-	llvm::Value* val = builder->CreateAlloca(type);
+	{
+		InsertEntryBlock block(builder.get(), current_func->llvm_func);
 
-	vars.emplace(let.sym, Address(val, type));
+		// TODO: Arrays.
+		llvm::Value* val = builder->CreateAlloca(type);
+		vars.add(let.sym, Address(val, type));
+	}
 
 	return Expr::Empty();
 }
@@ -944,9 +1039,9 @@ Codegen::codegen_var(HirNode* hir_id)
 {
 	HirId& var = hir_cast<HirId>(hir_id);
 
-	auto iter_vars = vars.find(var.sym);
-	assert(iter_vars != vars.end());
-	return Expr(iter_vars->second);
+	Address* iter_vars = vars.find(var.sym);
+	assert(iter_vars);
+	return Expr(*iter_vars);
 }
 
 // TODO: This should probably just be HirMember with nullable self

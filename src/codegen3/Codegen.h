@@ -11,6 +11,37 @@
 #include <map>
 #include <memory>
 
+class OrderedVars
+{
+	std::vector<Address> vars;
+	std::map<Sym*, Address*> lut;
+
+public:
+	template<typename... Args>
+	Address& add(Sym* sym, Args&&... args)
+	{
+		Address& addr = vars.emplace_back(std::forward<Args>(args)...);
+		lut.emplace(sym, &addr);
+
+		return addr;
+	}
+
+	Address* find(Sym* sym)
+	{
+		auto iter = lut.find(sym);
+		return iter != lut.end() ? iter->second : nullptr;
+	}
+
+	void clear()
+	{
+		vars.clear();
+		lut.clear();
+	}
+
+	auto begin() { return vars.begin(); }
+	auto end() { return vars.end(); }
+};
+
 class Codegen
 {
 private:
@@ -19,7 +50,7 @@ private:
 	std::unique_ptr<llvm::Module> mod;
 
 	Function* current_func = nullptr;
-	std::map<Sym*, Address> vars;
+	OrderedVars vars;
 	std::map<Sym*, Function> funcs;
 	std::map<Ty const*, llvm::Type*> tys;
 
@@ -48,6 +79,7 @@ public:
 	 * @return Expr
 	 */
 	Expr codegen_async_constructor(HirNode*, llvm::Type* frame);
+	Expr codegen_async_step_rehydration(HirNode*, llvm::Type* frame);
 	struct codegen_async_step_t
 	{
 		llvm::Function* step_fn;
