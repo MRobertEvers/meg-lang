@@ -30,33 +30,31 @@ Function::Function(llvm::Function* llvm_func, std::vector<Arg> args, Expr sret)
 	: llvm_func(llvm_func)
 	, args(args)
 	, sret(sret)
-{}
+{
+	for( int i = 0; i < args.size(); i++ )
+	{
+		auto& arg = args.at(i);
+		if( arg.sym )
+			ir_args.push_back(i);
+	}
+}
 
 Arg&
 Function::ir_arg(int i)
 {
-	if( !sret.is_void() )
-		return args.at(i + 1);
-	else
-		return args.at(i);
+	return args.at(ir_args.at(i));
 }
 
 int
 Function::ir_arg_count() const
 {
-	if( sret.is_void() )
-		return args.size();
-	else
-		return args.size() - 1;
+	return ir_args.size();
 }
 
 int
 Function::llvm_arg_index(int ir_index)
 {
-	if( !sret.is_void() )
-		return ir_index + 1;
-	else
-		return ir_index;
+	return ir_index + (args.size() - ir_args.size());
 }
 
 Function

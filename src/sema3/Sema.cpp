@@ -271,7 +271,8 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	if( !rt_type_declarator_result.ok() )
 		return MoveError(rt_type_declarator_result);
 
-	QualifiedTy rt_type_declarator = rt_type_declarator_result.unwrap().qty;
+	Sema::TypeDeclResult rt_type_decl_result = rt_type_declarator_result.unwrap();
+	QualifiedTy rt_type_declarator = rt_type_decl_result.qty;
 
 	// The function type does not need to go into the symbol table.
 	// Presumably we just look up the function symbol and get the type
@@ -305,7 +306,13 @@ Sema::sema_func_proto(AstNode* ast_func_proto)
 	sym_tab.pop_scope();
 
 	return hir.create<HirFuncProto>(
-		sym_qty(builtins, sym), linkage, routine_kind, sym, parameters, var_arg);
+		sym_qty(builtins, sym),
+		linkage,
+		routine_kind,
+		sym,
+		parameters,
+		var_arg,
+		rt_type_decl_result.sym);
 }
 
 SemaResult<HirNode*>
@@ -1962,6 +1969,8 @@ Sema::lookup_or_instantiate_template(AstNode* ast_template_id)
 		break;
 	case HirNodeKind::Interface:
 		sym = hir_cast<HirInterface>(hir_stmt).sym;
+		// TODO: We need to inherit the scope in which the template names are.
+		// inherit_scope(sym_tab, sym_cast<SymType>(sym).scope, *template_scope);
 		break;
 	default:
 		return NotImpl();

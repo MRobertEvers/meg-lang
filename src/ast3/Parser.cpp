@@ -543,14 +543,14 @@ Parser::parse_func()
 
 struct FuncDecorators
 {
-	bool is_extern;
-	bool is_async;
+	bool is_extern = false;
+	bool is_async = false;
 };
 
 static ParseResult<FuncDecorators>
 parse_func_decorators(Cursor& cursor)
 {
-	FuncDecorators decorators;
+	FuncDecorators decorators{};
 	Token tok = cursor.peek();
 	while( true )
 	{

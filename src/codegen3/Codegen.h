@@ -8,12 +8,13 @@
 #include "sema3/Ty.h"
 #include <llvm/IR/IRBuilder.h>
 
+#include <deque>
 #include <map>
 #include <memory>
 
 class OrderedVars
 {
-	std::vector<Address> vars;
+	std::deque<Address> vars;
 	std::map<Sym*, Address*> lut;
 
 public:
@@ -21,7 +22,9 @@ public:
 	Address& add(Sym* sym, Args&&... args)
 	{
 		Address& addr = vars.emplace_back(std::forward<Args>(args)...);
-		lut.emplace(sym, &addr);
+
+		if( sym )
+			lut.emplace(sym, &addr);
 
 		return addr;
 	}
@@ -66,6 +69,7 @@ public:
 	Expr codegen_func(HirNode*);
 	void codegen_func_entry(Function* func);
 	Expr codegen_sync_func(HirNode*);
+
 	Expr codegen_async_func(HirNode*);
 	Function* codegen_sync_proto(HirNode*);
 
@@ -78,7 +82,16 @@ public:
 	 *
 	 * @return Expr
 	 */
-	Expr codegen_async_constructor(HirNode*, llvm::Type* frame);
+	struct codegen_async_frame_t
+	{
+		llvm::Type* frame_ty;
+		int step_frame_idx;
+		std::map<Sym*, int> sym_frame_idx_lut;
+		int ret_frame_idx;
+	};
+	codegen_async_frame_t codegen_async_frame(HirNode*);
+
+	Expr codegen_async_constructor(HirNode*, codegen_async_frame_t frame);
 	Expr codegen_async_step_rehydration(HirNode*, llvm::BasicBlock*, codegen_async_frame_t frame);
 	struct codegen_async_step_t
 	{
@@ -89,8 +102,8 @@ public:
 		llvm::Type* iter_ty;
 	};
 
-	llvm::SwitchInst*
-	codegen_async_step_jump_table(HirNode*, llvm::BasicBlock* body, codegen_async_frame_t frame);
+	llvm::SwitchInst* codegen_async_step_jump_table(
+		HirNode*, llvm::BasicBlock*, llvm::BasicBlock* body, codegen_async_frame_t frame);
 	Expr codegen_async_step_suspends_backpatch(
 		HirNode*, codegen_async_step_t step, codegen_async_frame_t frame);
 
@@ -98,14 +111,6 @@ public:
 	Expr codegen_async_begin(HirNode*, llvm::Type* frame, codegen_async_step_t step);
 	Expr codegen_async_send(HirNode*, llvm::Type* frame, codegen_async_step_t step);
 	Expr codegen_async_close(HirNode*, llvm::Type* frame);
-	struct codegen_async_frame_t
-	{
-		llvm::Type* frame_ty;
-		int step_frame_idx;
-		std::map<Sym*, int> sym_frame_idx_lut;
-		int ret_frame_idx;
-	};
-	codegen_async_frame_t codegen_async_frame(HirNode*);
 
 	Expr codegen_construct(HirNode*);
 	Expr codegen_func_call(HirNode*, Expr sret);
@@ -131,7 +136,7 @@ public:
 	Expr codegen_number_literal(HirNode*);
 	Expr codegen_string_literal(HirNode*);
 
-	llvm::Value* codegen_memcpy(Expr expr, llvm::Value* dest);
+	llvm::Value* codegen_memcpy(Address src_address, llvm::Value* dest);
 	llvm::Value* codegen_eval(Expr expr);
 	llvm::Type* get_type(QualifiedTy qty);
 	llvm::Type* get_type(Ty const* ty);

@@ -112,11 +112,13 @@ SymTab::push_scope(SymScope* scope)
 	stack.push_back(scope);
 }
 
-void
+SymScope*
 SymTab::push_scope()
 {
-	free_scopes.emplace_back();
+	auto& scope = free_scopes.emplace_back();
 	stack.push_back(&free_scopes.back());
+
+	return &scope;
 }
 
 void

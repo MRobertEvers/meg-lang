@@ -122,13 +122,22 @@ struct HirFuncProto
 
 	Sym* sym;
 
+	// If the function returns an impl, this is the symbol for that impl, null otherwise
+	Sym* impl_sym = nullptr;
+
 	HirFuncProto(
-		Linkage linkage, Routine kind, Sym* sym, std::vector<HirNode*> parameters, VarArg var_arg)
+		Linkage linkage,
+		Routine kind,
+		Sym* sym,
+		std::vector<HirNode*> parameters,
+		VarArg var_arg,
+		Sym* impl_sym)
 		: kind(kind)
 		, linkage(linkage)
 		, parameters(parameters)
 		, var_arg(var_arg)
 		, sym(sym)
+		, impl_sym(impl_sym)
 	{}
 };
 

@@ -40,6 +40,7 @@ class Function
 {
 public:
 	Expr sret;
+	std::vector<int> ir_args;
 	std::vector<Arg> args;
 	std::vector<Address> allocas;
 	std::vector<FunctionYieldPoint> yield_points;
@@ -52,6 +53,8 @@ public:
 	Function(llvm::Function* llvm_func, std::vector<Arg> args, Expr sret);
 
 	// Corresponds to the argument in the ith position in the intermediate representation.
+	// TODO: This doesn't actually correspond anymore because of async functions, all arguments
+	// to async functions are non-ir
 	Arg& ir_arg(int i);
 	int ir_arg_count() const;
 	int llvm_arg_index(int ir_index);

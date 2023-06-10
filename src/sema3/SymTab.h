@@ -24,7 +24,7 @@ public:
 	SymLookupResult lookup_template_instance(NameParts name, std::vector<QualifiedTy> params);
 
 	void push_scope(SymScope* scope);
-	void push_scope();
+	SymScope* push_scope();
 	void pop_scope();
 
 	std::vector<SymScope*> save_state();

@@ -151,6 +151,8 @@ Codegen::codegen_func(HirNode* hir_func)
 void
 Codegen::codegen_func_entry(Function* func)
 {
+	// This only generates the entry code for ir args.
+	// codegened implicit args should be handled separately.
 	llvm::Function* llvm_fn = func->llvm_func;
 	for( int i = 0; i < func->ir_arg_count(); i++ )
 	{
@@ -203,17 +205,17 @@ Codegen::codegen_async_func(HirNode* hir_func)
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
 	// Prepare the struct
-	llvm::Type* llvm_frame_struct_ty = codegen_async_frame(hir_proto);
+	codegen_async_frame_t frame = codegen_async_frame(hir_proto);
 
-	codegen_async_constructor(hir_proto, llvm_frame_struct_ty);
+	codegen_async_constructor(hir_proto, frame);
 
 	// Return [llvm_fn_step, llvm_optional_send_ty];
-	codegen_async_step_t async_step = codegen_async_step(hir_func, llvm_frame_struct_ty);
+	codegen_async_step_t async_step = codegen_async_step(hir_func, frame);
 
-	codegen_async_begin(hir_proto, llvm_frame_struct_ty, async_step);
-	codegen_async_send(hir_proto, llvm_frame_struct_ty, async_step);
+	codegen_async_begin(hir_proto, frame.frame_ty, async_step);
+	codegen_async_send(hir_proto, frame.frame_ty, async_step);
 
-	codegen_async_close(hir_proto, llvm_frame_struct_ty);
+	codegen_async_close(hir_proto, frame.frame_ty);
 
 	return Expr::Empty();
 }
@@ -283,9 +285,70 @@ Codegen::codegen_sync_proto(HirNode* hir_proto)
 	return &emplaced.first->second;
 }
 
-Expr
-Codegen::codegen_async_constructor(HirNode* hir_proto, llvm::Type* llvm_frame_ty)
+Codegen::codegen_async_frame_t
+Codegen::codegen_async_frame(HirNode* hir_proto)
 {
+	// // Codegen Frame
+	//
+	// struct Frame<TRet> {
+	//     i32 step;
+	//	   Ret value;
+	//	   ...Args value;
+	//     ...Locals value;
+	// }
+	//
+	std::map<Sym*, int> lut;
+	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
+	SymFunc& proto_sym = sym_cast<SymFunc>(proto.sym);
+	SymType& proto_impl_sym = sym_cast<SymType>(proto.impl_sym);
+	TyFunc const& ty_func = ty_cast<TyFunc>(proto_sym.ty);
+
+	std::vector<llvm::Type*> members;
+
+	llvm::Type* llvm_step_idx_type = llvm::Type::getInt32Ty(*context);
+	members.push_back(llvm_step_idx_type);
+
+	SymType& close_ty_sym = sym_cast<SymType>(sym_unalias(proto_impl_sym.scope.find("Ret")));
+
+	llvm::Type* llvm_ret_ty = get_type(close_ty_sym.ty);
+	members.push_back(llvm_ret_ty);
+
+	for( auto& local : proto.parameters )
+	{
+		HirId& id_nod = hir_cast<HirId>(local);
+		llvm::Type* llvm_local_type = get_type(local->qty);
+		lut.emplace(id_nod.sym, members.size());
+		members.push_back(llvm_local_type);
+	}
+
+	for( auto& local : proto.locals )
+	{
+		HirLet& let_nod = hir_cast<HirLet>(local);
+		llvm::Type* llvm_local_type = get_type(sym_cast<SymVar>(let_nod.sym).qty);
+		lut.emplace(let_nod.sym, members.size());
+		members.push_back(llvm_local_type);
+	}
+
+	// async_fn.return_val_idx = members.size() - 1;
+
+	std::string result_struct_name = "TEMP";
+	// result_struct_name += async_fn.sema_return_type.type->get_name();
+	// result_struct_name += ">";
+
+	llvm::StructType* llvm_struct_type =
+		llvm::StructType::create(*context, members, result_struct_name.c_str());
+
+	return codegen_async_frame_t{
+		.frame_ty = llvm_struct_type,
+		.step_frame_idx = 0,
+		.ret_frame_idx = 1,
+		.sym_frame_idx_lut = lut};
+}
+
+Expr
+Codegen::codegen_async_constructor(HirNode* hir_proto, codegen_async_frame_t frame)
+{
+	llvm::Type* llvm_frame_ty = frame.frame_ty;
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 	// The constructor uses the symbol of the function itself
 	Sym* proto_sym = proto.sym;
@@ -321,6 +384,27 @@ Codegen::codegen_async_constructor(HirNode* hir_proto, llvm::Type* llvm_frame_ty
 	}
 
 	auto emplaced = funcs.emplace(proto.sym, Function::FromArgs(llvm_fn, args));
+	current_func = &emplaced.first->second;
+
+	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "entry", llvm_fn);
+	builder->SetInsertPoint(llvm_entry_bb);
+
+	codegen_func_entry(current_func);
+
+	for( auto [sym, alloca_addr] : vars )
+	{
+		int frame_idx = frame.sym_frame_idx_lut.at(sym);
+		llvm::Value* llvm_gep =
+			builder->CreateStructGEP(llvm_frame_ty, llvm_fn->getArg(0), frame_idx);
+
+		codegen_memcpy(*alloca_addr, llvm_gep);
+	}
+
+	builder->CreateRetVoid();
+
+	vars.clear();
+	current_func = nullptr;
+
 	return Expr::Empty();
 }
 
@@ -354,31 +438,37 @@ Codegen::codegen_async_step_rehydration(
 	llvm::Type* llvm_frame_type = frame.frame_ty;
 
 	llvm::Function* llvm_fn = current_func->llvm_func;
-	llvm::BasicBlock* llvm_rehydration_bb =
-		llvm::BasicBlock::Create(*context, "Rehydration", llvm_fn, llvm_entry_bb);
-	builder->SetInsertPoint(llvm_rehydration_bb);
+	// llvm::BasicBlock* llvm_rehydration_bb =
+	// 	llvm::BasicBlock::Create(*context, "Rehydration", llvm_fn, llvm_entry_bb);
+	// builder->SetInsertPoint(llvm_rehydration_bb);
 
-	llvm::Argument* llvm_frame_arg = llvm_fn->getArg(1);
+	// TODO: Perhaps we don't need to do any rehydration and can just access variables in the
+	// frame...
 
-	// Use the frame lookup to get the idx of the symbol in the frame,
-	// then copy the value to the stack.
-	for( auto [sym, alloca_addr] : vars )
-	{
-		int frame_idx = frame.sym_frame_idx_lut.at(sym);
-		llvm::Value* llvm_gep =
-			builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, frame_idx);
+	// llvm::Argument* llvm_frame_arg = llvm_fn->getArg(1);
 
-		codegen_memcpy(
-			Expr(Address(llvm_gep, alloca_addr->llvm_allocated_type())),
-			alloca_addr->llvm_pointer());
-	}
+	// // Use the frame lookup to get the idx of the symbol in the frame,
+	// // then copy the value to the stack.
+	// for( auto [sym, alloca_addr] : vars )
+	// {
+	// 	int frame_idx = frame.sym_frame_idx_lut.at(sym);
+	// 	llvm::Value* llvm_gep =
+	// 		builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, frame_idx);
+
+	// 	codegen_memcpy(
+	// 		Expr(Address(llvm_gep, alloca_addr->llvm_allocated_type())),
+	// 		alloca_addr->llvm_pointer());
+	// }
 
 	return Expr::Empty();
 }
 
 llvm::SwitchInst*
 Codegen::codegen_async_step_jump_table(
-	HirNode*, llvm::BasicBlock* llvm_body_block, codegen_async_frame_t frame)
+	HirNode*,
+	llvm::BasicBlock* llvm_entry_bb,
+	llvm::BasicBlock* llvm_body_block,
+	codegen_async_frame_t frame)
 {
 	// Must come after rehydration
 	assert(current_func);
@@ -387,7 +477,10 @@ Codegen::codegen_async_step_jump_table(
 
 	llvm::Function* llvm_fn = current_func->llvm_func;
 	llvm::BasicBlock* llvm_jt_bb =
-		llvm::BasicBlock::Create(*context, "JT", llvm_fn, builder->GetInsertBlock());
+		llvm::BasicBlock::Create(*context, "JT", llvm_fn, llvm_body_block);
+
+	builder->SetInsertPoint(llvm_entry_bb);
+	builder->CreateBr(llvm_jt_bb);
 	builder->SetInsertPoint(llvm_jt_bb);
 
 	llvm::Argument* llvm_frame_arg = llvm_fn->getArg(1);
@@ -400,7 +493,11 @@ Codegen::codegen_async_step_jump_table(
 		builder->CreateLoad(llvm::Type::getInt32Ty(*context), llvm_step_value_ptr);
 
 	// Basic Block for when we send after the coro is done.
-	llvm::BasicBlock* llvm_bad_send_bb = llvm::BasicBlock::Create(*context, "BadSend");
+	llvm::BasicBlock* llvm_bad_send_bb = llvm::BasicBlock::Create(*context, "BadSend", llvm_fn);
+	// TODO: Crash here.
+	builder->SetInsertPoint(llvm_bad_send_bb);
+	builder->CreateRetVoid();
+	builder->SetInsertPoint(llvm_jt_bb);
 
 	llvm::SwitchInst* llvm_switch = builder->CreateSwitch(llvm_step_value, llvm_bad_send_bb, 4);
 
@@ -425,20 +522,12 @@ Expr
 Codegen::codegen_async_step_suspends_backpatch(
 	HirNode*, codegen_async_step_t step, codegen_async_frame_t frame)
 {
+	llvm::Function* llvm_fn = current_func->llvm_func;
+
 	llvm::Type* llvm_frame_type = frame.frame_ty;
 	llvm::Type* llvm_send_return_type = step.iter_done_ty;
 
-	llvm::Argument* llvm_frame_arg = llvm_fn->getArg(1);
-	llvm::Value* llvm_step_value_ptr =
-		builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, frame.step_frame_idx);
-
-	llvm::Argument* llvm_send_return_arg = llvm_fn->getArg(0);
-	llvm::Value* llvm_send_return_done_ptr =
-		builder->CreateStructGEP(llvm_send_return_type, llvm_send_return_arg, 0);
-	llvm::Value* llvm_send_return_value_ptr =
-		builder->CreateStructGEP(llvm_send_return_type, llvm_send_return_arg, 1);
-
-	llvm::ConstantInt* llvm_zero = llvm::ConstantInt::get(*context, llvm::APInt(32, 0, true));
+	llvm::ConstantInt* llvm_zero = llvm::ConstantInt::get(*context, llvm::APInt(1, 0, true));
 
 	int yield_idx = 0;
 	for( auto yield_point : current_func->yield_points )
@@ -446,11 +535,21 @@ Codegen::codegen_async_step_suspends_backpatch(
 		llvm::BasicBlock* llvm_suspend_block = yield_point.suspend_bb;
 		builder->SetInsertPoint(llvm_suspend_block);
 
+		llvm::Argument* llvm_frame_arg = llvm_fn->getArg(1);
+		llvm::Value* llvm_step_value_ptr =
+			builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, frame.step_frame_idx);
+
+		llvm::Argument* llvm_send_return_arg = llvm_fn->getArg(0);
+		llvm::Value* llvm_send_return_done_ptr =
+			builder->CreateStructGEP(llvm_send_return_type, llvm_send_return_arg, 0);
+		llvm::Value* llvm_send_return_value_ptr =
+			builder->CreateStructGEP(llvm_send_return_type, llvm_send_return_arg, 1);
+
 		// Set done to false in the return value.
-		builder->CreateStore(llvm_send_return_done_ptr, llvm_zero);
+		builder->CreateStore(llvm_zero, llvm_send_return_done_ptr);
 		// Set the value in the return value.
 		if( !yield_point.yield_expr.is_void() )
-			codegen_memcpy(yield_point.yield_expr, llvm_send_return_value_ptr);
+			codegen_memcpy(yield_point.yield_expr.address(), llvm_send_return_value_ptr);
 
 		// Set the step in the frame.
 		llvm::ConstantInt* llvm_yield_idx =
@@ -464,11 +563,13 @@ Codegen::codegen_async_step_suspends_backpatch(
 			llvm::Value* llvm_gep =
 				builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, frame_idx);
 
-			codegen_memcpy(Expr(alloca_addr), llvm_gep);
+			codegen_memcpy(*alloca_addr, llvm_gep);
 		}
 
 		builder->CreateRetVoid();
 	}
+
+	return Expr::Empty();
 }
 
 Codegen::codegen_async_step_t
@@ -480,14 +581,15 @@ Codegen::codegen_async_step(HirNode* hir_func, codegen_async_frame_t frame)
 	HirNode* hir_proto = func_nod.proto;
 
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
-	SymType& proto_sym = sym_cast<SymType>(proto.sym);
-	SymType& send_ty_sym = sym_cast<SymType>(proto_sym.scope.find("SendTy"));
+	SymType& proto_impl_sym = sym_cast<SymType>(proto.impl_sym);
+
+	SymType& send_ty_sym = sym_cast<SymType>(sym_unalias(proto_impl_sym.scope.find("Send")));
 
 	llvm::Type* llvm_send_ty = get_type(send_ty_sym.ty);
 	llvm::Type* llvm_send_opt_ty = llvm::StructType::create(
 		*context, {llvm::Type::getInt1Ty(*context), llvm_send_ty->getPointerTo()}, "SendOpt");
 
-	SymType& iter_ty_sym = sym_cast<SymType>(proto_sym.scope.find("IterTy"));
+	SymType& iter_ty_sym = sym_cast<SymType>(sym_unalias(proto_impl_sym.scope.find("Iter")));
 	llvm::Type* llvm_iter_ty = get_type(iter_ty_sym.ty);
 	llvm::Type* llvm_iter_res_ty = llvm::StructType::create(
 		*context, {llvm::Type::getInt1Ty(*context), llvm_iter_ty}, "IterRet");
@@ -504,8 +606,9 @@ Codegen::codegen_async_step(HirNode* hir_func, codegen_async_frame_t frame)
 	// 2. implicit byval of llvm_frame_ty
 	// 3. byval of llvm send_opt_ty
 
+	auto llvm_args = to_llvm_arg_tys(args);
 	llvm::FunctionType* llvm_fn_ty = llvm::FunctionType::get(
-		llvm_void_ty, to_llvm_arg_tys(args), proto.var_arg == HirFuncProto::VarArg::VarArg);
+		llvm_void_ty, llvm_args, proto.var_arg == HirFuncProto::VarArg::VarArg);
 
 	llvm::Function* llvm_fn = llvm::Function::Create(
 		llvm_fn_ty, linkage(proto.linkage), func_name(proto.sym) + "_step", mod.get());
@@ -513,7 +616,8 @@ Codegen::codegen_async_step(HirNode* hir_func, codegen_async_frame_t frame)
 	// We use a function on the stack here because there is no sym for the step function
 	// you cannot reference it.
 	Function func = Function::FromArgs(llvm_fn, args);
-
+	func.llvm_send_ty = llvm_send_ty;
+	func.llvm_send_opt_ty = llvm_send_opt_ty;
 	current_func = &func;
 
 	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "entry", llvm_fn);
@@ -525,29 +629,31 @@ Codegen::codegen_async_step(HirNode* hir_func, codegen_async_frame_t frame)
 	// 3. Create the jump table
 	//  Keep reference to it so yield statements can add themselves.
 	// 4. Body (this is actually generated first.)
+	llvm::Argument* llvm_frame_arg = llvm_fn->getArg(1);
+	for( auto& [sym, frame_idx] : frame.sym_frame_idx_lut )
+	{
+		llvm::Value* llvm_gep = builder->CreateStructGEP(frame.frame_ty, llvm_frame_arg, frame_idx);
 
-	// We have to codegen the block first because this will record
-	// all the local variables and suspend blocks we need for
-	// rehydration.
-	codegen_func_entry(&func);
+		vars.add(sym, Address(llvm_gep, llvm_gep->getType()->getPointerElementType()));
+	}
 
 	// Insert a body bb after entry bb, this will be the first block jumped to
 	llvm::BasicBlock* llvm_body_bb = llvm::BasicBlock::Create(*context, "body", llvm_fn);
-	builder->CreateBr(llvm_body_bb);
 	builder->SetInsertPoint(llvm_body_bb);
 
 	codegen_block(func_nod.body);
 
 	// Now backpatch the async stuff.
 	// Insert the rehydration step before the entry step.
-	codegen_async_step_rehydration(hir_func, llvm_entry_bb, frame);
+	// codegen_async_step_rehydration(hir_func, llvm_entry_bb, frame);
 	// llvm_body_bb is the 0th block of the jump table.
-	codegen_async_step_jump_table(hir_func, llvm_body_bb, frame);
+	codegen_async_step_jump_table(hir_func, llvm_entry_bb, llvm_body_bb, frame);
 
 	codegen_async_step_t step = {
 		.send_ty = llvm_send_ty,
 		.send_opt_ty = llvm_send_opt_ty,
-		.iter_ty = llvm_iter_res_ty,
+		.iter_ty = llvm_iter_ty,
+		.iter_done_ty = llvm_iter_res_ty,
 		.step_fn = llvm_fn};
 	codegen_async_step_suspends_backpatch(hir_func, step, frame);
 
@@ -564,15 +670,13 @@ Codegen::codegen_async_begin(
 	llvm::Function* llvm_step_fn = step.step_fn;
 	llvm::Type* llvm_send_opt_ty = step.send_opt_ty;
 	llvm::Type* llvm_send_ty = step.send_ty;
-	llvm::Type* llvm_iter_ret_ty = step.iter_ty;
+	llvm::Type* llvm_iter_ret_ty = step.iter_done_ty;
 
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
 	std::vector<Arg> args;
 	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
 	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
-	// TODO: Use qty.is_aggregate_ty()
-	args.push_back(Arg(nullptr, llvm_send_ty, false, llvm_send_ty->isAggregateType()));
 
 	llvm::FunctionType* llvm_begin_fn_ty =
 		llvm::FunctionType::get(llvm::Type::getVoidTy(*context), to_llvm_arg_tys(args), false);
@@ -581,15 +685,14 @@ Codegen::codegen_async_begin(
 		llvm_begin_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
 
 	// Get the "begin" symbol
-	SymType& proto_sym = sym_cast<SymType>(proto.sym);
-	Sym* begin_sym = proto_sym.scope.find("begin");
+	SymType& proto_impl_sym = sym_cast<SymType>(proto.impl_sym);
+	Sym* begin_sym = proto_impl_sym.scope.find("begin");
 	assert(begin_sym);
 	auto emplaced = funcs.emplace(begin_sym, Function::FromArgs(llvm_begin_fn, args));
 	Function* func = &emplaced.first->second;
 
 	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "entry", llvm_begin_fn);
 	builder->SetInsertPoint(llvm_entry_bb);
-	codegen_func_entry(func);
 
 	llvm::Value* llvm_send_opt_struct_val = builder->CreateAlloca(llvm_send_opt_ty);
 
@@ -601,13 +704,15 @@ Codegen::codegen_async_begin(
 
 	builder->CreateStore(llvm_zero_1bit, llvm_send_opt_flag);
 
+	llvm::Value* llvm_iter_ret_ptr = llvm_begin_fn->getArg(0);
+	llvm::Value* llvm_frame_ptr = llvm_begin_fn->getArg(1);
 	builder->CreateCall(
 		llvm_step_fn,
 		// Step Return Type
 		// Frame as first arg
 		// Send Optional Type
 		// Note! Byval and sret args don't need to be allocad
-		{llvm_begin_fn->getArg(0), llvm_begin_fn->getArg(1), llvm_send_opt_struct_val});
+		{llvm_iter_ret_ptr, llvm_frame_ptr, llvm_send_opt_struct_val});
 	builder->CreateRetVoid();
 
 	vars.clear();
@@ -623,7 +728,7 @@ Codegen::codegen_async_send(
 	llvm::Function* llvm_step_fn = step.step_fn;
 	llvm::Type* llvm_send_opt_ty = step.send_opt_ty;
 	llvm::Type* llvm_send_ty = step.send_ty;
-	llvm::Type* llvm_iter_ret_ty = step.iter_ty;
+	llvm::Type* llvm_iter_ret_ty = step.iter_done_ty;
 
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
@@ -640,8 +745,8 @@ Codegen::codegen_async_send(
 		llvm_send_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
 
 	// Get the "send" symbol
-	SymType& proto_sym = sym_cast<SymType>(proto.sym);
-	Sym* send_sym = proto_sym.scope.find("send");
+	SymType& proto_impl_sym = sym_cast<SymType>(proto.impl_sym);
+	Sym* send_sym = proto_impl_sym.scope.find("send");
 	assert(send_sym);
 	auto emplaced = funcs.emplace(send_sym, Function::FromArgs(llvm_send_fn, args));
 	Function* func = &emplaced.first->second;
@@ -683,68 +788,11 @@ Codegen::codegen_async_close(HirNode* hir_proto, llvm::Type* frame)
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
 	// Get the "close" symbol
-	SymType& proto_sym = sym_cast<SymType>(proto.sym);
-	Sym* close_sym = proto_sym.scope.find("close");
+	SymType& proto_impl_sym = sym_cast<SymType>(proto.impl_sym);
+	Sym* close_sym = proto_impl_sym.scope.find("close");
 	assert(close_sym);
 
 	return Expr::Empty();
-}
-
-Codegen::codegen_async_frame_t
-Codegen::codegen_async_frame(HirNode* hir_proto)
-{
-	// // Codegen Frame
-	//
-	// struct Frame<TRet> {
-	//     i32 step;
-	//	   Ret value;
-	//	   ...Args value;
-	//     ...Locals value;
-	// }
-	//
-	std::map<Sym*, int> lut;
-	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
-	SymFunc& sym_func = sym_cast<SymFunc>(proto.sym);
-	TyFunc const& ty_func = ty_cast<TyFunc>(sym_func.ty);
-
-	std::vector<llvm::Type*> members;
-
-	llvm::Type* llvm_step_idx_type = llvm::Type::getInt32Ty(*context);
-	members.push_back(llvm_step_idx_type);
-
-	llvm::Type* llvm_ret_ty = get_type(ty_func.rt_qty);
-	members.push_back(llvm_ret_ty);
-
-	for( auto& local : proto.parameters )
-	{
-		HirId& id_nod = hir_cast<HirId>(local);
-		llvm::Type* llvm_local_type = get_type(local->qty);
-		lut.emplace(id_nod.sym, members.size());
-		members.push_back(llvm_local_type);
-	}
-
-	for( auto& local : proto.locals )
-	{
-		HirLet& let_nod = hir_cast<HirLet>(local);
-		llvm::Type* llvm_local_type = get_type(local->qty);
-		lut.emplace(let_nod.sym, members.size());
-		members.push_back(llvm_local_type);
-	}
-
-	// async_fn.return_val_idx = members.size() - 1;
-
-	std::string result_struct_name = "TEMP";
-	// result_struct_name += async_fn.sema_return_type.type->get_name();
-	// result_struct_name += ">";
-
-	llvm::StructType* llvm_struct_type =
-		llvm::StructType::create(*context, members, result_struct_name.c_str());
-
-	return codegen_async_frame_t
-	{
-		.frame_ty = llvm_struct_type, .step_frame_idx = 0, .ret_frame_idx = 1,
-		.sym_frame_idx_lut = lut
-	}
 }
 
 Expr
@@ -810,7 +858,7 @@ Codegen::codegen_func_call_static(HirNode* hir_call, Expr sret)
 		{
 			llvm::Value* val = builder->CreateAlloca(arg.type);
 
-			codegen_memcpy(expr, val);
+			codegen_memcpy(expr.address(), val);
 
 			llvm_arg_values.push_back(val);
 		}
@@ -1241,6 +1289,8 @@ Codegen::codegen_expr(HirNode* hir_expr, Expr lhs)
 		return codegen_member_access(hir_expr);
 	case HirNodeKind::Switch:
 		return codegen_switch(hir_expr);
+	case HirNodeKind::Yield:
+		return codegen_yield(hir_expr);
 	default:
 		return Expr::Empty();
 	}
@@ -1256,7 +1306,7 @@ Codegen::codegen_return(HirNode* hir_return)
 	if( !current_func->sret.is_void() )
 	{
 		llvm::Value* dest = current_func->sret.address().llvm_pointer();
-		codegen_memcpy(expr, dest);
+		codegen_memcpy(expr.address(), dest);
 
 		builder->CreateRetVoid();
 		return Expr::Empty();
@@ -1284,7 +1334,10 @@ Codegen::codegen_yield(HirNode* hir_yield)
 	// The suspend block is the current bb.
 	Expr yield_expr = codegen_expr(yield_nod.expr);
 
-	llvm::BasicBlock* llvm_suspend_bb = builder->GetInsertBlock();
+	// The suspend block gets backpatched.
+	llvm::BasicBlock* llvm_suspend_bb =
+		llvm::BasicBlock::Create(*context, "suspend", current_func->llvm_func);
+	builder->CreateBr(llvm_suspend_bb);
 
 	llvm::BasicBlock* llvm_resume_bb =
 		llvm::BasicBlock::Create(*context, "resume", current_func->llvm_func);
@@ -1299,8 +1352,14 @@ Codegen::codegen_yield(HirNode* hir_yield)
 	builder->SetInsertPoint(llvm_resume_bb);
 
 	// TODO: Check that the value is present, crash otherwise.
-	llvm::Value* llvm_send_payload = builder->CreateStructGEP(
+	llvm::Value* llvm_send_payload_ptr = builder->CreateStructGEP(
 		current_func->llvm_send_opt_ty, current_func->llvm_func->getArg(2), 1);
+
+	// The value stored in the send_opt_ty is actually a pointer to the value,
+	// since we're taking a gep to that value, the result is pointer->pointer->opt_ty
+
+	llvm::Value* llvm_send_payload =
+		builder->CreateLoad(current_func->llvm_send_ty->getPointerTo(), llvm_send_payload_ptr);
 
 	return Expr(Address(llvm_send_payload, current_func->llvm_send_ty));
 }
@@ -1402,11 +1461,8 @@ Codegen::codegen_string_literal(HirNode* hir_str)
 }
 
 llvm::Value*
-Codegen::codegen_memcpy(Expr expr, llvm::Value* dest)
+Codegen::codegen_memcpy(Address src_address, llvm::Value* dest)
 {
-	assert(expr.is_address());
-	Address src_address = expr.address();
-
 	auto llvm_size = mod->getDataLayout().getTypeAllocSize(src_address.llvm_allocated_type());
 	auto llvm_align = mod->getDataLayout().getPrefTypeAlign(src_address.llvm_allocated_type());
 
