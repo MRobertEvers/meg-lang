@@ -238,23 +238,23 @@ struct HirFuncCall
 	} kind = CallKind::Invalid;
 
 	// Only one is populated
-	union
-	{
-		Sym* callee;
-		HirNode* callee_expr;
-	};
+
+	Sym* callee;
+	HirNode* this_expr;
 
 	std::vector<HirNode*> args;
 
 	HirFuncCall(Sym* callee, std::vector<HirNode*> args)
 		: callee(callee)
 		, args(args)
+		, this_expr(nullptr)
 		, kind(CallKind::Static)
 	{}
 
-	HirFuncCall(HirNode* callee_expr, std::vector<HirNode*> args)
-		: callee_expr(callee_expr)
+	HirFuncCall(Sym* callee, HirNode* this_expr, std::vector<HirNode*> args)
+		: this_expr(this_expr)
 		, args(args)
+		, callee(callee)
 		, kind(CallKind::PtrCall)
 	{}
 };

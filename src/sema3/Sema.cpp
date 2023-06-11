@@ -1713,15 +1713,61 @@ Sema::sema_func_call(AstNode* ast_func_call)
 			args[i] = coercion_result.unwrap();
 		}
 
-		auto& ty_func = ty_cast<TyFunc>(sym_cast<SymFunc>(sym_lu.first()).ty);
-
-		return hir.create<HirFuncCall>(ty_func.rt_qty, sym_lu.first(), args);
+		return hir.create<HirFuncCall>(func_ty.rt_qty, sym_lu.first(), args);
 	}
 	case NodeKind::MemberAccess:
 	{
 		// TODO This-call?
+		AstMemberAccess& member_access = ast_cast<AstMemberAccess>(callee);
+
+		auto this_expr_result = sema_expr_any(member_access.callee);
+		if( !this_expr_result.ok() )
+			return this_expr_result;
+
+		HirNode* this_expr = this_expr_result.unwrap();
+
+		QualifiedTy this_qty = this_expr->qty;
+		SymLookupResult this_sym_lu = sym_tab.lookup(this_qty.ty);
+		if( !this_sym_lu.found() )
+			return SemaError("???");
+
+		SymType& this_sym_type = sym_cast<SymType>(this_sym_lu.first());
+
+		AstId& member_id = ast_cast<AstId>(member_access.id);
+		Sym* callee_sym = this_sym_type.scope.find(to_simple(member_id));
+
+		QualifiedTy qty = sym_qty(builtins, callee_sym);
+		if( !qty.is_function() )
+			return SemaError("...is not a function.");
+
+		TyFunc const& func_ty = ty_cast<TyFunc>(qty.ty);
+		if( args.size() < func_ty.args_qtys.size() )
+			return SemaError("Not enough args");
+
+		for( int i = 0; i < args.size(); i++ )
+		{
+			QualifiedTy const& arg_qty = args.at(i)->qty;
+			if( i == func_ty.args_qtys.size() )
+			{
+				if( func_ty.is_var_arg )
+					break;
+				else
+					return SemaError("Too many arguments");
+			}
+
+			QualifiedTy const& expected_qty = func_ty.args_qtys.at(i);
+
+			auto coercion_result = equal_coercion(expected_qty, args.at(i));
+			if( !coercion_result.ok() )
+				return coercion_result;
+
+			args[i] = coercion_result.unwrap();
+		}
+
+		return hir.create<HirFuncCall>(func_ty.rt_qty, callee_sym, this_expr, args);
 	}
 	default:
+		// TODO: Everything else just indirect call?
 		return NotImpl();
 	}
 }

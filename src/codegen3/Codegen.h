@@ -98,7 +98,7 @@ public:
 		llvm::Function* step_fn;
 		llvm::Type* send_opt_ty;
 		llvm::Type* send_ty;
-		llvm::Type* iter_done_ty;
+		llvm::Type* iter_ret_ty;
 		llvm::Type* iter_ty;
 	};
 
@@ -115,6 +115,7 @@ public:
 	Expr codegen_construct(HirNode*);
 	Expr codegen_func_call(HirNode*, Expr sret);
 	Expr codegen_func_call_static(HirNode*, Expr sret);
+	Expr codegen_func_call_indirect(HirNode*, Expr sret);
 	Expr codegen_binop(HirNode* hir_call);
 	Expr codegen_builtin(HirNode* hir_call);
 	Expr codegen_intcast(HirNode* hir_call);

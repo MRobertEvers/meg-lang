@@ -1249,29 +1249,36 @@ Parser::parse_string_literal()
 ParseResult<AstNode*>
 Parser::parse_postfix_expr()
 {
-	auto simple_expr_result = parse_simple_expr();
-	if( !simple_expr_result.ok() )
-		return simple_expr_result;
+	ParseResult<AstNode*> expr_result = parse_simple_expr();
+	if( !expr_result.ok() )
+		return expr_result;
 
-	AstNode* simple_expr = simple_expr_result.unwrap();
-
-	Token tok = cursor.peek();
-	switch( tok.kind )
+	while( true )
 	{
-	case TokenKind::OpenSquare:
-		return parse_array_access(simple_expr);
-	case TokenKind::OpenParen:
-		return parse_call(simple_expr);
-	case TokenKind::IsKw:
-		return parse_is(simple_expr);
-	case TokenKind::SkinnyArrow:
-		return parse_indirect_member_access(simple_expr);
-	case TokenKind::OpenCurly:
-		return parse_initializer(simple_expr);
-	case TokenKind::Dot:
-		return parse_member_access(simple_expr);
-	default:
-		return simple_expr;
+		Token tok = cursor.peek();
+		AstNode* simple_expr = expr_result.unwrap();
+		switch( tok.kind )
+		{
+		case TokenKind::OpenSquare:
+			expr_result = parse_array_access(simple_expr);
+			break;
+		case TokenKind::OpenParen:
+			expr_result = parse_call(simple_expr);
+			break;
+		case TokenKind::SkinnyArrow:
+			expr_result = parse_indirect_member_access(simple_expr);
+			break;
+		case TokenKind::OpenCurly:
+			expr_result = parse_initializer(simple_expr);
+			break;
+		case TokenKind::Dot:
+			expr_result = parse_member_access(simple_expr);
+			break;
+		case TokenKind::IsKw:
+			return parse_is(simple_expr);
+		default:
+			return simple_expr;
+		}
 	}
 }
 

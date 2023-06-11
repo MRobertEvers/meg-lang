@@ -99,6 +99,8 @@ Codegen::codegen_struct(HirNode* hir_struct)
 	std::string name_str = ty_struct.name;
 	llvm::StructType* llvm_struct_type = llvm::StructType::create(*context, members, name_str);
 
+	std::cout << "Struct Type: " << name_str << " " << std::hex << llvm_struct_type << std::endl;
+
 	tys.emplace(sym_type.ty, llvm_struct_type);
 
 	return Expr::Empty();
@@ -338,6 +340,9 @@ Codegen::codegen_async_frame(HirNode* hir_proto)
 	llvm::StructType* llvm_struct_type =
 		llvm::StructType::create(*context, members, result_struct_name.c_str());
 
+	std::cout << "Frame Type: " << std::hex << llvm_struct_type << std::endl;
+	tys.emplace(proto_impl_sym.ty, llvm_struct_type);
+
 	return codegen_async_frame_t{
 		.frame_ty = llvm_struct_type,
 		.step_frame_idx = 0,
@@ -525,7 +530,7 @@ Codegen::codegen_async_step_suspends_backpatch(
 	llvm::Function* llvm_fn = current_func->llvm_func;
 
 	llvm::Type* llvm_frame_type = frame.frame_ty;
-	llvm::Type* llvm_send_return_type = step.iter_done_ty;
+	llvm::Type* llvm_send_return_type = step.iter_ret_ty;
 
 	llvm::ConstantInt* llvm_zero = llvm::ConstantInt::get(*context, llvm::APInt(1, 0, true));
 
@@ -591,13 +596,16 @@ Codegen::codegen_async_step(HirNode* hir_func, codegen_async_frame_t frame)
 
 	SymType& iter_ty_sym = sym_cast<SymType>(sym_unalias(proto_impl_sym.scope.find("Iter")));
 	llvm::Type* llvm_iter_ty = get_type(iter_ty_sym.ty);
-	llvm::Type* llvm_iter_res_ty = llvm::StructType::create(
-		*context, {llvm::Type::getInt1Ty(*context), llvm_iter_ty}, "IterRet");
+	Sym* send_sym = proto_impl_sym.scope.find("send");
+	SymFunc& send_sym_func = sym_cast<SymFunc>(send_sym);
+	TyFunc const& send_ty_func = ty_cast<TyFunc>(send_sym_func.ty);
+
+	llvm::Type* llvm_iter_ret_ty = get_type(send_ty_func.rt_qty.ty);
 
 	llvm::Type* llvm_void_ty = llvm::Type::getVoidTy(*context);
 
 	std::vector<Arg> args;
-	args.push_back(Arg(nullptr, llvm_iter_res_ty, true, false));
+	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
 	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
 	args.push_back(Arg(nullptr, llvm_send_opt_ty, false, true));
 
@@ -653,7 +661,7 @@ Codegen::codegen_async_step(HirNode* hir_func, codegen_async_frame_t frame)
 		.send_ty = llvm_send_ty,
 		.send_opt_ty = llvm_send_opt_ty,
 		.iter_ty = llvm_iter_ty,
-		.iter_done_ty = llvm_iter_res_ty,
+		.iter_ret_ty = llvm_iter_ret_ty,
 		.step_fn = llvm_fn};
 	codegen_async_step_suspends_backpatch(hir_func, step, frame);
 
@@ -670,7 +678,11 @@ Codegen::codegen_async_begin(
 	llvm::Function* llvm_step_fn = step.step_fn;
 	llvm::Type* llvm_send_opt_ty = step.send_opt_ty;
 	llvm::Type* llvm_send_ty = step.send_ty;
-	llvm::Type* llvm_iter_ret_ty = step.iter_done_ty;
+	llvm::Type* llvm_iter_ret_ty = step.iter_ret_ty;
+
+	std::cout << "Frame Ptr: " << std::hex << llvm_frame_ty << std::endl;
+	std::cout << "Iter Ret Ptr: " << std::hex << llvm_iter_ret_ty << std::endl;
+	std::cout << "Send Opt Ptr: " << std::hex << llvm_send_opt_ty << std::endl;
 
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
@@ -728,7 +740,7 @@ Codegen::codegen_async_send(
 	llvm::Function* llvm_step_fn = step.step_fn;
 	llvm::Type* llvm_send_opt_ty = step.send_opt_ty;
 	llvm::Type* llvm_send_ty = step.send_ty;
-	llvm::Type* llvm_iter_ret_ty = step.iter_done_ty;
+	llvm::Type* llvm_iter_ret_ty = step.iter_ret_ty;
 
 	HirFuncProto& proto = hir_cast<HirFuncProto>(hir_proto);
 
@@ -820,6 +832,8 @@ Codegen::codegen_func_call(HirNode* hir_call, Expr sret)
 	{
 	case HirFuncCall::CallKind::Static:
 		return codegen_func_call_static(hir_call, sret);
+	case HirFuncCall::CallKind::PtrCall:
+		return codegen_func_call_indirect(hir_call, sret);
 	default:
 		return Expr::Empty();
 	}
@@ -847,6 +861,68 @@ Codegen::codegen_func_call_static(HirNode* hir_call, Expr sret)
 
 		llvm_arg_values.push_back(val);
 	}
+
+	for( int i = 0; i < callee.ir_arg_count(); i++ )
+	{
+		HirNode* hir_expr = call_nod.args.at(i);
+		Arg& arg = callee.ir_arg(i);
+		Expr expr = codegen_expr(hir_expr);
+
+		if( arg.is_byval() )
+		{
+			llvm::Value* val = builder->CreateAlloca(arg.type);
+
+			codegen_memcpy(expr.address(), val);
+
+			llvm_arg_values.push_back(val);
+		}
+		else
+		{
+			llvm_arg_values.push_back(codegen_eval(expr));
+		}
+	}
+
+	// Var args.
+	for( int i = callee.ir_arg_count(); i < call_nod.args.size(); i++ )
+	{
+		HirNode* hir_expr = call_nod.args.at(i);
+		Expr expr = codegen_expr(hir_expr);
+		llvm_arg_values.push_back(codegen_eval(expr));
+	}
+
+	llvm::Value* call = builder->CreateCall(callee.llvm_func, llvm_arg_values);
+
+	return RValue(call);
+}
+
+Expr
+Codegen::codegen_func_call_indirect(HirNode* hir_call, Expr sret)
+{
+	HirFuncCall& call_nod = hir_cast<HirFuncCall>(hir_call);
+	assert(call_nod.kind == HirFuncCall::CallKind::PtrCall);
+
+	Expr this_expr = codegen_expr(call_nod.this_expr);
+	Function& callee = funcs.at(call_nod.callee);
+
+	std::cout << "Sret Param Type: " << std::hex << callee.sret.address().llvm_allocated_type()
+			  << std::endl;
+	std::cout << "Sret Arg Type: " << std::hex << sret.address().llvm_allocated_type() << std::endl;
+
+	std::vector<llvm::Value*> llvm_arg_values;
+	if( !callee.sret.is_void() )
+	{
+		// Allocate the sret arg if one is not provided.
+		llvm::Value* val;
+		if( sret.is_address() )
+			val = sret.address().llvm_pointer();
+		else
+			val = builder->CreateAlloca(callee.sret.address().llvm_allocated_type());
+
+		llvm_arg_values.push_back(val);
+	}
+
+	// llvm::Value* llvm_this_val = codegen_eval(this_expr);
+	llvm_arg_values.push_back(this_expr.address().llvm_pointer());
 
 	for( int i = 0; i < callee.ir_arg_count(); i++ )
 	{
@@ -1066,6 +1142,7 @@ Codegen::codegen_let(HirNode* hir_let)
 	HirLet& let = hir_cast<HirLet>(hir_let);
 
 	llvm::Type* type = get_type(var_ty(let.sym));
+	std::cout << "Var Type: " << std::hex << type << std::endl;
 
 	{
 		InsertEntryBlock block(builder.get(), current_func->llvm_func);
@@ -1232,7 +1309,8 @@ Codegen::codegen_var(HirNode* hir_id)
 
 	Address* iter_vars = vars.find(var.sym);
 	assert(iter_vars);
-	return Expr(*iter_vars);
+
+	return Expr(Address(*iter_vars));
 }
 
 // TODO: This should probably just be HirMember with nullable self
@@ -1505,5 +1583,5 @@ Codegen::get_type(QualifiedTy qty)
 llvm::Type*
 Codegen::get_type(Ty const* ty)
 {
-	return tys[ty];
+	return tys.at(ty);
 }

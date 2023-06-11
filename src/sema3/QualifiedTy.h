@@ -19,7 +19,7 @@ public:
 	{
 		Impl,
 		None,
-	} impl = ImplKind::Impl;
+	} impl = ImplKind::None;
 
 	QualifiedTy();
 	QualifiedTy(Ty const* ty);
