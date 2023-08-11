@@ -44,6 +44,7 @@ public:
 	std::vector<Arg> args;
 	std::vector<Address> allocas;
 	std::vector<FunctionYieldPoint> yield_points;
+	std::vector<FunctionYieldPoint> return_points;
 
 	// For async functions only.
 	llvm::Type* llvm_send_opt_ty = nullptr;
@@ -58,6 +59,9 @@ public:
 	Arg& ir_arg(int i);
 	int ir_arg_count() const;
 	int llvm_arg_index(int ir_index);
+
+	Arg& arg(int i);
+	int arg_count() const;
 
 	static Function FromArgs(llvm::Function* llvm_func, std::vector<Arg> args);
 };

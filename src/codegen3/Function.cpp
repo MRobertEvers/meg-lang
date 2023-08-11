@@ -57,6 +57,18 @@ Function::llvm_arg_index(int ir_index)
 	return ir_index + (args.size() - ir_args.size());
 }
 
+Arg&
+Function::arg(int i)
+{
+	return args.at(i);
+}
+
+int
+Function::arg_count() const
+{
+	return args.size();
+}
+
 Function
 Function::FromArgs(llvm::Function* llvm_func, std::vector<Arg> args)
 {

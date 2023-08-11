@@ -1,8 +1,10 @@
 extern fn printf(c: i8*, ...): void;
 
 async fn my_coro(a: i32): impl Generator<i32, i32, i32> {
+    printf("Beginning a: %d\n", a);
     let first = yield a;
 
+    printf("Done first: %d\n", first);
     return first;
 }
 
@@ -10,8 +12,12 @@ fn main(): i32 {
     let frame = my_coro(3);
 
     let arg = frame.begin();
+    printf("Yielded begin %d\n", arg.value);
+    printf("Done begin %d\n", arg.done);
 
     let yielded = frame.send(1);
+
+    printf("Done %d\n", yielded.done);
 
     return 0;
 }

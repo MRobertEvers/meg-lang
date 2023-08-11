@@ -150,21 +150,21 @@ Codegen::codegen_func(HirNode* hir_func)
 	}
 }
 
-void
+std::vector<Address>
 Codegen::codegen_func_entry(Function* func)
 {
+	std::vector<Address> addrs;
 	// This only generates the entry code for ir args.
 	// codegened implicit args should be handled separately.
 	llvm::Function* llvm_fn = func->llvm_func;
-	for( int i = 0; i < func->ir_arg_count(); i++ )
+	for( int i = 0; i < func->arg_count(); i++ )
 	{
-		Arg& arg = func->ir_arg(i);
-		assert(arg.sym);
+		Arg& arg = func->arg(i);
 
-		int llvm_arg_index = func->llvm_arg_index(i);
+		int llvm_arg_index = i;
 		llvm::Value* val = nullptr;
 
-		if( arg.is_byval() )
+		if( arg.is_byval() || arg.is_sret() )
 			val = llvm_fn->getArg(llvm_arg_index);
 		else
 		{
@@ -172,8 +172,13 @@ Codegen::codegen_func_entry(Function* func)
 			builder->CreateStore(llvm_fn->getArg(llvm_arg_index), val);
 		}
 
-		vars.add(arg.sym, Address(val, arg.type));
+		auto addr = Address(val, arg.type);
+		addrs.push_back(addr);
+		if( arg.sym )
+			vars.add(arg.sym, addr);
 	}
+
+	return addrs;
 }
 
 Expr
@@ -396,6 +401,12 @@ Codegen::codegen_async_constructor(HirNode* hir_proto, codegen_async_frame_t fra
 
 	codegen_func_entry(current_func);
 
+	llvm::Value* llvm_step_gep = builder->CreateStructGEP(llvm_frame_ty, llvm_fn->getArg(0), 0);
+
+	llvm::ConstantInt* llvm_zero = llvm::ConstantInt::get(*context, llvm::APInt(32, 0, true));
+
+	builder->CreateStore(llvm_zero, llvm_step_gep);
+
 	for( auto [sym, alloca_addr] : vars )
 	{
 		int frame_idx = frame.sym_frame_idx_lut.at(sym);
@@ -533,6 +544,7 @@ Codegen::codegen_async_step_suspends_backpatch(
 	llvm::Type* llvm_send_return_type = step.iter_ret_ty;
 
 	llvm::ConstantInt* llvm_zero = llvm::ConstantInt::get(*context, llvm::APInt(1, 0, true));
+	llvm::ConstantInt* llvm_one = llvm::ConstantInt::get(*context, llvm::APInt(1, 1, true));
 
 	int yield_idx = 0;
 	for( auto yield_point : current_func->yield_points )
@@ -555,6 +567,50 @@ Codegen::codegen_async_step_suspends_backpatch(
 		// Set the value in the return value.
 		if( !yield_point.yield_expr.is_void() )
 			codegen_memcpy(yield_point.yield_expr.address(), llvm_send_return_value_ptr);
+
+		// Set the step in the frame.
+		llvm::ConstantInt* llvm_yield_idx =
+			llvm::ConstantInt::get(*context, llvm::APInt(32, yield_idx + 1, true));
+		builder->CreateStore(llvm_yield_idx, llvm_step_value_ptr);
+
+		// Copy all vars back into the frame
+		for( auto [sym, alloca_addr] : vars )
+		{
+			int frame_idx = frame.sym_frame_idx_lut.at(sym);
+			llvm::Value* llvm_gep =
+				builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, frame_idx);
+
+			codegen_memcpy(*alloca_addr, llvm_gep);
+		}
+
+		builder->CreateRetVoid();
+	}
+
+	int return_idx = 0;
+	for( auto exit_point : current_func->return_points )
+	{
+		llvm::BasicBlock* llvm_suspend_block = exit_point.suspend_bb;
+		builder->SetInsertPoint(llvm_suspend_block);
+
+		llvm::Argument* llvm_frame_arg = llvm_fn->getArg(1);
+		llvm::Value* llvm_step_value_ptr =
+			builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, frame.step_frame_idx);
+
+		llvm::Argument* llvm_send_return_arg = llvm_fn->getArg(0);
+		llvm::Value* llvm_send_return_done_ptr =
+			builder->CreateStructGEP(llvm_send_return_type, llvm_send_return_arg, 0);
+		llvm::Value* llvm_send_return_value_ptr =
+			builder->CreateStructGEP(llvm_send_return_type, llvm_send_return_arg, 1);
+
+		llvm::Value* llvm_frame_return_value_ptr =
+			builder->CreateStructGEP(llvm_frame_type, llvm_frame_arg, 1);
+
+		// Set done to false in the return value.
+		builder->CreateStore(llvm_one, llvm_send_return_done_ptr);
+
+		// Set the value in the return value in the frame.
+		if( !exit_point.yield_expr.is_void() )
+			codegen_memcpy(exit_point.yield_expr.address(), llvm_frame_return_value_ptr);
 
 		// Set the step in the frame.
 		llvm::ConstantInt* llvm_yield_idx =
@@ -606,7 +662,7 @@ Codegen::codegen_async_step(HirNode* hir_func, codegen_async_frame_t frame)
 
 	std::vector<Arg> args;
 	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
-	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
+	args.push_back(Arg(nullptr, llvm_frame_ty->getPointerTo(), false, false));
 	args.push_back(Arg(nullptr, llvm_send_opt_ty, false, true));
 
 	// TODO: Function that takes
@@ -620,6 +676,15 @@ Codegen::codegen_async_step(HirNode* hir_func, codegen_async_frame_t frame)
 
 	llvm::Function* llvm_fn = llvm::Function::Create(
 		llvm_fn_ty, linkage(proto.linkage), func_name(proto.sym) + "_step", mod.get());
+
+	for( int i = 0; i < args.size(); i++ )
+	{
+		Arg& arg = args.at(i);
+		if( arg.is_sret() )
+			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addStructRetAttr(arg.type));
+		else if( arg.is_byval() )
+			llvm_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addByValAttr(arg.type));
+	}
 
 	// We use a function on the stack here because there is no sym for the step function
 	// you cannot reference it.
@@ -688,13 +753,22 @@ Codegen::codegen_async_begin(
 
 	std::vector<Arg> args;
 	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
-	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
+	args.push_back(Arg(nullptr, llvm_frame_ty->getPointerTo(), false, false));
 
 	llvm::FunctionType* llvm_begin_fn_ty =
 		llvm::FunctionType::get(llvm::Type::getVoidTy(*context), to_llvm_arg_tys(args), false);
 
 	llvm::Function* llvm_begin_fn = llvm::Function::Create(
 		llvm_begin_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
+
+	for( int i = 0; i < args.size(); i++ )
+	{
+		Arg& arg = args.at(i);
+		if( arg.is_sret() )
+			llvm_begin_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addStructRetAttr(arg.type));
+		else if( arg.is_byval() )
+			llvm_begin_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addByValAttr(arg.type));
+	}
 
 	// Get the "begin" symbol
 	SymType& proto_impl_sym = sym_cast<SymType>(proto.impl_sym);
@@ -746,7 +820,7 @@ Codegen::codegen_async_send(
 
 	std::vector<Arg> args;
 	args.push_back(Arg(nullptr, llvm_iter_ret_ty, true, false));
-	args.push_back(Arg(nullptr, llvm_frame_ty, false, true));
+	args.push_back(Arg(nullptr, llvm_frame_ty->getPointerTo(), false, false));
 	// TODO: Use qty.is_aggregate_ty()
 	args.push_back(Arg(nullptr, llvm_send_ty, false, llvm_send_ty->isAggregateType()));
 
@@ -755,6 +829,15 @@ Codegen::codegen_async_send(
 
 	llvm::Function* llvm_send_fn = llvm::Function::Create(
 		llvm_send_fn_ty, linkage(proto.linkage), func_name(proto.sym), mod.get());
+
+	for( int i = 0; i < args.size(); i++ )
+	{
+		Arg& arg = args.at(i);
+		if( arg.is_sret() )
+			llvm_send_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addStructRetAttr(arg.type));
+		else if( arg.is_byval() )
+			llvm_send_fn->getArg(i)->addAttrs(llvm::AttrBuilder().addByValAttr(arg.type));
+	}
 
 	// Get the "send" symbol
 	SymType& proto_impl_sym = sym_cast<SymType>(proto.impl_sym);
@@ -765,19 +848,25 @@ Codegen::codegen_async_send(
 
 	llvm::BasicBlock* llvm_entry_bb = llvm::BasicBlock::Create(*context, "entry", llvm_send_fn);
 	builder->SetInsertPoint(llvm_entry_bb);
-	codegen_func_entry(func);
+	std::vector<Address> arg_addrs = codegen_func_entry(func);
 
 	llvm::Value* llvm_send_opt_struct_val = builder->CreateAlloca(llvm_send_opt_ty);
 
 	// The optional flag whether it's null is the 0th entry in the struct.
-	llvm::Value* llvm_send_opt_flag =
+	llvm::Value* llvm_send_opt_flag_ptr =
 		builder->CreateStructGEP(llvm_send_opt_ty, llvm_send_opt_struct_val, 0);
 
 	llvm::ConstantInt* llvm_one_1bit = llvm::ConstantInt::get(*context, llvm::APInt(1, 1, true));
 
-	builder->CreateStore(llvm_one_1bit, llvm_send_opt_flag);
+	builder->CreateStore(llvm_one_1bit, llvm_send_opt_flag_ptr);
+
+	// The optional flag whether it's null is the 0th entry in the struct.
+	llvm::Value* llvm_send_opt_val_ptr =
+		builder->CreateStructGEP(llvm_send_opt_ty, llvm_send_opt_struct_val, 1);
 
 	// TODO: Store a pointer to the arg in the struct.
+	builder->CreateStore(arg_addrs.at(2).llvm_pointer(), llvm_send_opt_val_ptr);
+	// codegen_memcpy(arg_addrs.at(2), llvm_send_opt_val_ptr);
 
 	builder->CreateCall(
 		llvm_step_fn,
@@ -1381,6 +1470,17 @@ Codegen::codegen_return(HirNode* hir_return)
 
 	Expr expr = codegen_expr(ret.expr);
 
+	if( current_func->llvm_send_ty )
+	{
+		llvm::BasicBlock* llvm_exit_bb =
+			llvm::BasicBlock::Create(*context, "exit", current_func->llvm_func);
+		builder->CreateBr(llvm_exit_bb);
+
+		current_func->return_points.push_back(FunctionYieldPoint(llvm_exit_bb, nullptr, expr));
+
+		return Expr::Empty();
+	}
+
 	if( !current_func->sret.is_void() )
 	{
 		llvm::Value* dest = current_func->sret.address().llvm_pointer();
@@ -1539,12 +1639,16 @@ Codegen::codegen_string_literal(HirNode* hir_str)
 }
 
 llvm::Value*
-Codegen::codegen_memcpy(Address src_address, llvm::Value* dest)
+Codegen::codegen_memcpy(Expr src, llvm::Value* dest)
 {
-	auto llvm_size = mod->getDataLayout().getTypeAllocSize(src_address.llvm_allocated_type());
-	auto llvm_align = mod->getDataLayout().getPrefTypeAlign(src_address.llvm_allocated_type());
+	llvm::Type* llvm_mov_ty =
+		src.is_address() ? src.address().llvm_allocated_type() : src.rvalue().llvm_type();
+	llvm::Value* llvm_val_ptr =
+		src.is_address() ? src.address().llvm_pointer() : src.rvalue().llvm_pointer();
+	auto llvm_size = mod->getDataLayout().getTypeAllocSize(llvm_mov_ty);
+	auto llvm_align = mod->getDataLayout().getPrefTypeAlign(llvm_mov_ty);
 
-	builder->CreateMemCpy(dest, llvm_align, src_address.llvm_pointer(), llvm_align, llvm_size);
+	builder->CreateMemCpy(dest, llvm_align, llvm_val_ptr, llvm_align, llvm_size);
 
 	return dest;
 }

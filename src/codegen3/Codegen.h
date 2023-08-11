@@ -11,6 +11,7 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <vector>
 
 class OrderedVars
 {
@@ -67,7 +68,7 @@ public:
 	Expr codegen_item(HirNode*);
 	Expr codegen_struct(HirNode*);
 	Expr codegen_func(HirNode*);
-	void codegen_func_entry(Function* func);
+	std::vector<Address> codegen_func_entry(Function* func);
 	Expr codegen_sync_func(HirNode*);
 
 	Expr codegen_async_func(HirNode*);
@@ -137,7 +138,7 @@ public:
 	Expr codegen_number_literal(HirNode*);
 	Expr codegen_string_literal(HirNode*);
 
-	llvm::Value* codegen_memcpy(Address src_address, llvm::Value* dest);
+	llvm::Value* codegen_memcpy(Expr src_address, llvm::Value* dest);
 	llvm::Value* codegen_eval(Expr expr);
 	llvm::Type* get_type(QualifiedTy qty);
 	llvm::Type* get_type(Ty const* ty);
